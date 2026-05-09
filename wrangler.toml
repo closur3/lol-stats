@@ -4,9 +4,9 @@ compatibility_date = "2026-02-03"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-GITHUB_USER = "closur3"
-GITHUB_REPO = "lol-stats-archive"
-FANDOM_USER = "HsuX"
+GITHUB_OWNER = "closur3"
+GITHUB_REPOSITORY = "lol-stats-archive"
+FANDOM_BOT_USERNAME = "HsuX"
 
 [[kv_namespaces]]
 binding = "lol-stats-kv"
@@ -16,9 +16,6 @@ id = "eac61be4fd134ab7a4282bf749791563"
 [observability.logs]
 enabled = true
 invocation_logs = true
-
-[triggers]
-crons = ["0 0 * * *", "*/2 8-15 * * wed,thu,fri,sat,sun"]
 
 [dev]
 ip = "0.0.0.0"

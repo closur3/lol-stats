@@ -142,7 +142,7 @@ export class APIRouter {
     }
 
     try {
-      const authContext = await FandomClient.login(env.FANDOM_USER, env.FANDOM_PASS);
+      const authContext = await FandomClient.login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
       const fandomClient = new FandomClient(authContext);
 
       let teamsRaw = null;
