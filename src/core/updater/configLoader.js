@@ -1,4 +1,6 @@
-export async function loadRuntimeConfig(githubClient) {
-  const tournaments = await githubClient.fetchJson("config/tour.json");
+import { loadTourConfig } from './tourConfigLoader.js';
+
+export async function loadRuntimeConfig(env, githubClient) {
+  const tournaments = await loadTourConfig(env, githubClient);
   return { TOURNAMENTS: tournaments };
 }

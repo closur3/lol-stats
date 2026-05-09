@@ -30,4 +30,10 @@ export const kvKeys = {
   scheduleDay() {
     return "SCHEDULE_DAY";
   },
+  configTour() {
+    return "CONFIG_TOUR";
+  },
+  configTeams() {
+    return "CONFIG_TEAMS";
+  },
 };

@@ -23,7 +23,7 @@ export class Updater {
   }
 
   async loadRuntimeConfig() {
-    return loadRuntimeConfig(this.githubClient);
+    return loadRuntimeConfig(this.env, this.githubClient);
   }
 
   async loadCachedData(tournaments) {

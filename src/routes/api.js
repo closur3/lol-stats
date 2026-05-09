@@ -5,6 +5,7 @@ import { FandomClient } from '../api/fandomClient.js';
 import { dataUtils } from '../utils/dataUtils.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { kvDelete, kvPutIfChanged } from '../utils/kvStore.js';
+import { loadTeamsConfig } from '../core/updater/teamsConfigLoader.js';
 
 /**
  * API路由处理
@@ -148,7 +149,7 @@ export class APIRouter {
       let teamsRaw = null;
       try {
         const githubClient = new GitHubClient(env);
-        teamsRaw = await githubClient.fetchJson("config/teams.json");
+        teamsRaw = await loadTeamsConfig(env, githubClient);
       } catch (error) { console.error("[Rebuild] Failed to load teams.json:", error.message); }
 
       const matches = await fandomClient.fetchAllMatches(slug, overviewPages, null);

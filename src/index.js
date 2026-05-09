@@ -8,6 +8,7 @@ import { GitHubClient } from './api/githubClient.js';
 import { kvKeys } from './infrastructure/kv/keyFactory.js';
 import { dateUtils } from './utils/dateUtils.js';
 import { ensureDayInitialized, handleHighFreqTick } from './core/scheduler/dynamicCronManager.js';
+import { loadTourConfig } from './core/updater/tourConfigLoader.js';
 
 /**
  * 主Worker入口
@@ -69,8 +70,8 @@ export default {
         let sortedTournaments = [];
         try {
           const githubClient = new GitHubClient(env);
-          const tournaments = await githubClient.fetchJson("config/tour.json");
-          sortedTournaments = dateUtils.sortTournamentsByDate(Array.isArray(tournaments) ? tournaments : []);
+          const tournaments = await loadTourConfig(env, githubClient);
+          sortedTournaments = dateUtils.sortTournamentsByDate(tournaments);
         } catch (error) { console.error("[Logs] Failed to load tournaments config:", error.message); }
 
         const leagueLogs = [];
@@ -124,8 +125,7 @@ export default {
 
   async scheduled(event, env) {
     const githubClient = new GitHubClient(env);
-    const runtimeConfig = await githubClient.fetchJson("config/tour.json");
-    if (!Array.isArray(runtimeConfig)) throw new Error("config/tour.json must be array");
+    const runtimeConfig = await loadTourConfig(env, githubClient);
     await ensureDayInitialized(env, runtimeConfig, event.scheduledTime);
 
     const updater = new Updater(env);

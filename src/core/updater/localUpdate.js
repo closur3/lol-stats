@@ -3,11 +3,12 @@ import { prepareTournamentContext } from './context.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged } from '../../utils/kvStore.js';
 import { recomputeCronOnMetaChange } from '../scheduler/dynamicCronManager.js';
+import { loadTeamsConfig } from './teamsConfigLoader.js';
 
 export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, refreshHomeStaticFromCache) {
   let teamsRaw = null;
   try {
-    teamsRaw = await githubClient.fetchJson("config/teams.json");
+    teamsRaw = await loadTeamsConfig(env, githubClient);
   } catch (error) { console.error("[Context] Failed to load teams.json:", error.message); }
   await prepareTournamentContext(env, runtimeConfig, cache, teamsRaw);
 

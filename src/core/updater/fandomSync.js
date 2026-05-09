@@ -8,6 +8,7 @@ import { generateLog, buildLeagueLogEntries } from './logWriter.js';
 import { saveData } from './persister.js';
 import { commitRevisionWrites } from './revWriter.js';
 import { UPDATE_CONFIG } from './types.js';
+import { loadTeamsConfig } from './teamsConfigLoader.js';
 
 export async function runFandomUpdate(env, githubClient, runtimeConfig, cache, force = false, forceSlugs = null, options = {}, logger, _getSlowThresholdMs) {
   const forceWrite = options.forceWrite === undefined ? force : !!options.forceWrite;
@@ -15,7 +16,7 @@ export async function runFandomUpdate(env, githubClient, runtimeConfig, cache, f
   const pendingRevisionWrites = options.pendingRevisionWrites || {};
   let teamsRaw = null;
   try {
-    teamsRaw = await githubClient.fetchJson("config/teams.json");
+    teamsRaw = await loadTeamsConfig(env, githubClient);
   } catch (error) { console.error("[Context] Failed to load teams.json:", error.message); }
 
   const candidates = determineCandidates(runtimeConfig.TOURNAMENTS, forceSlugs);
