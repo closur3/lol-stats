@@ -41,7 +41,8 @@ export function computeTournamentMetaFromRawMatches(rawMatches) {
     return { mode: "fast", emoji: "🎮", todayEarliestTimestamp: todayEarliest, todayUnfinished, hasHistoryUnfinished };
   }
   if (todayEarliest) {
-    return { mode: "slow", emoji: "⏳", todayEarliestTimestamp: todayEarliest, todayUnfinished, hasHistoryUnfinished };
+    const emoji = now >= todayEarliest ? "👀" : "⏳";
+    return { mode: "slow", emoji, todayEarliestTimestamp: todayEarliest, todayUnfinished, hasHistoryUnfinished };
   }
   return { mode: "slow", emoji: "🕊️", todayEarliestTimestamp: 0, todayUnfinished: 0, hasHistoryUnfinished: false };
 }

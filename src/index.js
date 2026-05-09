@@ -58,12 +58,19 @@ export default {
         }));
         const logsBySlug = new Map(logPairs.filter(([, logs]) => Array.isArray(logs) && logs.length > 0));
         const logSlugs = Array.from(logsBySlug.keys());
+        const scheduleState = await kv.get(kvKeys.scheduleDay(), { type: "json" });
+        const cronPhase = scheduleState?.cron?.phase || "idle";
         const homePairs = await Promise.all(logSlugs.map(async slug => {
           const home = await kv.get(kvKeys.home(slug), { type: "json" });
           const totalMatchCount = Array.isArray(home?.rawMatches) ? home.rawMatches.length : null;
-          const metaMode = home?.tournament?.mode;
-          const mode = metaMode === "slow" || metaMode === "fast" ? metaMode : null;
-          return [slug, { totalMatchCount, mode }];
+          const meta = home?.tournament || {};
+          return [slug, {
+            totalMatchCount,
+            phase: cronPhase,
+            todayEarliestTimestamp: Number(meta.todayEarliestTimestamp) || 0,
+            todayUnfinished: Number(meta.todayUnfinished) || 0,
+            hasHistoryUnfinished: !!meta.hasHistoryUnfinished
+          }];
         }));
         const homeBySlug = new Map(homePairs);
 
@@ -83,8 +90,11 @@ export default {
           leagueLogs.push({
             name: tournament.league || tournament.name || slug,
             logs,
-            mode: homeBySlug.get(slug)?.mode,
-            totalMatches: homeBySlug.get(slug)?.totalMatchCount ?? null
+            phase: homeBySlug.get(slug)?.phase,
+            totalMatches: homeBySlug.get(slug)?.totalMatchCount ?? null,
+            todayEarliestTimestamp: homeBySlug.get(slug)?.todayEarliestTimestamp ?? 0,
+            todayUnfinished: homeBySlug.get(slug)?.todayUnfinished ?? 0,
+            hasHistoryUnfinished: homeBySlug.get(slug)?.hasHistoryUnfinished ?? false
           });
           consumed.add(slug);
         }
@@ -95,16 +105,15 @@ export default {
           leagueLogs.push({
             name: slug,
             logs,
-            mode: homeBySlug.get(slug)?.mode,
-            totalMatches: homeBySlug.get(slug)?.totalMatchCount ?? null
+            phase: homeBySlug.get(slug)?.phase,
+            totalMatches: homeBySlug.get(slug)?.totalMatchCount ?? null,
+            todayEarliestTimestamp: homeBySlug.get(slug)?.todayEarliestTimestamp ?? 0,
+            todayUnfinished: homeBySlug.get(slug)?.todayUnfinished ?? 0,
+            hasHistoryUnfinished: homeBySlug.get(slug)?.hasHistoryUnfinished ?? false
           });
         }
 
-        const html = HTMLRenderer.renderLogPage(leagueLogs, time, sha, {
-          slowThresholdMinutes: UPDATE_CONFIG.SLOW_THRESHOLD_MINUTES,
-          cronIntervalMinutes: UPDATE_CONFIG.CRON_INTERVAL_MINUTES,
-          maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES
-        });
+        const html = HTMLRenderer.renderLogPage(leagueLogs, time, sha, { maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES });
         return new Response(html, { 
           headers: {
             "content-type": "text/html;charset=utf-8",

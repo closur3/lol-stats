@@ -3,8 +3,6 @@ import { renderFontLinks, renderNavBar, renderBuildFooter, renderClientJS } from
 
 export function renderLogPage(leagueLogs, time, sha, options = {}) {
   if (!leagueLogs) leagueLogs = [];
-  const slowThresholdMinutes = Number(options.slowThresholdMinutes);
-  const cronIntervalMinutes = Number(options.cronIntervalMinutes);
   const maxLogEntries = Number(options.maxLogEntries);
 
   const leagueItems = Array.isArray(leagueLogs)
@@ -15,8 +13,19 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     const name = item.name || "";
     const entries = item.logs || [];
     const lastEntry = entries[0];
-    const isSlow = item.mode === "slow";
-    const modeCls = isSlow ? "mode-slow" : "mode-fast";
+    const phase = item.phase === "window" || item.phase === "tail" || item.phase === "idle" ? item.phase : "idle";
+    const phaseCls = `phase-${phase}`;
+    const isRestDay = phase === "idle"
+      && (Number(item.todayEarliestTimestamp) || 0) === 0
+      && (Number(item.todayUnfinished) || 0) === 0
+      && !item.hasHistoryUnfinished;
+    const phaseLabel = phase === "window"
+      ? "🎮WINDOW"
+      : phase === "tail"
+      ? "👀TAIL"
+      : isRestDay
+      ? "🕊️OFFDAY"
+      : "⏳IDLE";
 
     const syncCount = entries.filter(entry => entry.message.includes("🔄")).length;
     const errCount = entries.filter(entry => entry.message.includes("❌") || entry.message.includes("🚧")).length;
@@ -38,7 +47,7 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     }).join("");
 
     return `<div class="league-card">
-      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${name}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="mode-tag ${modeCls}">${isSlow?`🐌${slowThresholdMinutes}m`:`⚡${cronIntervalMinutes}m`}</span></div></div>
+      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${name}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}">${phaseLabel}</span></div></div>
       <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val utc-local" data-utc="${lastUtcIso}" data-format="datetime">${lastTime}</span></span></div>
       <div class="timeline">${bars}</div>
       <div class="league-card-logs">${rows}</div>
