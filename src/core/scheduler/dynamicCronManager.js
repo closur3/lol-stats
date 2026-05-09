@@ -41,8 +41,23 @@ async function fetchTodayMatchesUtc(tournaments, fandomClient, targetDateUtc) {
   return all;
 }
 
-function buildWindowCron(matches, nowUtc) {
-  if (!matches.length) return null;
+async function fetchTournamentMetasFromHome(env, tournaments) {
+  const kv = env["lol-stats-kv"];
+  const entries = await Promise.all((tournaments || []).map(async (tournament) => {
+    const slug = tournament?.slug;
+    if (!slug) return null;
+    const home = await kv.get(kvKeys.home(slug), { type: "json" });
+    const meta = home?.tournament || {};
+    return {
+      slug,
+      todayUnfinished: Number(meta.todayUnfinished) || 0,
+      hasHistoryUnfinished: !!meta.hasHistoryUnfinished
+    };
+  }));
+  return entries.filter(Boolean);
+}
+
+function buildWindowCron(matches, metas, nowUtc) {
   let earliest = null;
   for (const match of matches) {
     const raw = match?.DateTimeUTC;
@@ -50,23 +65,13 @@ function buildWindowCron(matches, nowUtc) {
     const dt = parseUtcDateTime(raw);
     if (!earliest || dt < earliest) earliest = dt;
   }
-  if (!earliest) return null;
+
+  const hasCarryoverUnfinished = (metas || []).some(meta => meta.hasHistoryUnfinished);
+  if (!earliest && !hasCarryoverUnfinished) return null;
+
   const day = WEEKDAY[nowUtc.getUTCDay()];
-  const startHour = earliest.getUTCHours();
+  const startHour = hasCarryoverUnfinished ? 0 : earliest.getUTCHours();
   return `*/2 ${startHour}-23 * * ${day}`;
-}
-
-function isMatchFinished(match) {
-  const s1 = match?.Team1Score;
-  const s2 = match?.Team2Score;
-  if (s1 == null || s2 == null) return false;
-  if (String(s1).trim() === "" || String(s2).trim() === "") return false;
-  return true;
-}
-
-function allMatchesFinished(matches) {
-  if (!matches.length) return false;
-  return matches.every(isMatchFinished);
 }
 
 async function readControl(env) {
@@ -119,7 +124,8 @@ export async function planTodayWindow(env, tournaments, scheduledTimeMs) {
   const auth = await loginFandom(env);
   const fandomClient = new FandomClient(auth);
   const matches = await fetchTodayMatchesUtc(tournaments, fandomClient, now);
-  const windowCron = buildWindowCron(matches, now);
+  const metas = await fetchTournamentMetasFromHome(env, tournaments);
+  const windowCron = buildWindowCron(matches, metas, now);
   const finalSchedules = windowCron ? [BASELINE_CRON, windowCron] : [BASELINE_CRON];
   await updateSchedules(env, finalSchedules);
   const today = formatUtcDate(now);
@@ -160,20 +166,41 @@ export async function handleHighFreqTick(env, tournaments, scheduledTimeMs, even
     }
     return;
   }
+}
 
-  if (cronState.phase !== "window" || cronState.windowCron !== eventCron) return;
+export async function recomputeCronOnMetaChange(env, tournaments, nowMs = Date.now()) {
+  const now = new Date(nowMs);
+  const today = formatUtcDate(now);
+  const state = await readControl(env);
+  if (!state || state.date !== today) return;
+  const cronState = state.cron;
+  if (!cronState || typeof cronState !== "object" || Array.isArray(cronState)) throw new Error("SCHEDULE_DAY.cron must be a JSON object");
+  if (cronState.phase !== "window") return;
 
   const auth = await loginFandom(env);
   const fandomClient = new FandomClient(auth);
   const matches = await fetchTodayMatchesUtc(tournaments, fandomClient, now);
-  if (!allMatchesFinished(matches)) return;
+  const metas = await fetchTournamentMetasFromHome(env, tournaments);
+  const nextWindowCron = buildWindowCron(matches, metas, now);
+  const hasAnyUnfinished = metas.some(meta => meta.hasHistoryUnfinished || meta.todayUnfinished > 0);
 
-  const finalCron1 = toSinglePointCron(new Date(now.getTime() + 30 * 60 * 1000));
-  const finalCron2 = toSinglePointCron(new Date(now.getTime() + 60 * 60 * 1000));
-  await updateSchedules(env, [BASELINE_CRON, finalCron1, finalCron2]);
+  if (!hasAnyUnfinished) {
+    const finalCron1 = toSinglePointCron(new Date(now.getTime() + 30 * 60 * 1000));
+    const finalCron2 = toSinglePointCron(new Date(now.getTime() + 60 * 60 * 1000));
+    await updateSchedules(env, [BASELINE_CRON, finalCron1, finalCron2]);
+    await writeControl(env, {
+      date: today,
+      cron: { phase: "tail", windowCron: null, finalCron1, finalCron2 }
+    });
+    console.log(`[CRON-SHRINK] date=${today} all-finished=1 -> finalCron1=${finalCron1} finalCron2=${finalCron2}`);
+    return;
+  }
+
+  if (!nextWindowCron || nextWindowCron === cronState.windowCron) return;
+  await updateSchedules(env, [BASELINE_CRON, nextWindowCron]);
   await writeControl(env, {
     date: today,
-    cron: { phase: "tail", windowCron: null, finalCron1, finalCron2 }
+    cron: { phase: "window", windowCron: nextWindowCron, finalCron1: null, finalCron2: null }
   });
-  console.log(`[CRON-SHRINK] date=${today} all-finished=1 -> finalCron1=${finalCron1} finalCron2=${finalCron2}`);
+  console.log(`[CRON-RECALC] date=${today} window=${cronState.windowCron} -> ${nextWindowCron}`);
 }

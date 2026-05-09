@@ -2,6 +2,7 @@ import { Analyzer } from '../analyzer.js';
 import { prepareTournamentContext } from './context.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged } from '../../utils/kvStore.js';
+import { recomputeCronOnMetaChange } from '../scheduler/dynamicCronManager.js';
 
 export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, refreshHomeStaticFromCache) {
   let teamsRaw = null;
@@ -11,6 +12,7 @@ export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, re
   await prepareTournamentContext(env, runtimeConfig, cache, teamsRaw);
 
   const changedSlugs = [];
+  let shouldRecomputeCron = false;
 
   for (const tournament of (runtimeConfig.TOURNAMENTS || [])) {
     const slug = tournament.slug;
@@ -21,7 +23,7 @@ export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, re
     const computedMeta = Analyzer.computeTournamentMetaFromRawMatches(rawMatches);
 
     const existingTournament = home.tournament || {};
-    if (existingTournament.mode === computedMeta.mode && existingTournament.emoji === computedMeta.emoji && existingTournament.todayEarliestTimestamp === computedMeta.todayEarliestTimestamp) continue;
+    if (existingTournament.mode === computedMeta.mode && existingTournament.emoji === computedMeta.emoji && existingTournament.todayEarliestTimestamp === computedMeta.todayEarliestTimestamp && (Number(existingTournament.todayUnfinished) || 0) === (Number(computedMeta.todayUnfinished) || 0) && (!!existingTournament.hasHistoryUnfinished) === (!!computedMeta.hasHistoryUnfinished)) continue;
 
     const { teamMap, ...tournamentStored } = tournament;
     const scheduleMap = home.scheduleMap || {};
@@ -38,9 +40,13 @@ export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, re
     await kvPutIfChanged(env, homeKey, homeSnapshot);
     cache.homes[slug] = homeSnapshot;
     changedSlugs.push(slug);
+    shouldRecomputeCron = true;
   }
 
   if (changedSlugs.length > 0) {
     await refreshHomeStaticFromCache(env);
+  }
+  if (shouldRecomputeCron) {
+    await recomputeCronOnMetaChange(env, runtimeConfig.TOURNAMENTS || []);
   }
 }

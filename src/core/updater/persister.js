@@ -4,6 +4,7 @@ import { kvPut, kvPutIfChanged } from '../../utils/kvStore.js';
 import { formatLogEntry } from './logWriter.js';
 import { generateArchiveStaticHTML } from './archiveBuilder.js';
 import { UPDATE_CONFIG } from './types.js';
+import { recomputeCronOnMetaChange } from '../scheduler/dynamicCronManager.js';
 
 export async function saveData(env, runtimeConfig, cache, analysis, syncItems, idleItems = [], force = false, forceSlugs = null, leagueLogEntries = {}) {
   const analyzedTournamentMeta = analysis.tournamentMeta || {};
@@ -56,6 +57,7 @@ export async function saveData(env, runtimeConfig, cache, analysis, syncItems, i
 
   const writePromises = [];
   const writeTargets = [];
+  let shouldRecomputeCron = false;
   for (const tournament of runtimeConfig.TOURNAMENTS) {
     const slug = tournament.slug;
     const isForceTarget = force && (!forceSlugs || forceSlugs.has(slug));
@@ -66,8 +68,10 @@ export async function saveData(env, runtimeConfig, cache, analysis, syncItems, i
     const { teamMap, ...tournamentStored } = tournament;
 
     const homeKey = kvKeys.home(slug);
+    const nextMeta = { ...tournamentStored, ...(analyzedTournamentMeta[slug] || {}) };
+    const prevMeta = cache?.homes?.[slug]?.tournament || {};
     const homeSnapshot = {
-      tournament: { ...tournamentStored, ...(analyzedTournamentMeta[slug] || {}) },
+      tournament: nextMeta,
       rawMatches: raw,
       stats: stats,
       timeGrid: grid,
@@ -79,8 +83,22 @@ export async function saveData(env, runtimeConfig, cache, analysis, syncItems, i
     const homeHasChanges = isForceTarget || writeScopeSlugSet.has(slug) || shouldBackfillMissing;
 
     if (homeHasChanges) {
+      const prevTodayUnfinished = Number(prevMeta.todayUnfinished) || 0;
+      const nextTodayUnfinished = Number(nextMeta.todayUnfinished) || 0;
+      const prevHistoryUnfinished = !!prevMeta.hasHistoryUnfinished;
+      const nextHistoryUnfinished = !!nextMeta.hasHistoryUnfinished;
+      const prevEarliest = Number(prevMeta.todayEarliestTimestamp) || 0;
+      const nextEarliest = Number(nextMeta.todayEarliestTimestamp) || 0;
+      if (
+        prevTodayUnfinished !== nextTodayUnfinished ||
+        prevHistoryUnfinished !== nextHistoryUnfinished ||
+        prevEarliest !== nextEarliest
+      ) {
+        shouldRecomputeCron = true;
+      }
       writeTargets.push({ key: homeKey, slug });
       writePromises.push(kvPutIfChanged(env, homeKey, homeSnapshot));
+      cache.homes[slug] = homeSnapshot;
     }
   }
 
@@ -126,6 +144,10 @@ export async function saveData(env, runtimeConfig, cache, analysis, syncItems, i
     } catch (error) {
       console.error("Error generating archive HTML:", error);
     }
+  }
+
+  if (shouldRecomputeCron) {
+    await recomputeCronOnMetaChange(env, runtimeConfig.TOURNAMENTS || []);
   }
 
   return { failedHomeSlugs };
