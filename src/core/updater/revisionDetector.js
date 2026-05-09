@@ -56,7 +56,7 @@ export async function detectRevisionChanges(env, tournaments) {
       const revKey = kvKeys.rev(slug);
       const previousRevisionState = await kv.get(revKey, { type: "json" });
       const shouldSkip = false;
-      console.log(`[REV-TH] ${slug} fast -> check`);
+      console.log(`[REV-CHECK] ${slug} -> check`);
 
       return {
         slug,
