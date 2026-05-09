@@ -34,7 +34,7 @@ function calcChangedCount(oldData, newData) {
 export function processResults(results, cache, force, forceSlugs, runtimeConfig) {
   const failedSlugs = new Set();
   const syncItems = [];
-  const idleItems = [];
+  const skipItems = [];
   const breakers = [];
   const apiErrors = [];
 
@@ -62,7 +62,7 @@ export function processResults(results, cache, force, forceSlugs, runtimeConfig)
             isForce
           });
         } else {
-          idleItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
+          skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
         }
       }
     } else {
@@ -73,5 +73,5 @@ export function processResults(results, cache, force, forceSlugs, runtimeConfig)
     }
   });
 
-  return { failedSlugs, syncItems, idleItems, breakers, apiErrors, displayNameMap };
+  return { failedSlugs, syncItems, skipItems, breakers, apiErrors, displayNameMap };
 }

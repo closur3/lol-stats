@@ -6,7 +6,7 @@ import { generateArchiveStaticHTML } from './archiveBuilder.js';
 import { UPDATE_CONFIG } from './types.js';
 import { recomputeCronOnMetaChange } from '../scheduler/dynamicCronManager.js';
 
-export async function saveData(env, runtimeConfig, cache, analysis, syncItems, idleItems = [], force = false, forceSlugs = null, leagueLogEntries = {}) {
+export async function saveData(env, runtimeConfig, cache, analysis, syncItems, skipItems = [], force = false, forceSlugs = null, leagueLogEntries = {}) {
   const analyzedTournamentMeta = analysis.tournamentMeta || {};
   const kv = env["lol-stats-kv"];
   const scheduleState = await kv.get(kvKeys.scheduleDay(), { type: "json" });
@@ -46,8 +46,8 @@ export async function saveData(env, runtimeConfig, cache, analysis, syncItems, i
   });
 
   const changedSlugSet = new Set((syncItems || []).map(item => item?.slug).filter(Boolean));
-  const idleSlugSet = new Set((idleItems || []).map(item => item?.slug).filter(Boolean));
-  const writeScopeSlugSet = new Set([...changedSlugSet, ...idleSlugSet]);
+  const skipSlugSet = new Set((skipItems || []).map(item => item?.slug).filter(Boolean));
+  const writeScopeSlugSet = new Set([...changedSlugSet, ...skipSlugSet]);
   if (force) {
     if (forceSlugs && forceSlugs.size > 0) {
       for (const slug of forceSlugs) writeScopeSlugSet.add(slug);

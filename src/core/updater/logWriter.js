@@ -9,22 +9,22 @@ export function formatDeltaTag(item) {
   return "~0";
 }
 
-export function generateLog(syncItems, idleItems, breakers, apiErrors, authContext, logger) {
+export function generateLog(syncItems, skipItems, breakers, apiErrors, authContext, logger) {
   const isAnon = (!authContext || authContext.isAnonymous);
   const authSuffix = isAnon ? " 👻" : "";
 
   const formatItem = (item) => `${item.displayName} ${formatDeltaTag(item)}`;
 
   const syncDetails = syncItems.map(formatItem);
-  const idleDetails = idleItems.map(formatItem);
+  const skipDetails = skipItems.map(formatItem);
 
   let trafficLight, action, content;
 
   if (syncDetails.length === 0 && apiErrors.length === 0 && breakers.length === 0) {
-    trafficLight = "⚪"; action = "[IDLE]";
+    trafficLight = "⚪"; action = "[SKIP]";
 
     let parts = [];
-    if (idleDetails.length > 0) parts.push(`🔍 ${idleDetails.join(", ")}`);
+    if (skipDetails.length > 0) parts.push(`🔍 ${skipDetails.join(", ")}`);
 
     content = parts.join(" | ");
   } else {
@@ -44,7 +44,7 @@ export function generateLog(syncItems, idleItems, breakers, apiErrors, authConte
   if (trafficLight === "🔴") logger.error(finalLog); else logger.success(finalLog);
 }
 
-export function buildLeagueLogEntries(syncItems, idleItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap) {
+export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap) {
   const nowShort = dateUtils.getNow().shortDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
@@ -69,10 +69,10 @@ export function buildLeagueLogEntries(syncItems, idleItems, breakers, apiErrors,
     });
   });
 
-  idleItems.forEach(item => {
+  skipItems.forEach(item => {
     if (bySlug[item.slug]) return;
     pushEntry(item.slug, {
-      action: "IDLE",
+      action: "SKIP",
       level: "SUCCESS",
       displayName: getDisplayName(item.slug),
       added: item.added ?? 0,
@@ -115,7 +115,7 @@ export function formatLogEntry(entry) {
     }
     return `🟢 [SYNC] | 🔄 ${displayName} ${delta}${triggerText}${suffix}`;
   }
-  if (action === "IDLE") {
+  if (action === "SKIP") {
     const delta = `~${added + updated}`;
     let triggerText = "";
     if (isForce) {
@@ -123,7 +123,7 @@ export function formatLogEntry(entry) {
     } else if (trigger) {
       triggerText = ` | 🟰 <a href="${trigger.diffUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${trigger.revid}</a>`;
     }
-    return `⚪ [IDLE] | 🔍 ${displayName} ${delta}${triggerText}${suffix}`;
+    return `⚪ [SKIP] | 🔍 ${displayName} ${delta}${triggerText}${suffix}`;
   }
   if (action === "BREAKER") {
     return `🔴 [ERR!] | 🚧 ${displayName} ${dropInfo || "(Drop)"}${suffix}`;

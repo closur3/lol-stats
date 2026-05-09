@@ -32,10 +32,10 @@ export async function runFandomUpdate(env, githubClient, runtimeConfig, cache, f
 
   const results = await fetchMatchData(fandomClient, candidates);
 
-  const { failedSlugs, syncItems, idleItems, breakers, apiErrors, displayNameMap } = processResults(results, cache, force, forceSlugs, runtimeConfig);
-  console.log(`[FANDOM] process sync=${syncItems.length} idle=${idleItems.length} breakers=${breakers.length} apiErrors=${apiErrors.length} failed=${failedSlugs.size}`);
+  const { failedSlugs, syncItems, skipItems, breakers, apiErrors, displayNameMap } = processResults(results, cache, force, forceSlugs, runtimeConfig);
+  console.log(`[FANDOM] process sync=${syncItems.length} skip=${skipItems.length} breakers=${breakers.length} apiErrors=${apiErrors.length} failed=${failedSlugs.size}`);
 
-  for (const item of [...syncItems, ...idleItems]) {
+  for (const item of [...syncItems, ...skipItems]) {
     if (revidChanges[item.slug]) {
       item.revidChanges = revidChanges[item.slug];
     }
@@ -45,10 +45,10 @@ export async function runFandomUpdate(env, githubClient, runtimeConfig, cache, f
 
   const analysis = Analyzer.runFullAnalysis(cache.rawMatches, runtimeConfig, UPDATE_CONFIG.MAX_SCHEDULE_DAYS);
 
-  generateLog(syncItems, idleItems, breakers, apiErrors, authContext, logger);
-  const leagueLogEntries = buildLeagueLogEntries(syncItems, idleItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap);
+  generateLog(syncItems, skipItems, breakers, apiErrors, authContext, logger);
+  const leagueLogEntries = buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap);
 
-  const saveSummary = await saveData(env, runtimeConfig, cache, analysis, syncItems, idleItems, forceWrite, forceSlugs, leagueLogEntries);
+  const saveSummary = await saveData(env, runtimeConfig, cache, analysis, syncItems, skipItems, forceWrite, forceSlugs, leagueLogEntries);
 
   await commitRevisionWrites(env, pendingRevisionWrites, failedSlugs, saveSummary?.failedHomeSlugs || new Set());
 }
