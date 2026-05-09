@@ -20,8 +20,8 @@ export async function refreshScheduleBoardOnDayRollover(env, runtimeConfig, clea
     cron: {
       phase: "idle",
       windowCron: null,
-      finalCron1: null,
-      finalCron2: null
+      tailCron1: null,
+      tailCron2: null
     }
   });
   console.log(`[SCHEDULE] ${lastDay || "none"} -> ${today}`);

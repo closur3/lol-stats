@@ -93,8 +93,8 @@ function buildIdleState(today) {
     cron: {
       phase: "idle",
       windowCron: null,
-      finalCron1: null,
-      finalCron2: null
+      tailCron1: null,
+      tailCron2: null
     }
   };
 }
@@ -155,12 +155,12 @@ export async function handleHighFreqTick(env, tournaments, scheduledTimeMs, even
   const cronState = state.cron;
   if (!cronState || typeof cronState !== "object" || Array.isArray(cronState)) throw new Error("SCHEDULE_DAY.cron must be a JSON object");
 
-  if (cronState.phase === "tail" && (cronState.finalCron1 === eventCron || cronState.finalCron2 === eventCron)) {
-    if (cronState.finalCron2 === eventCron) {
+  if (cronState.phase === "tail" && (cronState.tailCron1 === eventCron || cronState.tailCron2 === eventCron)) {
+    if (cronState.tailCron2 === eventCron) {
       await updateSchedules(env, [BASELINE_CRON]);
       await writeControl(env, {
         date: today,
-        cron: { phase: "idle", windowCron: null, finalCron1: null, finalCron2: null }
+        cron: { phase: "idle", windowCron: null, tailCron1: null, tailCron2: null }
       });
       console.log(`[CRON-END] date=${today} final-cron2 hit -> baseline only`);
     }
@@ -175,7 +175,7 @@ export async function recomputeCronOnMetaChange(env, tournaments, nowMs = Date.n
   if (!state || state.date !== today) return;
   const cronState = state.cron;
   if (!cronState || typeof cronState !== "object" || Array.isArray(cronState)) throw new Error("SCHEDULE_DAY.cron must be a JSON object");
-  if (cronState.phase !== "window") return;
+  if (cronState.phase !== "window" && cronState.phase !== "tail") return;
 
   const auth = await loginFandom(env);
   const fandomClient = new FandomClient(auth);
@@ -184,15 +184,27 @@ export async function recomputeCronOnMetaChange(env, tournaments, nowMs = Date.n
   const nextWindowCron = buildWindowCron(matches, metas, now);
   const hasAnyUnfinished = metas.some(meta => meta.hasHistoryUnfinished || meta.todayUnfinished > 0);
 
-  if (!hasAnyUnfinished) {
-    const finalCron1 = toSinglePointCron(new Date(now.getTime() + 30 * 60 * 1000));
-    const finalCron2 = toSinglePointCron(new Date(now.getTime() + 60 * 60 * 1000));
-    await updateSchedules(env, [BASELINE_CRON, finalCron1, finalCron2]);
+  if (cronState.phase === "tail") {
+    if (!hasAnyUnfinished) return;
+    if (!nextWindowCron) throw new Error("Cannot restore window cron: unfinished matches exist but no window cron calculated");
+    await updateSchedules(env, [BASELINE_CRON, nextWindowCron]);
     await writeControl(env, {
       date: today,
-      cron: { phase: "tail", windowCron: null, finalCron1, finalCron2 }
+      cron: { phase: "window", windowCron: nextWindowCron, tailCron1: null, tailCron2: null }
     });
-    console.log(`[CRON-SHRINK] date=${today} all-finished=1 -> finalCron1=${finalCron1} finalCron2=${finalCron2}`);
+    console.log(`[CRON-RESTORE] date=${today} tail -> window (${nextWindowCron})`);
+    return;
+  }
+
+  if (!hasAnyUnfinished) {
+    const tailCron1 = toSinglePointCron(new Date(now.getTime() + 15 * 60 * 1000));
+    const tailCron2 = toSinglePointCron(new Date(now.getTime() + 30 * 60 * 1000));
+    await updateSchedules(env, [BASELINE_CRON, tailCron1, tailCron2]);
+    await writeControl(env, {
+      date: today,
+      cron: { phase: "tail", windowCron: null, tailCron1, tailCron2 }
+    });
+    console.log(`[CRON-SHRINK] date=${today} all-finished=1 -> tailCron1=${tailCron1} tailCron2=${tailCron2}`);
     return;
   }
 
@@ -200,7 +212,7 @@ export async function recomputeCronOnMetaChange(env, tournaments, nowMs = Date.n
   await updateSchedules(env, [BASELINE_CRON, nextWindowCron]);
   await writeControl(env, {
     date: today,
-    cron: { phase: "window", windowCron: nextWindowCron, finalCron1: null, finalCron2: null }
+    cron: { phase: "window", windowCron: nextWindowCron, tailCron1: null, tailCron2: null }
   });
   console.log(`[CRON-RECALC] date=${today} window=${cronState.windowCron} -> ${nextWindowCron}`);
 }
