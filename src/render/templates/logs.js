@@ -17,6 +17,9 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     const phase = resolveLeaguePhase(item);
     const phaseCls = `phase-${phase}`;
     const phaseLabel = resolveLogsPhaseLabel(item);
+    const phaseEmoji = phase === "play" ? "🎮" : phase === "offday" ? "🕊️" : "⏳";
+    const phaseEmojiCls = `phase-emoji-${phase}`;
+    const phaseText = phase === "play" ? "PLAY" : phase === "offday" ? "OFFDAY" : "IDLE";
 
     const syncCount = entries.filter(entry => entry.message.includes("🔄")).length;
     const errCount = entries.filter(entry => entry.message.includes("❌") || entry.message.includes("🚧")).length;
@@ -38,7 +41,7 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     }).join("");
 
     return `<div class="league-card">
-      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${name}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}">${phaseLabel}</span></div></div>
+      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${name}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseEmoji}</span><span>${phaseText}</span></span></div></div>
       <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val utc-local" data-utc="${lastUtcIso}" data-format="datetime">${lastTime}</span></span></div>
       <div class="timeline">${bars}</div>
       <div class="league-card-logs">${rows}</div>
