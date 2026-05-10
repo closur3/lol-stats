@@ -67,8 +67,7 @@ export function renderContentOnly(globalStats, timeData, scheduleMap, runtimeCon
     let emojiStr = "";
     if (!isArchive && tournamentMeta[tournament.slug]) {
       const meta = tournamentMeta[tournament.slug];
-      const phase = meta?.phase || "idle";
-      const displayEmoji = resolveHomeEmojiByPhase(phase, meta);
+      const displayEmoji = resolveHomeEmojiByPhase(meta);
       emojiStr = `<span ${STYLE_EMOJI}>${displayEmoji}</span>`;
     }
     const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
@@ -80,7 +79,7 @@ export function renderContentOnly(globalStats, timeData, scheduleMap, runtimeCon
       tablesHtml += `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div ${STYLE_TITLE_ROW}><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
     } else {
       const headerRight = `<div class="title-right-area" style="justify-content: flex-start;">${leagueSummaryHtml}</div>`;
-      const isSleepCollapsed = tournamentMeta[tournament.slug] && resolveHomeEmojiByPhase(tournamentMeta[tournament.slug]?.phase || "idle", tournamentMeta[tournament.slug]) === "🕊️";
+      const isSleepCollapsed = tournamentMeta[tournament.slug] && resolveHomeEmojiByPhase(tournamentMeta[tournament.slug]) === "🕊️";
       const openAttr = (isSleepCollapsed || hasNoData) ? "" : " open";
       tablesHtml += `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div ${STYLE_TITLE_ROW}><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
     }

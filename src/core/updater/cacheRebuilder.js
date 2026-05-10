@@ -30,8 +30,6 @@ export async function rebuildStaticPagesFromCache(env, options = {}) {
   const timeGrid = {};
   const scheduleMap = {};
   const tournamentMeta = {};
-  const scheduleState = await kv.get(kvKeys.scheduleDay(), { type: "json" });
-  const cronPhase = scheduleState?.cron?.phase || "idle";
 
   homeEntries.forEach(home => {
     const homeTournament = home.tournament;
@@ -43,8 +41,7 @@ export async function rebuildStaticPagesFromCache(env, options = {}) {
       tournamentMeta[slug] = {
         hasHistoryUnfinished: homeTournament.hasHistoryUnfinished,
         todayEarliestTimestamp: Number(homeTournament.todayEarliestTimestamp) || 0,
-        todayUnfinished: Number(homeTournament.todayUnfinished) || 0,
-        phase: cronPhase
+        todayUnfinished: Number(homeTournament.todayUnfinished) || 0
       };
     }
 

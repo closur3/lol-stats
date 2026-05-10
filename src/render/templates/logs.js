@@ -1,6 +1,6 @@
 import logsCSS from '../../styles/logs.js';
 import { renderFontLinks, renderNavBar, renderBuildFooter, renderClientJS } from './page.js';
-import { resolveLogsPhaseLabel } from '../../utils/leagueState.js';
+import { resolveLeaguePhase, resolveLogsPhaseLabel } from '../../utils/leagueState.js';
 
 export function renderLogPage(leagueLogs, time, sha, options = {}) {
   if (!leagueLogs) leagueLogs = [];
@@ -14,9 +14,9 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     const name = item.name || "";
     const entries = item.logs || [];
     const lastEntry = entries[0];
-    const phase = item.phase === "play" || item.phase === "tail" || item.phase === "idle" ? item.phase : "idle";
+    const phase = resolveLeaguePhase(item);
     const phaseCls = `phase-${phase}`;
-    const phaseLabel = resolveLogsPhaseLabel(phase, item);
+    const phaseLabel = resolveLogsPhaseLabel(item);
 
     const syncCount = entries.filter(entry => entry.message.includes("🔄")).length;
     const errCount = entries.filter(entry => entry.message.includes("❌") || entry.message.includes("🚧")).length;

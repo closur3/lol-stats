@@ -9,11 +9,9 @@ import { recomputeCronOnMetaChange } from '../scheduler/dynamicCronManager.js';
 export async function saveData(env, runtimeConfig, cache, analysis, syncItems, skipItems = [], force = false, forceSlugs = null, leagueLogEntries = {}) {
   const analyzedTournamentMeta = analysis.tournamentMeta || {};
   const kv = env["lol-stats-kv"];
-  const scheduleState = await kv.get(kvKeys.scheduleDay(), { type: "json" });
-  const cronPhase = scheduleState?.cron?.phase || "idle";
   const renderTournamentMeta = {};
   for (const [slug, meta] of Object.entries(analyzedTournamentMeta)) {
-    renderTournamentMeta[slug] = { ...(meta || {}), phase: cronPhase };
+    renderTournamentMeta[slug] = { ...(meta || {}) };
   }
 
   try {

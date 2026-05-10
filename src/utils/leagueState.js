@@ -5,14 +5,27 @@ export function isOffDayMeta(meta) {
   return earliest === 0 && unfinished === 0 && !historyUnfinished;
 }
 
-export function resolveLogsPhaseLabel(phase, meta) {
-  if (phase === "play") return "🎮PLAY";
-  if (phase === "tail") return "👀TAIL";
-  return isOffDayMeta(meta) ? "🕊️IDLE" : "⏳IDLE";
+export function resolveLeaguePhase(meta, nowMs = Date.now()) {
+  const earliest = Number(meta?.todayEarliestTimestamp) || 0;
+  const unfinished = Number(meta?.todayUnfinished) || 0;
+  const historyUnfinished = !!meta?.hasHistoryUnfinished;
+
+  if (historyUnfinished) return "play";
+  if (unfinished > 0) return earliest > 0 && nowMs < earliest ? "idle" : "play";
+  if (earliest === 0) return "offday";
+  return "idle";
 }
 
-export function resolveHomeEmojiByPhase(phase, meta) {
+export function resolveLogsPhaseLabel(meta, nowMs = Date.now()) {
+  const phase = resolveLeaguePhase(meta, nowMs);
+  if (phase === "play") return "🎮PLAY";
+  if (phase === "offday") return "🕊️OFFDAY";
+  return "⏳IDLE";
+}
+
+export function resolveHomeEmojiByPhase(meta, nowMs = Date.now()) {
+  const phase = resolveLeaguePhase(meta, nowMs);
   if (phase === "play") return "🎮";
-  if (phase === "tail") return "👀";
-  return isOffDayMeta(meta) ? "🕊️" : "⏳";
+  if (phase === "offday") return "🕊️";
+  return "⏳";
 }
