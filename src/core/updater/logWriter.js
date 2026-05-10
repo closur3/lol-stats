@@ -44,6 +44,13 @@ export function generateLog(syncItems, skipItems, breakers, apiErrors, authConte
   if (trafficLight === "🔴") logger.error(finalLog); else logger.success(finalLog);
 }
 
+function pickLatestRevisionTrigger(revidChanges) {
+  if (!revidChanges?.length) return null;
+  return revidChanges.reduce((latest, curr) =>
+    Number(curr.revid) > Number(latest.revid) ? curr : latest
+  );
+}
+
 export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap) {
   const nowShort = dateUtils.getNow().shortDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
@@ -63,7 +70,7 @@ export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors,
       displayName: getDisplayName(item.slug),
       added: item.added ?? 0,
       updated: item.updated ?? 0,
-      trigger: item.revidChanges?.[0] || null,
+      trigger: pickLatestRevisionTrigger(item.revidChanges),
       isForce: item.isForce ?? false,
       isAnon
     });
@@ -77,7 +84,7 @@ export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors,
       displayName: getDisplayName(item.slug),
       added: item.added ?? 0,
       updated: item.updated ?? 0,
-      trigger: item.revidChanges?.[0] || null,
+      trigger: pickLatestRevisionTrigger(item.revidChanges),
       isForce: item.isForce ?? false,
       isAnon
     });
