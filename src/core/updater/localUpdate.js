@@ -2,7 +2,6 @@ import { Analyzer } from '../analyzer.js';
 import { prepareTournamentContext } from './context.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged } from '../../utils/kvStore.js';
-import { recomputeCronOnMetaChange } from '../scheduler/dynamicCronManager.js';
 import { loadTeamsConfig } from './teamsConfigLoader.js';
 
 export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, refreshHomeStaticFromCache, scopeSlugs = null) {
@@ -13,7 +12,6 @@ export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, re
   await prepareTournamentContext(env, runtimeConfig, cache, teamsRaw);
 
   const changedSlugs = [];
-  let shouldRecomputeCron = false;
 
   const tournaments = scopeSlugs instanceof Set
     ? (runtimeConfig.TOURNAMENTS || []).filter(tournament => scopeSlugs.has(tournament.slug))
@@ -45,13 +43,9 @@ export async function runLocalUpdate(env, githubClient, runtimeConfig, cache, re
     await kvPutIfChanged(env, homeKey, homeSnapshot);
     cache.homes[slug] = homeSnapshot;
     changedSlugs.push(slug);
-    shouldRecomputeCron = true;
   }
 
   if (changedSlugs.length > 0) {
     await refreshHomeStaticFromCache(env);
-  }
-  if (shouldRecomputeCron) {
-    await recomputeCronOnMetaChange(env, runtimeConfig.TOURNAMENTS || []);
   }
 }

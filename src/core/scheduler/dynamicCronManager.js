@@ -111,7 +111,6 @@ async function writeControl(env, state) {
 function buildLeagueState(phase = "idle", window = null) {
   return {
     phase,
-    bucketCron: null,
     playStartHour: window?.startHour ?? null,
     playEndHour: window?.endHour ?? null
   };
@@ -173,11 +172,10 @@ function mergeIntervals(intervals) {
   return merged;
 }
 
-function assignActiveBuckets(state, nowUtc) {
+export function buildActiveBucketCronsFromState(state, nowUtc) {
   const intervals = [];
   for (const [slug, leagueState] of Object.entries(state.leagues || {})) {
     assertLeagueState(slug, leagueState);
-    leagueState.bucketCron = null;
     if (leagueState.phase !== "play") continue;
     intervals.push({
       startHour: Number(leagueState.playStartHour),
@@ -186,21 +184,11 @@ function assignActiveBuckets(state, nowUtc) {
   }
 
   const buckets = mergeIntervals(intervals);
-  for (const [slug, leagueState] of Object.entries(state.leagues || {})) {
-    assertLeagueState(slug, leagueState);
-    if (leagueState.phase !== "play") continue;
-    const startHour = Number(leagueState.playStartHour);
-    const endHour = Number(leagueState.playEndHour);
-    const bucket = buckets.find(item => item.startHour <= startHour && item.endHour >= endHour);
-    if (!bucket) throw new Error(`No active bucket for ${slug}`);
-    leagueState.bucketCron = toActiveCron(bucket.startHour, bucket.endHour, nowUtc);
-  }
-
   return buckets.map(bucket => toActiveCron(bucket.startHour, bucket.endHour, nowUtc));
 }
 
 function collectSchedulesFromState(state, nowUtc) {
-  const activeCrons = assignActiveBuckets(state, nowUtc);
+  const activeCrons = buildActiveBucketCronsFromState(state, nowUtc);
   const schedules = Array.from(new Set([IDLE_SWEEP_CRON, ...activeCrons]));
   if (schedules.length > MAX_TOTAL_CRONS) {
     throw new Error(`Cloudflare cron limit exceeded: ${schedules.length}/${MAX_TOTAL_CRONS}`);
@@ -208,9 +196,8 @@ function collectSchedulesFromState(state, nowUtc) {
   return schedules;
 }
 
-function shouldRunPlayLeagueAt(leagueState, nowUtc, eventCron) {
+function shouldRunPlayLeagueAt(leagueState, nowUtc) {
   if (leagueState.phase !== "play") return false;
-  if (leagueState.bucketCron !== eventCron) return false;
   const hour = nowUtc.getUTCHours();
   return hour >= Number(leagueState.playStartHour) && hour <= Number(leagueState.playEndHour);
 }
@@ -290,10 +277,13 @@ export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, event
       .map(([slug]) => slug));
   }
 
+  const activeCrons = new Set(buildActiveBucketCronsFromState(state, now));
+  if (!activeCrons.has(eventCron)) return new Set();
+
   const slugs = new Set();
   for (const [slug, leagueState] of Object.entries(state.leagues)) {
     assertLeagueState(slug, leagueState);
-    if (shouldRunPlayLeagueAt(leagueState, now, eventCron)) slugs.add(slug);
+    if (shouldRunPlayLeagueAt(leagueState, now)) slugs.add(slug);
   }
   return slugs;
 }
@@ -335,5 +325,3 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
   await writeStateAndSchedules(env, state, now, "RECONCILE");
   console.log(`[CRON-STATE] date=${today} ${changed.join(",")}`);
 }
-
-export const recomputeCronOnMetaChange = reconcileLeagueStates;
