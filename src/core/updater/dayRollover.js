@@ -21,11 +21,9 @@ export async function refreshScheduleBoardOnDayRollover(env, runtimeConfig, clea
       if (!tournament?.slug) throw new Error("Tournament slug missing");
       return [tournament.slug, {
         phase: "idle",
-        playCron: null,
+        bucketCron: null,
         playStartHour: null,
-        playEndHour: null,
-        tailCron1: null,
-        tailCron2: null
+        playEndHour: null
       }];
     }))
   });

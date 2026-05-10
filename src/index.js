@@ -7,7 +7,7 @@ import { HTMLRenderer } from './render/htmlRenderer.js';
 import { GitHubClient } from './api/githubClient.js';
 import { kvKeys } from './infrastructure/kv/keyFactory.js';
 import { dateUtils } from './utils/dateUtils.js';
-import { ensureDayInitialized, handleHighFreqTick, recomputeCronOnMetaChange, resolveScheduledExecutionSlugs } from './core/scheduler/dynamicCronManager.js';
+import { ensureDayInitialized, reconcileLeagueStates, resolveScheduledExecutionSlugs } from './core/scheduler/dynamicCronManager.js';
 import { loadTourConfig } from './core/updater/tourConfigLoader.js';
 
 /**
@@ -133,12 +133,8 @@ export default {
     await ensureDayInitialized(env, runtimeConfig, event.scheduledTime);
 
     const executionSlugs = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
-    await handleHighFreqTick(env, runtimeConfig, event.scheduledTime, event.cron);
     const updater = new Updater(env);
     await updater.runScheduledUpdate(executionSlugs);
-    if (executionSlugs instanceof Set && executionSlugs.size > 0) {
-      const scopedTournaments = runtimeConfig.filter(tournament => executionSlugs.has(tournament.slug));
-      await recomputeCronOnMetaChange(env, scopedTournaments, event.scheduledTime);
-    }
+    await reconcileLeagueStates(env, runtimeConfig, event.scheduledTime);
   }
 };
