@@ -24,7 +24,7 @@ export class HomeRouter {
     }
     
     return new Response(
-      "Initializing... Please wait for the first background update or <a href='/tools'>run a Refresh API</a>.", 
+      "Home cache is not ready. Wait for the next scheduled update, or open <a href='/tools'>Tools</a> and run Force Update.",
       { headers: { "content-type": "text/html;charset=utf-8" } }
     );
   }
