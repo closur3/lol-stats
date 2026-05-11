@@ -1,5 +1,14 @@
-﻿import { requireAdmin, requirePost } from "./auth.js";
-import { rebuildStaticPagesFromCache } from "./staticPages.js";
+import { Updater } from "../../core/updater.js";
+import { requireAdmin, requirePost } from "./auth.js";
+
+async function rebuildStaticPagesFromCache(env) {
+  try {
+    const updater = new Updater(env);
+    return await updater.rebuildStaticPagesFromCache({ includeArchive: true, requireData: true });
+  } catch (error) {
+    return { ok: false, reason: "ERROR", message: `Render Error: ${error.message}` };
+  }
+}
 
 export async function handleRefreshUI(request, env) {
   const methodError = requirePost(request);

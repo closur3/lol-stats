@@ -1,12 +1,10 @@
 import { HomeRouter } from './routes/home.js';
 import { ArchiveRouter } from './routes/archive.js';
 import { ToolsRouter } from './routes/tools.js';
+import { LogsRouter } from './routes/logs.js';
 import { APIRouter } from './routes/api.js';
-import { Updater, UPDATE_CONFIG } from './core/updater.js';
-import { HTMLRenderer } from './render/htmlRenderer.js';
+import { Updater } from './core/updater.js';
 import { GitHubClient } from './api/githubClient.js';
-import { kvKeys } from './infrastructure/kv/keyFactory.js';
-import { dateUtils } from './utils/dateUtils.js';
 import { ensureDayInitialized, reconcileLeagueStates, resolveScheduledExecutionSlugs } from './core/scheduler/dynamicCronManager.js';
 import { loadTourConfig } from './core/updater/tourConfigLoader.js';
 
@@ -16,8 +14,6 @@ import { loadTourConfig } from './core/updater/tourConfigLoader.js';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const time = env.GITHUB_TIME;
-    const sha = env.GITHUB_SHA;
 
     switch (url.pathname) {
       case "/":
@@ -47,75 +43,8 @@ export default {
       case "/manual-archive":
         return APIRouter.handleManualArchive(request, env);
 
-      case "/logs": {
-        const kv = env["lol-stats-kv"];
-        const allLogKeys = await kv.list({ prefix: kvKeys.LOG_PREFIX });
-        const logKeys = allLogKeys.keys.map(logKey => logKey.name);
-        const logPairs = await Promise.all(logKeys.map(async key => {
-          const slug = key.slice(kvKeys.LOG_PREFIX.length);
-          const logs = await kv.get(key, { type: "json" }) || [];
-          return [slug, logs];
-        }));
-        const logsBySlug = new Map(logPairs.filter(([, logs]) => Array.isArray(logs) && logs.length > 0));
-        const logSlugs = Array.from(logsBySlug.keys());
-        const homePairs = await Promise.all(logSlugs.map(async slug => {
-          const home = await kv.get(kvKeys.home(slug), { type: "json" });
-          const totalMatchCount = Array.isArray(home?.rawMatches) ? home.rawMatches.length : null;
-          const meta = home?.tournament || {};
-          return [slug, {
-            totalMatchCount,
-            todayEarliestTimestamp: Number(meta.todayEarliestTimestamp) || 0,
-            todayUnfinished: Number(meta.todayUnfinished) || 0,
-            hasHistoryUnfinished: !!meta.hasHistoryUnfinished
-          }];
-        }));
-        const homeBySlug = new Map(homePairs);
-
-        let sortedTournaments = [];
-        try {
-          const githubClient = new GitHubClient(env);
-          const tournaments = await loadTourConfig(env, githubClient);
-          sortedTournaments = dateUtils.sortTournamentsByDate(tournaments);
-        } catch (error) { console.error("[Logs] Failed to load tournaments config:", error.message); }
-
-        const leagueLogs = [];
-        const consumed = new Set();
-        for (const tournament of sortedTournaments) {
-          const slug = tournament?.slug;
-          if (!slug || !logsBySlug.has(slug)) continue;
-          const logs = logsBySlug.get(slug) || [];
-          leagueLogs.push({
-            name: tournament.league || tournament.name || slug,
-            logs,
-            totalMatches: homeBySlug.get(slug)?.totalMatchCount ?? null,
-            todayEarliestTimestamp: homeBySlug.get(slug)?.todayEarliestTimestamp ?? 0,
-            todayUnfinished: homeBySlug.get(slug)?.todayUnfinished ?? 0,
-            hasHistoryUnfinished: homeBySlug.get(slug)?.hasHistoryUnfinished ?? false
-          });
-          consumed.add(slug);
-        }
-
-        const orphanSlugs = Array.from(logsBySlug.keys()).filter(slug => !consumed.has(slug)).sort();
-        for (const slug of orphanSlugs) {
-          const logs = logsBySlug.get(slug) || [];
-          leagueLogs.push({
-            name: slug,
-            logs,
-            totalMatches: homeBySlug.get(slug)?.totalMatchCount ?? null,
-            todayEarliestTimestamp: homeBySlug.get(slug)?.todayEarliestTimestamp ?? 0,
-            todayUnfinished: homeBySlug.get(slug)?.todayUnfinished ?? 0,
-            hasHistoryUnfinished: homeBySlug.get(slug)?.hasHistoryUnfinished ?? false
-          });
-        }
-
-        const html = HTMLRenderer.renderLogPage(leagueLogs, time, sha, { maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES });
-        return new Response(html, { 
-          headers: {
-            "content-type": "text/html;charset=utf-8",
-            "cache-control": "no-store, no-cache, must-revalidate"
-          }
-        });
-      }
+      case "/logs":
+        return LogsRouter.handleLogs(request, env);
       
       case "/favicon.ico":
         return new Response(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='.9em' font-size='85' text-anchor='middle'>🥇</text></svg>`, {

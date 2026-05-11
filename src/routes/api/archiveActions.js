@@ -1,13 +1,6 @@
-﻿import { FandomClient } from "../../api/fandomClient.js";
-import { GitHubClient } from "../../api/githubClient.js";
-import { Analyzer } from "../../core/analyzer.js";
-import { rebuildArchiveIndexFromSnapshots } from "../../core/updater/archiveIndex.js";
-import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
-import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+import { deleteArchiveSnapshot, rebuildArchiveFromPayload, writeManualArchive } from "../../core/updater/archiveWriter.js";
 import { dataUtils } from "../../utils/dataUtils.js";
-import { kvDelete, kvPutIfChanged } from "../../utils/kvStore.js";
 import { requireAdmin, requirePost } from "./auth.js";
-import { generateArchiveStaticHTML } from "./staticPages.js";
 
 function normalizeArchivePayload(payload, parser) {
   const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
@@ -24,20 +17,6 @@ function assertArchivePayload(payload) {
     return new Response("Missing required fields. Please provide slug, name, overview_page, league, start_date, and end_date.", { status: 400 });
   }
   return null;
-}
-
-function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
-  if (!Array.isArray(rawMatches)) throw new Error(`Archive rawMatches invalid: ${tournament.slug}`);
-  const tournamentWithMap = { ...tournament, teamMap };
-  const miniConfig = { TOURNAMENTS: [tournamentWithMap] };
-  const analysis = Analyzer.runFullAnalysis({ [tournament.slug]: rawMatches }, miniConfig);
-  return {
-    tournament,
-    rawMatches,
-    stats: analysis.globalStats[tournament.slug] || {},
-    timeGrid: analysis.timeGrid[tournament.slug] || {},
-    teamMap
-  };
 }
 
 async function readJsonPayload(request) {
@@ -61,29 +40,7 @@ export async function handleRebuildArchive(request, env) {
   if (payloadError) return payloadError;
 
   try {
-    const authContext = await FandomClient.login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
-    const fandomClient = new FandomClient(authContext);
-    const githubClient = new GitHubClient(env);
-
-    const teamsRaw = await loadTeamsConfig(env, githubClient);
-
-    const matches = await fandomClient.fetchAllMatches(payload.slug, payload.overviewPages, null);
-    if (!matches || matches.length === 0) throw new Error("No matches found from Fandom API");
-
-    const tournament = {
-      slug: payload.slug,
-      name: payload.name,
-      overview_page: payload.overviewPages,
-      league: payload.league,
-      start_date: payload.startDate,
-      end_date: payload.endDate
-    };
-    const teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, matches);
-    await kvPutIfChanged(env, kvKeys.archive(payload.slug), buildArchiveSnapshot(tournament, matches, teamMap));
-    await rebuildArchiveIndexFromSnapshots(env);
-
-    const archiveHTML = await generateArchiveStaticHTML(env);
-    await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
+    await rebuildArchiveFromPayload(env, payload);
     return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Error: ${error.message}`, { status: 500 });
@@ -101,10 +58,7 @@ export async function handleDeleteArchive(request, env) {
   if (!payload.slug || !payload.name) return new Response("Missing required fields: slug, name", { status: 400 });
 
   try {
-    await kvDelete(env, kvKeys.archive(payload.slug));
-    await rebuildArchiveIndexFromSnapshots(env);
-    const archiveHTML = await generateArchiveStaticHTML(env);
-    await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
+    await deleteArchiveSnapshot(env, payload.slug);
     return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Delete Error: ${error.message}`, { status: 500 });
@@ -124,25 +78,7 @@ export async function handleManualArchive(request, env) {
   if (payloadError) return payloadError;
 
   try {
-    const snapshot = {
-      tournament: {
-        slug: payload.slug,
-        name: payload.name,
-        overview_page: payload.overviewPages,
-        league: payload.league,
-        start_date: payload.startDate,
-        end_date: payload.endDate
-      },
-      rawMatches: [],
-      stats: {},
-      timeGrid: {},
-      teamMap: {}
-    };
-
-    await kvPutIfChanged(env, kvKeys.archive(payload.slug), snapshot);
-    await rebuildArchiveIndexFromSnapshots(env);
-    const archiveHTML = await generateArchiveStaticHTML(env);
-    await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
+    await writeManualArchive(env, payload);
     return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Save Error: ${error.message}`, { status: 500 });

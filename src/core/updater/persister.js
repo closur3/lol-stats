@@ -1,7 +1,6 @@
 import { HTMLRenderer } from '../../render/htmlRenderer.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPut, kvPutIfChanged } from '../../utils/kvStore.js';
-import { generateArchiveStaticHTML } from './archiveBuilder.js';
 import { UPDATE_CONFIG } from './types.js';
 
 export async function saveData(env, runtimeConfig, cache, analysis, syncItems, skipItems = [], force = false, forceSlugs = null, leagueLogEntries = {}) {
@@ -124,15 +123,6 @@ export async function saveData(env, runtimeConfig, cache, analysis, syncItems, s
     const failedLogs = logResults.filter(r => r.status === 'rejected');
     if (failedLogs.length > 0) {
       console.error(`[KV] ${failedLogs.length} log write(s) failed:`, failedLogs.map(r => r.reason?.message || r.reason));
-    }
-  }
-
-  if (syncItems.length > 0) {
-    try {
-      const archiveHTML = await generateArchiveStaticHTML(env);
-      await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
-    } catch (error) {
-      console.error("Error generating archive HTML:", error);
     }
   }
 
