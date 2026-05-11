@@ -30,8 +30,7 @@ function getLocalParts(isoTimestamp, timeZone) {
   return { hour: Number(parts.hour) % 24, weekdayIndex };
 }
 
-function addMatch(grid, hour, weekdayIndex, match) {
-  const label = String(hour);
+function addMatch(grid, label, weekdayIndex, match) {
   if (!grid[label]) grid[label] = createSlot();
   if (!grid.Total) grid.Total = createSlot();
 
@@ -47,17 +46,36 @@ function addMatch(grid, hour, weekdayIndex, match) {
   addToCell(grid.Total[7]);
 }
 
+function localizeClusterLabel(utcHourLabel, isoTimestamp, timeZone) {
+  const sourceDate = new Date(isoTimestamp);
+  const utcHour = Number(utcHourLabel);
+  if (!Number.isInteger(utcHour) || utcHour < 0 || utcHour > 23) {
+    throw new Error(`Invalid timeGrid hour label: ${utcHourLabel}`);
+  }
+  const clusterDate = new Date(Date.UTC(
+    sourceDate.getUTCFullYear(),
+    sourceDate.getUTCMonth(),
+    sourceDate.getUTCDate(),
+    utcHour
+  ));
+  return String(getLocalParts(clusterDate.toISOString(), timeZone).hour);
+}
+
 export function localizeTimeGrid(regionGrid, timeZone) {
   if (!regionGrid || typeof regionGrid !== "object" || Array.isArray(regionGrid)) {
     throw new Error("timeGrid must be object");
   }
   const localized = { Total: createSlot() };
-  for (let weekdayIndex = 0; weekdayIndex < TIME_GRID_COLUMN_COUNT - 1; weekdayIndex++) {
-    const matches = regionGrid.Total?.[weekdayIndex]?.matches || [];
-    for (const match of matches) {
-      if (!match?.isoTimestamp) throw new Error("timeGrid match missing isoTimestamp");
-      const localParts = getLocalParts(match.isoTimestamp, timeZone);
-      addMatch(localized, localParts.hour, localParts.weekdayIndex, match);
+  const clusterLabels = Object.keys(regionGrid).filter(label => label !== "Total" && !Number.isNaN(Number(label)));
+  for (const clusterLabel of clusterLabels) {
+    for (let weekdayIndex = 0; weekdayIndex < TIME_GRID_COLUMN_COUNT - 1; weekdayIndex++) {
+      const matches = regionGrid[clusterLabel]?.[weekdayIndex]?.matches || [];
+      for (const match of matches) {
+        if (!match?.isoTimestamp) throw new Error("timeGrid match missing isoTimestamp");
+        const localParts = getLocalParts(match.isoTimestamp, timeZone);
+        const localClusterLabel = localizeClusterLabel(clusterLabel, match.isoTimestamp, timeZone);
+        addMatch(localized, localClusterLabel, localParts.weekdayIndex, match);
+      }
     }
   }
   return localized;
