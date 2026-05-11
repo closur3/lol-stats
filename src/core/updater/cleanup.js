@@ -1,5 +1,6 @@
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged, kvDelete } from '../../utils/kvStore.js';
+import { readArchiveIndex, writeArchiveIndex } from './archiveIndex.js';
 import { generateArchiveStaticHTML } from './archiveBuilder.js';
 
 export async function cleanupStaleHomeKeys(env, runtimeConfig) {
@@ -31,11 +32,16 @@ export async function cleanupStaleHomeKeys(env, runtimeConfig) {
 
     const archiveWrites = staleHomeKeys.map((k, i) => {
       if (staleData[i]) {
-        return kvPutIfChanged(env, `ARCHIVE_${k.slice(kvKeys.HOME_PREFIX.length)}`, staleData[i]);
+        return kvPutIfChanged(env, kvKeys.archive(k.slice(kvKeys.HOME_PREFIX.length)), staleData[i]);
       }
       return Promise.resolve();
     });
     await Promise.all(archiveWrites);
+    const archivedTournaments = staleData
+      .map(snapshot => snapshot?.tournament)
+      .filter(Boolean);
+    const archiveIndex = await readArchiveIndex(env);
+    await writeArchiveIndex(env, [...archiveIndex, ...archivedTournaments]);
     console.log(`[ARCHIVE-MOVE] Moved ${staleHomeKeys.length} expired slugs to archive`);
   }
 

@@ -36,4 +36,7 @@ export const kvKeys = {
   configTeams() {
     return "CONFIG_TEAMS";
   },
+  configArchive() {
+    return "CONFIG_ARCHIVE";
+  },
 };

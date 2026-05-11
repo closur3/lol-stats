@@ -54,11 +54,6 @@ jobs:
                   print("❌ 错误: Worker 返回的数据格式不是预期的 JSON 对象")
                   exit(1)
 
-              # 如果返回 {"error": "No data"}，表示没有备份数据，正常退出
-              if data.get("error") == "No data":
-                  print("ℹ️  Worker 返回 No data，没有可备份的数据，正常退出")
-                  exit(0)
-
               # 时区转换配置
               target_tz_name = os.environ.get("TIMEZONE", "Asia/Shanghai")
               try:
@@ -126,7 +121,7 @@ jobs:
         id: commit_meta
         shell: bash
         run: |
-          commit_msg=$(git diff --name-status -- 'markdown/*.md' | awk '
+          commit_msg=$(git diff --name-status -- 'markdown/*.md' 'config/archive.json' | awk '
             { s=substr($1,1,1); f=$2; sub(".*/","",f); sub(/\.[^.]+$/, "", f);
               if (s=="A") a[++na]=f; else if (s=="M") m[++nm]=f }
             END {
@@ -151,4 +146,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.commit_meta.outputs.commit_msg }}"
-          file_pattern: "markdown/*.md"
+          file_pattern: "markdown/*.md config/archive.json"

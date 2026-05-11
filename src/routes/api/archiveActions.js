@@ -1,5 +1,6 @@
 ﻿import { FandomClient } from "../../api/fandomClient.js";
 import { GitHubClient } from "../../api/githubClient.js";
+import { removeArchiveIndex, upsertArchiveIndex } from "../../core/updater/archiveIndex.js";
 import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { dataUtils } from "../../utils/dataUtils.js";
@@ -67,6 +68,7 @@ export async function handleRebuildArchive(request, env) {
     };
     const teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, matches);
     await kvPutIfChanged(env, kvKeys.archive(payload.slug), { tournament, rawMatches: matches, teamMap });
+    await upsertArchiveIndex(env, tournament);
 
     const archiveHTML = await generateArchiveStaticHTML(env);
     await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
@@ -88,6 +90,7 @@ export async function handleDeleteArchive(request, env) {
 
   try {
     await kvDelete(env, kvKeys.archive(payload.slug));
+    await removeArchiveIndex(env, payload.slug);
     const archiveHTML = await generateArchiveStaticHTML(env);
     await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
     return new Response("OK", { status: 200 });
@@ -123,6 +126,7 @@ export async function handleManualArchive(request, env) {
     };
 
     await kvPutIfChanged(env, kvKeys.archive(payload.slug), snapshot);
+    await upsertArchiveIndex(env, snapshot.tournament);
     const archiveHTML = await generateArchiveStaticHTML(env);
     await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
     return new Response("OK", { status: 200 });

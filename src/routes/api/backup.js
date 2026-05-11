@@ -1,4 +1,5 @@
 ﻿import { HTMLRenderer } from "../../render/htmlRenderer.js";
+import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 
@@ -24,12 +25,9 @@ export async function handleBackup(request, env) {
     }
   });
 
-  if (Object.keys(payload).length === 0) {
-    return new Response(JSON.stringify({ error: "No data" }), {
-      status: 503,
-      headers: { "content-type": "application/json" }
-    });
-  }
+  const archivedTournaments = await readArchiveIndex(env);
+  payload["config/archive.json"] = `${JSON.stringify(archivedTournaments, null, 2)}\n`;
+
   return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json" }
   });
