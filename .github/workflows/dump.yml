@@ -25,6 +25,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { mkdir, rm, writeFile } from "node:fs/promises";
           import { generateMarkdown } from "./src/markdown/markdownRenderer.js";
+          import { localizeTimeGrid } from "./src/utils/timeGridLocalizer.js";
 
           const url = process.env.WORKER_URL;
           if (!url) throw new Error("WORKER_URL missing");
@@ -60,26 +61,10 @@ jobs:
             return `${parts.year.slice(2)}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
           }
 
-          function formatHour(date) {
-            const parts = new Intl.DateTimeFormat("en-CA", {
-              timeZone: targetTimeZone,
-              hour: "2-digit",
-              hour12: false
-            }).formatToParts(date).reduce((acc, part) => {
-              acc[part.type] = part.value;
-              return acc;
-            }, {});
-            return String(parts.hour).padStart(2, "0");
-          }
-
           function convertUtcMarkdownToLocal(markdown) {
-            return markdown
-              .replace(/(\d{2})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/g, (_match, yy, mm, dd, hh, min) => {
-                return formatDateParts(new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00Z`));
-              })
-              .replace(/\*\*(\d{2}):00\*\*/g, (_match, hh) => {
-                return `**${formatHour(new Date(`2026-01-01T${hh}:00:00Z`))}:00**`;
-              });
+            return markdown.replace(/(\d{2})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/g, (_match, yy, mm, dd, hh, min) => {
+              return formatDateParts(new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00Z`));
+            });
           }
 
           async function writeSnapshotMarkdown(slug, snapshot, written) {
@@ -87,7 +72,8 @@ jobs:
             if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) throw new Error(`Invalid backup stats: ${slug}`);
             if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) throw new Error(`Invalid backup timeGrid: ${slug}`);
             if (written.has(slug)) throw new Error(`Duplicate markdown slug: ${slug}`);
-            const markdown = convertUtcMarkdownToLocal(generateMarkdown(snapshot.tournament, snapshot.stats, { [slug]: snapshot.timeGrid }));
+            const localTimeGrid = localizeTimeGrid(snapshot.timeGrid, targetTimeZone);
+            const markdown = convertUtcMarkdownToLocal(generateMarkdown(snapshot.tournament, snapshot.stats, { [slug]: localTimeGrid }));
             await writeFile(`markdown/${slug}.md`, markdown, "utf8");
             written.add(slug);
             console.log(`📝 [写入] markdown/${slug}.md`);
