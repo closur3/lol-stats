@@ -1,28 +1,33 @@
 import { FandomClient } from "../../api/fandomClient.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { dataUtils } from "../../utils/dataUtils.js";
-import { formatUtcDate } from "./scheduleTime.js";
-
-function parseUtcDateTime(raw) {
-  const dt = new Date(raw.replace(" ", "T") + "Z");
-  if (Number.isNaN(dt.getTime())) throw new Error(`Invalid DateTimeUTC: ${raw}`);
-  return dt;
-}
+import { timePolicy } from "../../utils/timePolicy.js";
 
 export async function loginFandom(env) {
   return FandomClient.login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
 }
 
-export async function fetchTodayMatchesUtc(tournaments, fandomClient, targetDateUtc) {
-  const dateStr = formatUtcDate(targetDateUtc);
+export async function fetchTodayMatchesForBusinessDate(tournaments, fandomClient, targetDate) {
+  const dateStr = timePolicy.getBusinessDateKey(targetDate);
+  const utcDateKeys = timePolicy.getUtcDateKeysForBusinessDate(dateStr);
   const bySlug = new Map();
   for (const tournament of tournaments || []) {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
     const pages = dataUtils.normalizeOverviewPages(tournament.overview_page);
     if (!pages.length) throw new Error(`overview_page missing: ${slug}`);
-    const matches = await fandomClient.fetchAllMatches(slug, pages, { start: dateStr, end: dateStr });
-    bySlug.set(slug, matches);
+    const matchesById = new Map();
+    const dailyMatches = await Promise.all(utcDateKeys.map(utcDateKey =>
+      fandomClient.fetchAllMatches(slug, pages, { start: utcDateKey, end: utcDateKey })
+    ));
+    for (const matches of dailyMatches) {
+      for (const match of matches) {
+        if (!timePolicy.isUtcMatchOnBusinessDate(match.DateTimeUTC, dateStr)) continue;
+        const key = match.MatchId != null ? String(match.MatchId) : JSON.stringify(match);
+        matchesById.set(key, match);
+      }
+    }
+    bySlug.set(slug, Array.from(matchesById.values()));
   }
   return bySlug;
 }
@@ -49,7 +54,7 @@ export function buildPlayWindow(matches, meta) {
   for (const match of matches || []) {
     const raw = match?.DateTimeUTC;
     if (!raw) continue;
-    const dt = parseUtcDateTime(raw);
+    const dt = timePolicy.parseUtcDateTime(raw);
     if (!earliest || dt < earliest) earliest = dt;
   }
 
@@ -60,7 +65,7 @@ export function buildPlayWindow(matches, meta) {
   if (!earliest && !hasCarryoverUnfinished) return null;
 
   return {
-    startHour: hasCarryoverUnfinished ? 0 : earliest.getUTCHours(),
+    startHour: hasCarryoverUnfinished ? 0 : timePolicy.getBusinessHour(earliest),
     endHour: 23
   };
 }
@@ -70,7 +75,7 @@ export function buildWindowFromMeta(meta) {
   const earliest = Number(meta?.todayEarliestTimestamp) || 0;
   if (!hasCarryoverUnfinished && !earliest) return null;
   return {
-    startHour: hasCarryoverUnfinished ? 0 : new Date(earliest).getUTCHours(),
+    startHour: hasCarryoverUnfinished ? 0 : timePolicy.getBusinessHour(earliest),
     endHour: 23
   };
 }

@@ -12,7 +12,7 @@ describe("scheduler semantics", () => {
   });
 
   it("play phase only when unfinished and now in play window", () => {
-    const now = new Date("2026-05-11T10:00:00Z");
+    const now = new Date("2026-05-11T02:00:00Z");
     const leagueState = { phase: "idle", playStartHour: 8, playEndHour: 11 };
     const meta = { todayUnfinished: 1, hasHistoryUnfinished: false };
     expect(derivePhase(leagueState, meta, now)).toBe("play");
@@ -20,11 +20,10 @@ describe("scheduler semantics", () => {
   });
 
   it("idle phase when outside play window even if unfinished", () => {
-    const now = new Date("2026-05-11T12:00:00Z");
+    const now = new Date("2026-05-11T04:00:00Z");
     const leagueState = { phase: "idle", playStartHour: 8, playEndHour: 11 };
     const meta = { todayUnfinished: 1, hasHistoryUnfinished: false };
     expect(derivePhase(leagueState, meta, now)).toBe("idle");
     expect(shouldRunPlayLeagueAt(leagueState, now)).toBe(false);
   });
 });
-

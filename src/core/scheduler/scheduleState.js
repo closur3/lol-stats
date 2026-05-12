@@ -1,4 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+import { timePolicy } from "../../utils/timePolicy.js";
 
 export async function readControl(env) {
   const kv = env["lol-stats-kv"];
@@ -51,7 +52,7 @@ function assertPlayWindow(slug, leagueState) {
 }
 
 export function isNowInPlayWindow(leagueState, nowUtc) {
-  const hour = nowUtc.getUTCHours();
+  const hour = timePolicy.getBusinessHour(nowUtc);
   return hour >= leagueState.playStartHour && hour <= leagueState.playEndHour;
 }
 

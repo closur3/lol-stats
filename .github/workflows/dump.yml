@@ -20,12 +20,10 @@ jobs:
         env:
           WORKER_URL: "https://lol.hsux.de/backup"
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
-          TIMEZONE: "Asia/Shanghai"
         run: |
           node --input-type=module <<'NODE'
           import { mkdir, rm, writeFile } from "node:fs/promises";
           import { generateMarkdown } from "./src/markdown/markdownRenderer.js";
-          import { localizeTimeGrid } from "./src/utils/timeGridLocalizer.js";
 
           const url = process.env.WORKER_URL;
           if (!url) throw new Error("WORKER_URL missing");
@@ -43,37 +41,12 @@ jobs:
           if (!data.archive || typeof data.archive !== "object" || Array.isArray(data.archive)) throw new Error("Backup payload archive must be object");
           if (!Array.isArray(data.configArchive)) throw new Error("Backup payload configArchive must be array");
 
-          const targetTimeZone = process.env.TIMEZONE || "Asia/Shanghai";
-
-          function formatDateParts(date) {
-            const parts = new Intl.DateTimeFormat("en-CA", {
-              timeZone: targetTimeZone,
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false
-            }).formatToParts(date).reduce((acc, part) => {
-              acc[part.type] = part.value;
-              return acc;
-            }, {});
-            return `${parts.year.slice(2)}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
-          }
-
-          function convertUtcMarkdownToLocal(markdown) {
-            return markdown.replace(/(\d{2})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/g, (_match, yy, mm, dd, hh, min) => {
-              return formatDateParts(new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00Z`));
-            });
-          }
-
           async function writeSnapshotMarkdown(slug, snapshot, written) {
             if (!snapshot?.tournament || snapshot.tournament.slug !== slug) throw new Error(`Invalid backup snapshot: ${slug}`);
             if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) throw new Error(`Invalid backup stats: ${slug}`);
             if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) throw new Error(`Invalid backup timeGrid: ${slug}`);
             if (written.has(slug)) throw new Error(`Duplicate markdown slug: ${slug}`);
-            const localTimeGrid = localizeTimeGrid(snapshot.timeGrid, targetTimeZone);
-            const markdown = convertUtcMarkdownToLocal(generateMarkdown(snapshot.tournament, snapshot.stats, { [slug]: localTimeGrid }));
+            const markdown = generateMarkdown(snapshot.tournament, snapshot.stats, { [slug]: snapshot.timeGrid });
             await writeFile(`markdown/${slug}.md`, markdown, "utf8");
             written.add(slug);
             console.log(`📝 [写入] markdown/${slug}.md`);

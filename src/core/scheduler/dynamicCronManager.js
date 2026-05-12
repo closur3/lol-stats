@@ -9,7 +9,7 @@ import { updateSchedules } from "./cloudflareSchedules.js";
 import {
   buildPlayWindow,
   buildWindowFromMeta,
-  fetchTodayMatchesUtc,
+  fetchTodayMatchesForBusinessDate,
   fetchTournamentMetasFromHome,
   loginFandom
 } from "./scheduleDiscovery.js";
@@ -25,7 +25,7 @@ import {
   syncPhaseByWindowAndMeta,
   writeControl
 } from "./scheduleState.js";
-import { formatUtcDate } from "./scheduleTime.js";
+import { timePolicy } from "../../utils/timePolicy.js";
 
 export { buildActiveBucketCronsFromState };
 
@@ -48,10 +48,10 @@ async function ensureSchedulesApplied(env, state, nowUtc) {
 
 export async function planTodayPlay(env, tournaments, scheduledTimeMs) {
   const now = new Date(scheduledTimeMs);
-  const today = formatUtcDate(now);
+  const today = timePolicy.getBusinessDateKey(now);
   const auth = await loginFandom(env);
   const fandomClient = new FandomClient(auth);
-  const matchesBySlug = await fetchTodayMatchesUtc(tournaments, fandomClient, now);
+  const matchesBySlug = await fetchTodayMatchesForBusinessDate(tournaments, fandomClient, now);
   const metas = await fetchTournamentMetasFromHome(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
   const next = buildIdleState(today, tournaments);
@@ -70,7 +70,7 @@ export async function planTodayPlay(env, tournaments, scheduledTimeMs) {
 
 export async function ensureDayInitialized(env, tournaments, scheduledTimeMs) {
   const now = new Date(scheduledTimeMs);
-  const today = formatUtcDate(now);
+  const today = timePolicy.getBusinessDateKey(now);
   const state = await readControl(env);
   if (state?.date === today) {
     const aligned = alignStateLeaguesWithTournaments(state, tournaments);
@@ -94,7 +94,7 @@ export async function ensureDayInitialized(env, tournaments, scheduledTimeMs) {
 
 export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, eventCron) {
   const now = new Date(scheduledTimeMs);
-  const today = formatUtcDate(now);
+  const today = timePolicy.getBusinessDateKey(now);
   const state = await readControl(env);
   if (!state || state.date !== today) return new Set();
 
@@ -120,7 +120,7 @@ export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, event
 
 export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()) {
   const now = new Date(nowMs);
-  const today = formatUtcDate(now);
+  const today = timePolicy.getBusinessDateKey(now);
   const state = await readControl(env);
   if (!state || state.date !== today) return;
 

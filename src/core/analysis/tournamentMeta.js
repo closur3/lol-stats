@@ -1,23 +1,21 @@
-import { dateUtils } from '../../utils/dateUtils.js';
+import { timePolicy } from '../../utils/timePolicy.js';
 
 export function computeTournamentMetaFromRawMatches(rawMatches) {
-  const todayStr = dateUtils.getNow().dateString;
+  const todayStr = timePolicy.getNow().dateString;
   let todayEarliest = 0;
   let todayUnfinished = 0;
   let hasHistoryUnfinished = false;
 
   for (const match of (rawMatches || [])) {
-    let dt;
+    let matchTime;
     try {
-      dt = dateUtils.parseDate(match.DateTimeUTC);
+      matchTime = timePolicy.deriveMatchTime(match.DateTimeUTC);
     } catch (error) {
       console.error(`[tournamentMeta] Failed to parse date "${match.DateTimeUTC}": ${error.message}`);
       continue;
     }
-    const parts = dt ? dateUtils.getUtcTimeParts(dt) : null;
-    if (!parts) continue;
-    const dateStr = `${parts.year}-${parts.month}-${parts.dayOfMonth}`;
-    const ts = dt.getTime();
+    const dateStr = matchTime.matchDateStr;
+    const ts = matchTime.timestamp;
 
     if (dateStr === todayStr && ts && (!todayEarliest || ts < todayEarliest)) {
       todayEarliest = ts;

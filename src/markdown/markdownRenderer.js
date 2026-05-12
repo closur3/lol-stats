@@ -1,6 +1,6 @@
 import { dataUtils } from '../utils/dataUtils.js';
 import { TIME_GRID_COLUMN_COUNT } from '../constants/index.js';
-import { dateUtils } from '../utils/dateUtils.js';
+import { timePolicy } from '../utils/timePolicy.js';
 import { generateFullRateString as generateFullRateStringCore } from '../core/analysis/fullRateStats.js';
 
 export function generateFullRateString(bo3FullMatches, bo3TotalMatches, bo5FullMatches, bo5TotalMatches) {
@@ -36,7 +36,7 @@ export function generateMarkdown(tournament, stats, timeGrid) {
       const gameSummaryText = teamStats.gameTotalCount ? `${teamStats.gameWinCount}-${teamStats.gameTotalCount - teamStats.gameWinCount}` : "-";
       const gameWinRateText = dataUtils.pct(dataUtils.rate(teamStats.gameWinCount, teamStats.gameTotalCount));
       const streakText = teamStats.winStreakCount > 0 ? `${teamStats.winStreakCount}W` : (teamStats.lossStreakCount > 0 ? `${teamStats.lossStreakCount}L` : "-");
-      const lastMatchText = teamStats.last ? dateUtils.fmtDate(teamStats.last) : "-";
+      const lastMatchText = teamStats.last ? timePolicy.formatDateTime(teamStats.last) : "-";
       markdown += `| ${teamStats.name} | ${bestOf3SummaryText} | ${bestOf3PercentText} | ${bestOf5SummaryText} | ${bestOf5PercentText} | ${seriesSummaryText} | ${seriesWinRateText} | ${gameSummaryText} | ${gameWinRateText} | ${streakText} | ${lastMatchText} |\n`;
     });
   }

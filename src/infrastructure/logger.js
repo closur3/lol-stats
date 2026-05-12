@@ -1,4 +1,4 @@
-import { dateUtils } from '../utils/dateUtils.js';
+import { timePolicy } from '../utils/timePolicy.js';
 
 export class Logger {
   constructor() {
@@ -7,7 +7,7 @@ export class Logger {
 
   error(message) {
     this.logs.push({
-      timestamp: dateUtils.getNow().shortDateTimeString,
+      timestamp: timePolicy.getNow().shortDateTimeString,
       level: 'ERROR',
       message
     });
@@ -15,7 +15,7 @@ export class Logger {
 
   success(message) {
     this.logs.push({
-      timestamp: dateUtils.getNow().shortDateTimeString,
+      timestamp: timePolicy.getNow().shortDateTimeString,
       level: 'SUCCESS',
       message
     });

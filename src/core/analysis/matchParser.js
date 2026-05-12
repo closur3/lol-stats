@@ -1,4 +1,4 @@
-import { dateUtils } from '../../utils/dateUtils.js';
+import { timePolicy } from '../../utils/timePolicy.js';
 
 export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeague, tournamentIndex, allFutureMatches) {
   const parsedMatches = [];
@@ -34,24 +34,24 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
     const isFullLength = (bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2);
 
-    let dateTime;
+    let matchTime;
     try {
-      dateTime = dateUtils.parseDate(match.DateTimeUTC);
+      matchTime = timePolicy.deriveMatchTime(match.DateTimeUTC);
     } catch (error) {
       console.error(`[matchParser] Failed to parse date "${match.DateTimeUTC}": ${error.message}`);
       return;
     }
-    const utcTimeParts = dateTime ? dateUtils.getUtcTimeParts(dateTime) : null;
-    let dateDisplay = "-", fullDate = "-", matchDateStr = "-", matchTimeStr = "-", timestamp = 0;
-    let isoString = "";
-    if (utcTimeParts) {
-      matchTimeStr = `${utcTimeParts.hour}:${utcTimeParts.minute}`;
-      dateDisplay = `${utcTimeParts.month}-${utcTimeParts.dayOfMonth} ${matchTimeStr}`;
-      fullDate = `${utcTimeParts.year}-${utcTimeParts.month}-${utcTimeParts.dayOfMonth}`;
-      matchDateStr = `${utcTimeParts.year}-${utcTimeParts.month}-${utcTimeParts.dayOfMonth}`;
-      isoString = dateTime.toISOString();
-      timestamp = dateTime.getTime();
-    }
+    const {
+      dateDisplay,
+      fullDateDisplay,
+      matchDateStr,
+      matchTimeStr,
+      timestamp,
+      isoTimestamp,
+      weekdayIndex,
+      timeMinutes,
+      roundedMinutes
+    } = matchTime;
 
     if (matchDateStr !== "-" && (matchDateStr >= todayStr || !isFinished)) {
       if (!allFutureMatches[matchDateStr]) allFutureMatches[matchDateStr] = [];
@@ -66,7 +66,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
         slug: tournamentSlug,
         tournamentIndex,
         tabName: tabName || "",
-        isoTimestamp: isoString,
+        isoTimestamp,
         timestamp
       });
     }
@@ -75,15 +75,9 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       if (timestamp > stats[team1Name].last) stats[team1Name].last = timestamp;
       if (timestamp > stats[team2Name].last) stats[team2Name].last = timestamp;
 
-      const weekdayIndex = utcTimeParts.dayOfWeek === 0 ? 6 : utcTimeParts.dayOfWeek - 1;
-      const utcHour = parseInt(utcTimeParts.hour, 10);
-      const utcMinute = parseInt(utcTimeParts.minute, 10);
-      const timeMinutes = utcHour * 60 + utcMinute;
-      const roundedMinutes = Math.round(timeMinutes / 60) * 60;
-
       parsedMatches.push({
         team1Name, team2Name, team1Score, team2Score, bestOf, isFullLength,
-        dateDisplay, fullDateDisplay: fullDate, isoTimestamp: isoString,
+        dateDisplay, fullDateDisplay, isoTimestamp,
         timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
       });
     }
@@ -98,14 +92,14 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     }
 
     stats[team1Name].history.push({
-      dateDisplay, fullDateDisplay: fullDate, isoTimestamp: isoString,
+      dateDisplay, fullDateDisplay, isoTimestamp,
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
       bestOf, isFullLength, timestamp
     });
     stats[team2Name].history.push({
-      dateDisplay, fullDateDisplay: fullDate, isoTimestamp: isoString,
+      dateDisplay, fullDateDisplay, isoTimestamp,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,

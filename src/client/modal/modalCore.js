@@ -13,12 +13,10 @@ const STYLE_H2H_SUMMARY = 'style="color:#94a3b8;font-size:14px"';
 const STYLE_H2H_DASH = 'style="margin:0 1px"';
 const STYLE_MUTED_DASH = 'style="color:#cbd5e1"';
 
-function pad(n) { return n < 10 ? '0' + n : n; }
-
 function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode, isoTimestamp) {
     const dateParts = (dateDisplay || '').split(' ');
     const dateHtml = dateParts.length === 2 
-      ? dateParts[0] + '<br><span ' + STYLE_DATE_TIME + ' class="utc-local" data-utc="' + (isoTimestamp || '') + '" data-format="time">' + dateParts[1] + '</span>' 
+      ? dateParts[0] + '<br><span ' + STYLE_DATE_TIME + '>' + dateParts[1] + '</span>' 
       : (dateDisplay || '');
 
     let matchItemClass = 'match-item';
@@ -62,6 +60,5 @@ function renderListHTML(htmlArray) {
     } else {
       modalList.innerHTML = htmlArray.join("");
     }
-    document.querySelectorAll('#modalList .utc-local[data-utc]').forEach(convertUtcToLocal);
 }
 `;

@@ -2,6 +2,7 @@ import { dataUtils } from '../../utils/dataUtils.js';
 import { sortPolicy } from '../../utils/sortPolicy.js';
 import { mkSpine } from './spine.js';
 import { dateUtils } from '../../utils/dateUtils.js';
+import { timePolicy } from '../../utils/timePolicy.js';
 
 const escapeHtml = (str) => {
   if (!str) return "";
@@ -27,7 +28,7 @@ export function buildTeamRow(teamStats, slug, sortMeta = {}) {
   const streak = teamStats.winStreakCount > 0
     ? `<span class='badge' style='background:#10b981'>${teamStats.winStreakCount}W</span>`
     : (teamStats.lossStreakCount > 0 ? `<span class='badge' style='background:#f43f5e'>${teamStats.lossStreakCount}L</span>` : "-");
-  const lastMatch = teamStats.last ? dateUtils.fmtDate(teamStats.last) : "-";
+  const lastMatch = teamStats.last ? timePolicy.formatDateTime(teamStats.last) : "-";
   const lastMatchColor = dateUtils.colorDate(teamStats.last);
 
   const safeName = escapeJsString(teamStats.name);
@@ -52,5 +53,5 @@ export function buildTeamRow(teamStats, slug, sortMeta = {}) {
     `<td class="col-game" ${statStyle(teamStats.gameTotalCount)}>${gameText}</td>` +
     `<td class="col-game-wr" ${percentStyle(gameRate)}>${dataUtils.pct(gameRate)}</td>` +
     `<td class="col-streak" ${streakStyle}>${streak}</td>` +
-    `<td class="col-last" ${lastStyle}><span class="utc-local" data-utc="${teamStats.last || ''}" data-format="datetime">${lastMatch}</span></td></tr>`;
+    `<td class="col-last" ${lastStyle}>${lastMatch}</td></tr>`;
 }

@@ -46,12 +46,12 @@ export function clusterTimeSlots(finishedMatches, maxClusters) {
   }
 
   return clusters.map(c => {
-    const utcHour = Math.round(c.centerMinutes / 60) % 24;
+    const clusterHour = Math.round(c.centerMinutes / 60) % 24;
     return {
       actualCenter: c.centerMinutes,
-      centerMinutes: utcHour * 60,
+      centerMinutes: clusterHour * 60,
       peakMinutes: null,
-      label: String(utcHour),
+      label: String(clusterHour),
       matches: []
     };
   });

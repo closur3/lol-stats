@@ -2,7 +2,6 @@ import { GITHUB_COMMIT_BASE } from '../../constants/index.js';
 import homeCSS from '../../styles/home.js';
 import { SORT_SCRIPT } from '../../client/sort.js';
 import { MODAL_SCRIPT } from '../../client/modal.js';
-import { UTC_SCRIPT } from '../../client/utc.js';
 
 export function renderFontLinks() {
   return `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">`;
@@ -44,7 +43,7 @@ export function renderBuildFooter(time, sha) {
 }
 
 export function renderClientJS() {
-  return `<script>${SORT_SCRIPT}${MODAL_SCRIPT}${UTC_SCRIPT}</script>`;
+  return `<script>${SORT_SCRIPT}${MODAL_SCRIPT}</script>`;
 }
 
 export function renderPageShell(title, bodyContent, navMode = "home", time = null, sha = null) {

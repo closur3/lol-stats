@@ -1,5 +1,5 @@
 import { TIME_GRID_COLUMN_COUNT, DEFAULT_MAX_SCHEDULE_DAYS } from '../constants/index.js';
-import { dateUtils } from '../utils/dateUtils.js';
+import { timePolicy } from '../utils/timePolicy.js';
 import { computeTournamentMetaFromRawMatches } from './analysis/tournamentMeta.js';
 import { calculateFullRateStats, generateFullRateString } from './analysis/fullRateStats.js';
 import { buildResolveName } from './analysis/teamResolver.js';
@@ -8,7 +8,7 @@ import { buildTimeGridAndSchedule } from './analysis/gridBuilder.js';
 import { buildScheduleMap } from './analysis/futureMatchBuilder.js';
 
 /**
- * 统计分析核心模块 (纯UTC)
+ * 统计分析核心模块
  */
 export class Analyzer {
   static computeTournamentMetaFromRawMatches = computeTournamentMetaFromRawMatches;
@@ -30,7 +30,7 @@ export class Analyzer {
     };
     timeGrid.ALL = createSlot();
 
-    const todayStr = dateUtils.getNow().dateString;
+    const todayStr = timePolicy.getNow().dateString;
     const allFutureMatches = {};
 
     (runtimeConfig.TOURNAMENTS || []).forEach((tournament, tournamentIndex) => {

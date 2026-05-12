@@ -1,5 +1,6 @@
 import { HTMLRenderer } from '../../render/htmlRenderer.js';
 import { dateUtils } from '../../utils/dateUtils.js';
+import { timePolicy } from '../../utils/timePolicy.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged } from '../../utils/kvStore.js';
 import { generateArchiveStaticHTML } from './archiveBuilder.js';
@@ -112,7 +113,7 @@ export async function rebuildStaticPagesFromCache(env, options = {}) {
   const limitedScheduleMap = dateUtils.pruneScheduleMapByDayStatus(
     scheduleMap,
     maxScheduleDays,
-    dateUtils.getNow().dateString,
+    timePolicy.getNow().dateString,
     historyUnfinished
   );
 

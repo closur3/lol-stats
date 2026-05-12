@@ -71,8 +71,6 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     const errCount = entries.filter(isErrorEntry).length;
     const totalCount = Number.isFinite(item.totalMatches) ? item.totalMatches : null;
     const lastTime = lastEntry?.timestamp || "";
-    const lastUtcIso = lastTime.length >= 16 ? `20${lastTime.slice(0,8)}T${lastTime.slice(9)}:00Z` : "";
-
     const bars = entries.slice(0, 10).reverse().map(entry => {
       const cls = isSyncEntry(entry) ? "bar-sync" : isErrorEntry(entry) ? "bar-err" : "bar-idle";
       const barHeight = isSyncEntry(entry) ? "100%" : isErrorEntry(entry) ? "70%" : "30%";
@@ -81,14 +79,13 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
 
     const rows = entries.slice(0, maxLogEntries).map(entry => {
       const rowTime = entry.timestamp || "";
-      const utcIso = rowTime.length >= 16 ? `20${rowTime.slice(0,8)}T${rowTime.slice(9)}:00Z` : "";
       const formattedMessage = renderLogMessage(entry).replace(/(\+\d+(?:~\d+)?|~\d+|±0)/g, '<span class="hl">$1</span>');
-      return `<div class="log-mini-row"><span class="log-mini-time utc-local" data-utc="${escapeHtml(utcIso)}" data-format="datetime">${escapeHtml(rowTime)}</span><span class="log-mini-msg">${formattedMessage}</span></div>`;
+      return `<div class="log-mini-row"><span class="log-mini-time">${escapeHtml(rowTime)}</span><span class="log-mini-msg">${formattedMessage}</span></div>`;
     }).join("");
 
     return `<div class="league-card">
       <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseEmoji}</span><span>${phaseText}</span></span></div></div>
-      <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val utc-local" data-utc="${escapeHtml(lastUtcIso)}" data-format="datetime">${escapeHtml(lastTime)}</span></span></div>
+      <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val">${escapeHtml(lastTime)}</span></span></div>
       <div class="timeline">${bars}</div>
       <div class="league-card-logs">${rows}</div>
     </div>`;

@@ -1,55 +1,8 @@
-/**
- * 日期时间工具函数 (纯UTC)
- */
 export const dateUtils = {
   /**
    * 补零函数
    */
   pad: (value) => value < 10 ? '0' + value : value,
-
-  /**
-   * 获取UTC时间部分
-   */
-  getUtcTimeParts: (timestampInput) => {
-    const date = timestampInput ? new Date(timestampInput) : new Date();
-    return {
-      year: date.getUTCFullYear(),
-      month: dateUtils.pad(date.getUTCMonth() + 1),
-      dayOfMonth: dateUtils.pad(date.getUTCDate()),
-      hour: dateUtils.pad(date.getUTCHours()),
-      minute: dateUtils.pad(date.getUTCMinutes()),
-      second: dateUtils.pad(date.getUTCSeconds()),
-      dayOfWeek: date.getUTCDay()
-    };
-  },
-
-  /**
-   * 获取当前UTC时间信息
-   */
-  getNow: () => {
-    const date = new Date();
-    const isoString = date.toISOString();
-    const fullDateTimeString = isoString.replace('T', ' ').slice(0, 19);
-    const shortDateTimeString = fullDateTimeString.slice(2);
-    return {
-      dateTime: date,
-      isoString: isoString,
-      fullDateTimeString: fullDateTimeString,
-      shortDateTimeString: shortDateTimeString, // 保持原格式 "26-03-26 10:57:11"
-      dateString: isoString.slice(0, 10),
-      timeString: isoString.slice(11, 19),
-      timestamp: date.getTime()
-    };
-  },
-
-  /**
-   * 格式化UTC日期
-   */
-  fmtDate: (timestamp) => {
-    if (!timestamp) return "(Pending)";
-    const utcTimeParts = dateUtils.getUtcTimeParts(timestamp);
-    return `${utcTimeParts.year.toString().slice(2)}-${utcTimeParts.month}-${utcTimeParts.dayOfMonth} ${utcTimeParts.hour}:${utcTimeParts.minute}`;
-  },
 
   /**
    * 转换为ISO字符串
@@ -97,8 +50,9 @@ export const dateUtils = {
    * - 过期天仅在仍有未结束比赛时保留
    * - 最后按日期升序截断到 maxDays
    */
-  pruneScheduleMapByDayStatus: (scheduleMap, maxDays = 8, todayStr = null, hasHistoryUnfinished = {}) => {
-    const today = todayStr || dateUtils.getNow().dateString;
+  pruneScheduleMapByDayStatus: (scheduleMap, maxDays = 8, todayStr, hasHistoryUnfinished = {}) => {
+    if (!todayStr) throw new Error("todayStr is required");
+    const today = todayStr;
     const kept = {};
 
     Object.keys(scheduleMap || {}).sort().forEach(date => {

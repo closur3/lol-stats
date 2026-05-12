@@ -1,4 +1,4 @@
-import { dateUtils } from '../../utils/dateUtils.js';
+import { timePolicy } from '../../utils/timePolicy.js';
 
 export function formatDeltaTag(item) {
   const added = Number.isFinite(item?.added) ? item.added : 0;
@@ -52,7 +52,7 @@ function pickLatestRevisionTrigger(revidChanges) {
 }
 
 export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap) {
-  const nowShort = dateUtils.getNow().shortDateTimeString;
+  const nowShort = timePolicy.getNow().shortDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
 
