@@ -34,11 +34,11 @@ export async function handleForceUpdate(request, env) {
 
     const now = Date.now();
     await updater.refreshScheduleBoardOnDayRollover(runtimeConfig);
-    await ensureDayInitialized(env, runtimeConfig, now);
+    await ensureDayInitialized(env, runtimeConfig, now, { applySchedules: false });
 
     const cache = await updater.loadCachedData(runtimeConfig.TOURNAMENTS);
     await updater.runFandomUpdate(runtimeConfig, cache, true, forceSlugs);
-    await reconcileLeagueStates(env, runtimeConfig, now);
+    await reconcileLeagueStates(env, runtimeConfig, now, { applySchedules: false });
 
     return new Response("OK", { status: 200 });
   } catch (error) {
