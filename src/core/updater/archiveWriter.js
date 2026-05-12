@@ -22,8 +22,8 @@ export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
   };
 }
 
-async function refreshArchiveDerivedState(env) {
-  await rebuildArchiveIndexFromSnapshots(env);
+async function refreshArchiveDerivedState(env, options = {}) {
+  await rebuildArchiveIndexFromSnapshots(env, { allowEmpty: options.allowEmptyIndex === true });
   const archiveHTML = await generateArchiveStaticHTML(env);
   await kvPutIfChanged(env, kvKeys.archiveStatic(), archiveHTML);
 }
@@ -54,8 +54,10 @@ export async function rebuildArchiveFromPayload(env, payload) {
 }
 
 export async function deleteArchiveSnapshot(env, slug) {
+  const existing = await env["lol-stats-kv"].get(kvKeys.archive(slug), { type: "json" });
+  if (!existing) throw new Error(`ARCHIVE snapshot missing: ${slug}`);
   await kvDelete(env, kvKeys.archive(slug));
-  await refreshArchiveDerivedState(env);
+  await refreshArchiveDerivedState(env, { allowEmptyIndex: true });
 }
 
 export async function writeManualArchive(env, payload) {

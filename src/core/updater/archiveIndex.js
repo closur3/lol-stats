@@ -59,14 +59,20 @@ export async function readArchiveIndex(env) {
   return normalizeArchiveList(cached);
 }
 
-export async function writeArchiveIndex(env, archivedTournaments) {
+export async function writeArchiveIndex(env, archivedTournaments, options = {}) {
   const kv = env["lol-stats-kv"];
   const normalized = normalizeArchiveList(archivedTournaments);
+  if (normalized.length === 0 && options.allowEmpty !== true) {
+    throw new Error("Refusing to write empty CONFIG_ARCHIVE");
+  }
   await kv.put(kvKeys.configArchive(), JSON.stringify(normalized));
   return normalized;
 }
 
-export async function rebuildArchiveIndexFromSnapshots(env) {
+export async function rebuildArchiveIndexFromSnapshots(env, options = {}) {
   const localTournaments = await readArchiveSnapshotTournaments(env);
-  return writeArchiveIndex(env, localTournaments);
+  if (localTournaments.length === 0 && options.allowEmpty !== true) {
+    throw new Error("Cannot rebuild CONFIG_ARCHIVE from empty ARCHIVE snapshots");
+  }
+  return writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true });
 }
