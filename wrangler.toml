@@ -9,7 +9,7 @@ GITHUB_REPOSITORY = "lol-stats-archive"
 
 [[kv_namespaces]]
 binding = "lol-stats-kv"
-id = "eac61be4fd134ab7a4282bf749791563"
+id = "132afd73154a4972be43f18fdf1dc5d5"
 
 [observability]
 [observability.logs]
