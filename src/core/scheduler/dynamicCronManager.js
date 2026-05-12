@@ -1,6 +1,5 @@
 import { FandomClient } from "../../api/fandomClient.js";
 import {
-  IDLE_SWEEP_CRON,
   buildActiveBucketCronsFromState,
   collectSchedulesFromState,
   shouldRunPlayLeagueAt
@@ -122,19 +121,10 @@ export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, event
   const now = new Date(scheduledTimeMs);
   const today = timePolicy.getBusinessDateKey(now);
   const state = await readControl(env);
-  if (!state || state.date !== today) return new Set();
-
-  if (eventCron === IDLE_SWEEP_CRON) {
-    return new Set(Object.entries(state.leagues)
-      .filter(([slug, leagueState]) => {
-        assertLeagueState(slug, leagueState);
-        return leagueState.phase === "idle";
-      })
-      .map(([slug]) => slug));
-  }
+  if (!state || state.date !== today) return null;
 
   const activeCrons = new Set(buildActiveBucketCronsFromState(state, now));
-  if (!activeCrons.has(eventCron)) return new Set();
+  if (!activeCrons.has(eventCron)) return null;
 
   const slugs = new Set();
   for (const [slug, leagueState] of Object.entries(state.leagues)) {

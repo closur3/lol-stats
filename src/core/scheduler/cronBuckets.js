@@ -8,7 +8,7 @@ const MAX_TOTAL_CRONS = 5;
 const CRON_DAY_ORDER = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
 
 function toActiveCron(startHour, endHour, day) {
-  return `1-59/2 ${startHour}-${endHour} * * ${day}`;
+  return `2-58/2 ${startHour}-${endHour} * * ${day}`;
 }
 
 function mergeIntervals(intervals) {
