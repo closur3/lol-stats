@@ -1,4 +1,8 @@
 export const TOOLS_ACTIONS = `
+          function readActionMessage(res, fallback) {
+              return res.text().then(function(text) { return text || fallback; });
+          }
+
           function runTask(url, btnEl, busyText) {
               if (!requireAuth()) return;
               var restore = setButtonBusy(btnEl, busyText || '...');
@@ -17,7 +21,9 @@ export const TOOLS_ACTIONS = `
               var restore = setButtonBusy(button, 'Running...');
               sendAuthorizedPost('/force', { 'Content-Type': 'application/json' }, JSON.stringify({ slugs: slugs })).then(function(res) {
                   if (checkAuthError(res.status)) return;
-                  showResult(res.ok, res.ok ? '✅ Done' : '❌ Failed: ' + res.status);
+                  return readActionMessage(res, res.ok ? 'OK' : ('HTTP ' + res.status)).then(function(message) {
+                      showResult(res.ok, res.ok ? ('✅ ' + message) : ('❌ ' + message));
+                  });
               }).catch(function() { showResult(false, NETWORK_ERROR_MSG); }).then(restore);
           }
 
@@ -26,7 +32,9 @@ export const TOOLS_ACTIONS = `
               var restore = setButtonBusy(btnEl, '🔄');
               sendAuthorizedPost('/force', { 'Content-Type': 'application/json' }, JSON.stringify({ slugs: [slug] })).then(function(res) {
                   if (checkAuthError(res.status)) return;
-                  showResult(res.ok, res.ok ? '✅ Done' : '❌ Failed: ' + res.status);
+                  return readActionMessage(res, res.ok ? 'OK' : ('HTTP ' + res.status)).then(function(message) {
+                      showResult(res.ok, res.ok ? ('✅ ' + message) : ('❌ ' + message));
+                  });
               }).catch(function() { showResult(false, NETWORK_ERROR_MSG); }).then(restore);
           }
 `;

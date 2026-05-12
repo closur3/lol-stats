@@ -28,19 +28,33 @@ export async function handleForceUpdate(request, env) {
     let runtimeConfig;
     try {
       runtimeConfig = await updater.loadRuntimeConfig();
-    } catch (_error) {
-      return new Response("Config load failed", { status: 500 });
+    } catch (error) {
+      return new Response(`Config load failed: ${error.message}`, { status: 500 });
     }
 
     const now = Date.now();
-    await updater.refreshScheduleBoardOnDayRollover(runtimeConfig);
-    await ensureDayInitialized(env, runtimeConfig, now, { applySchedules: "best-effort" });
-
-    const cache = await updater.loadCachedData(runtimeConfig.TOURNAMENTS);
+    const tournaments = runtimeConfig.TOURNAMENTS;
+    const cache = await updater.loadCachedData(tournaments);
     await updater.runFandomUpdate(runtimeConfig, cache, true, forceSlugs);
-    await reconcileLeagueStates(env, runtimeConfig, now, { applySchedules: "best-effort" });
 
-    return new Response("OK", { status: 200 });
+    const warnings = [];
+    try {
+      await updater.refreshScheduleBoardOnDayRollover(runtimeConfig);
+    } catch (error) {
+      warnings.push(`day-rollover: ${error.message}`);
+      console.warn(`[FORCE-WARN] day-rollover failed: ${error.message}`);
+    }
+
+    try {
+      await ensureDayInitialized(env, tournaments, now, { applySchedules: "best-effort" });
+      await reconcileLeagueStates(env, tournaments, now, { applySchedules: "best-effort" });
+    } catch (error) {
+      warnings.push(`schedule-reconcile: ${error.message}`);
+      console.warn(`[FORCE-WARN] schedule reconcile failed: ${error.message}`);
+    }
+
+    const message = warnings.length > 0 ? `OK warnings=${warnings.join(" | ")}` : "OK";
+    return new Response(message, { status: 200 });
   } catch (error) {
     return new Response(`Worker Error: ${error.message}`, { status: 500 });
   }

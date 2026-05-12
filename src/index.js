@@ -4,9 +4,7 @@ import { ToolsRouter } from './routes/tools.js';
 import { LogsRouter } from './routes/logs.js';
 import { APIRouter } from './routes/api.js';
 import { Updater } from './core/updater.js';
-import { GitHubClient } from './api/githubClient.js';
 import { ensureDayInitialized, reconcileLeagueStates, resolveScheduledExecutionSlugs } from './core/scheduler/dynamicCronManager.js';
-import { loadTourConfig } from './core/updater/tourConfigLoader.js';
 
 /**
  * 主Worker入口
@@ -57,14 +55,14 @@ export default {
   },
 
   async scheduled(event, env) {
-    const githubClient = new GitHubClient(env);
-    const runtimeConfig = await loadTourConfig(env, githubClient);
     const updater = new Updater(env);
+    const runtimeConfig = await updater.loadRuntimeConfig();
+    const tournaments = runtimeConfig.TOURNAMENTS;
     await updater.refreshScheduleBoardOnDayRollover(runtimeConfig);
-    await ensureDayInitialized(env, runtimeConfig, event.scheduledTime);
+    await ensureDayInitialized(env, tournaments, event.scheduledTime);
 
     const executionSlugs = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
     await updater.runScheduledUpdate(executionSlugs);
-    await reconcileLeagueStates(env, runtimeConfig, event.scheduledTime);
+    await reconcileLeagueStates(env, tournaments, event.scheduledTime);
   }
 };
