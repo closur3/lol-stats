@@ -17,7 +17,7 @@ function openTeam(slug, teamName) {
     finished.forEach(match => {
         const icon = RESULT_ICON_MAP[match.matchResultCode] || RESULT_ICON_MAP['NEXT'];
         const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isoTimestamp));
+        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
     });
     
     if (upcoming.length > 0) {
@@ -26,7 +26,7 @@ function openTeam(slug, teamName) {
         upcoming.forEach(match => {
             const icon = RESULT_ICON_MAP[match.matchResultCode] || RESULT_ICON_MAP['NEXT'];
             const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isoTimestamp));
+            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
         });
     }
     
@@ -55,7 +55,7 @@ function openStats(slug, teamName, type) {
     finished.forEach(match => {
         const icon = RESULT_ICON_MAP[match.matchResultCode] || RESULT_ICON_MAP['NEXT'];
         const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isoTimestamp));
+        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
     });
     
     if (upcoming.length > 0) {
@@ -64,7 +64,7 @@ function openStats(slug, teamName, type) {
         upcoming.forEach(match => {
             const icon = RESULT_ICON_MAP[match.matchResultCode] || RESULT_ICON_MAP['NEXT'];
             const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isoTimestamp));
+            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
         });
     }
     
@@ -83,7 +83,7 @@ function openH2H(slug, team1Name, team2Name) {
     const listHtml = h2hHistory.map(match => {
         const icon = RESULT_ICON_MAP[match.matchResultCode] || RESULT_ICON_MAP['NEXT'];
         const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-        return renderMatchItem('history', match.dateDisplay, resultTag, team1Name, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isoTimestamp);
+        return renderMatchItem('history', match.dateDisplay, resultTag, team1Name, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode);
     });
     renderListHTML(listHtml);
     document.getElementById('matchModal').style.display="block";

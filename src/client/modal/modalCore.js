@@ -13,7 +13,7 @@ const STYLE_H2H_SUMMARY = 'style="color:#94a3b8;font-size:14px"';
 const STYLE_H2H_DASH = 'style="margin:0 1px"';
 const STYLE_MUTED_DASH = 'style="color:#cbd5e1"';
 
-function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode, isoTimestamp) {
+function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode) {
     const dateParts = (dateDisplay || '').split(' ');
     const dateHtml = dateParts.length === 2 
       ? dateParts[0] + '<br><span ' + STYLE_DATE_TIME + '>' + dateParts[1] + '</span>' 

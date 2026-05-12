@@ -52,7 +52,7 @@ function pickLatestRevisionTrigger(revidChanges) {
 }
 
 export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap) {
-  const nowShort = timePolicy.getNow().shortDateTimeString;
+  const loggedAt = timePolicy.getNow().fullDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
 
@@ -60,7 +60,7 @@ export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors,
 
   const pushEntry = (slug, entry) => {
     if (!slug) return;
-    bySlug[slug] = { timestamp: nowShort, ...entry };
+    bySlug[slug] = { loggedAt, ...entry };
   };
 
   syncItems.forEach(item => {

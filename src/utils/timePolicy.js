@@ -85,7 +85,6 @@ export const timePolicy = {
       dateTime: date,
       isoString: date.toISOString(),
       fullDateTimeString,
-      shortDateTimeString: fullDateTimeString.slice(2),
       dateString: parts.dateKey,
       timeString: `${parts.hour}:${parts.minute}:${parts.second}`,
       timestamp: date.getTime()
@@ -99,7 +98,6 @@ export const timePolicy = {
     return {
       date,
       timestamp: date.getTime(),
-      isoTimestamp: date.toISOString(),
       dateDisplay: parts.dateDisplay,
       fullDateDisplay: parts.fullDateDisplay,
       matchDateStr: parts.dateKey,
@@ -115,7 +113,7 @@ export const timePolicy = {
   formatDateTime(timestamp) {
     if (!timestamp) return "(Pending)";
     const parts = getBusinessParts(timestamp);
-    return `${parts.year.slice(2)}-${parts.month}-${parts.dayOfMonth} ${parts.hour}:${parts.minute}`;
+    return `${parts.year}-${parts.month}-${parts.dayOfMonth} ${parts.hour}:${parts.minute}`;
   },
 
   getWeekdayName(dateKey) {

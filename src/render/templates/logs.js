@@ -70,7 +70,7 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     const syncCount = entries.filter(isSyncEntry).length;
     const errCount = entries.filter(isErrorEntry).length;
     const totalCount = Number.isFinite(item.totalMatches) ? item.totalMatches : null;
-    const lastTime = lastEntry?.timestamp || "";
+    const lastTime = lastEntry?.loggedAt || "";
     const bars = entries.slice(0, 10).reverse().map(entry => {
       const cls = isSyncEntry(entry) ? "bar-sync" : isErrorEntry(entry) ? "bar-err" : "bar-idle";
       const barHeight = isSyncEntry(entry) ? "100%" : isErrorEntry(entry) ? "70%" : "30%";
@@ -78,7 +78,7 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     }).join("");
 
     const rows = entries.slice(0, maxLogEntries).map(entry => {
-      const rowTime = entry.timestamp || "";
+      const rowTime = entry.loggedAt || "";
       const formattedMessage = renderLogMessage(entry).replace(/(\+\d+(?:~\d+)?|~\d+|±0)/g, '<span class="hl">$1</span>');
       return `<div class="log-mini-row"><span class="log-mini-time">${escapeHtml(rowTime)}</span><span class="log-mini-msg">${formattedMessage}</span></div>`;
     }).join("");

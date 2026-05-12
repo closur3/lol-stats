@@ -18,9 +18,10 @@ export async function writeControl(env, state) {
 }
 
 export function attachSchedulePlan(state, schedules, nowUtc, applied) {
+  const businessTime = timePolicy.getNow(nowUtc).fullDateTimeString;
   state.schedules = schedules;
-  state.schedulesPlannedAt = nowUtc.toISOString();
-  if (applied) state.schedulesAppliedAt = nowUtc.toISOString();
+  state.schedulesPlannedAt = businessTime;
+  if (applied) state.schedulesAppliedAt = businessTime;
   else delete state.schedulesAppliedAt;
   return state;
 }

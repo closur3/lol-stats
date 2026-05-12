@@ -32,7 +32,6 @@ export function buildTimeGridAndSchedule(tournamentSlug, parsedMatches, timeGrid
     const matchObj = {
       dateDisplay: m.dateDisplay,
       fullDateDisplay: m.fullDateDisplay,
-      isoTimestamp: m.isoTimestamp,
       timestamp: m.timestamp,
       team1Name: m.team1Name,
       team2Name: m.team2Name,

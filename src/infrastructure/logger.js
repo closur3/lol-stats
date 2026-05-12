@@ -7,7 +7,7 @@ export class Logger {
 
   error(message) {
     this.logs.push({
-      timestamp: timePolicy.getNow().shortDateTimeString,
+      loggedAt: timePolicy.getNow().fullDateTimeString,
       level: 'ERROR',
       message
     });
@@ -15,7 +15,7 @@ export class Logger {
 
   success(message) {
     this.logs.push({
-      timestamp: timePolicy.getNow().shortDateTimeString,
+      loggedAt: timePolicy.getNow().fullDateTimeString,
       level: 'SUCCESS',
       message
     });

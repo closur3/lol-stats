@@ -18,7 +18,7 @@ export function hasRevisionRecordChanged(previousRecord, nextRecord) {
     const prevPage = prevPages[title] || {};
     const nextPage = nextPages[title] || {};
     if ((Number(prevPage.revid) || 0) !== (Number(nextPage.revid) || 0)) return true;
-    if ((prevPage.timestamp || "") !== (nextPage.timestamp || "")) return true;
+    if ((prevPage.revisionTimeUTC || "") !== (nextPage.revisionTimeUTC || "")) return true;
     if ((Number(prevPage.pageid) || 0) !== (Number(nextPage.pageid) || 0)) return true;
   }
   return false;
@@ -103,7 +103,7 @@ export async function detectRevisionChanges(env, tournaments) {
           pagesFetched++;
           nextPages[title] = {
             revid: latest.revid,
-            timestamp: latest.timestamp,
+            revisionTimeUTC: latest.revisionTimeUTC,
             pageid: latest.pageid
           };
 

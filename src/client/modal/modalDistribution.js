@@ -8,7 +8,7 @@ function showPopup(title, dayIndex, matches) {
         if (match.bestOf === 5) boTag = '<span class="sch-pill gold">BO5</span>';
         else if (match.bestOf === 3) boTag = '<span class="sch-pill">BO3</span>';
         else if (match.bestOf === 1) boTag = '<span class="sch-pill">BO1</span>';
-        return renderMatchItem('distribution', match.dateDisplay, boTag, match.team1Name, match.team2Name, match.isFullLength, match.scoreDisplay, null, match.isoTimestamp);
+        return renderMatchItem('distribution', match.dateDisplay, boTag, match.team1Name, match.team2Name, match.isFullLength, match.scoreDisplay, null);
     });
     renderListHTML(listHtml);
     document.getElementById('matchModal').style.display = "block";

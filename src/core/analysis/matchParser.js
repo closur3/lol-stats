@@ -47,7 +47,6 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       matchDateStr,
       matchTimeStr,
       timestamp,
-      isoTimestamp,
       weekdayIndex,
       timeMinutes,
       roundedMinutes
@@ -66,7 +65,6 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
         slug: tournamentSlug,
         tournamentIndex,
         tabName: tabName || "",
-        isoTimestamp,
         timestamp
       });
     }
@@ -77,7 +75,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
 
       parsedMatches.push({
         team1Name, team2Name, team1Score, team2Score, bestOf, isFullLength,
-        dateDisplay, fullDateDisplay, isoTimestamp,
+        dateDisplay, fullDateDisplay,
         timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
       });
     }
@@ -92,14 +90,14 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     }
 
     stats[team1Name].history.push({
-      dateDisplay, fullDateDisplay, isoTimestamp,
+      dateDisplay, fullDateDisplay,
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
       bestOf, isFullLength, timestamp
     });
     stats[team2Name].history.push({
-      dateDisplay, fullDateDisplay, isoTimestamp,
+      dateDisplay, fullDateDisplay,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,

@@ -35,7 +35,7 @@ export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
         title: firstPage.title || pageTitle,
         revid: rev.revid,
         parentid: rev.parentid || null,
-        timestamp: rev.timestamp || null,
+        revisionTimeUTC: rev.timestamp || null,
         missing: false
       };
     } catch (error) {
