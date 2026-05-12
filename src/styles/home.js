@@ -78,7 +78,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     details.arch-sec[open] .arch-indicator { transform: rotate(90deg); }
     .col-bo3 { width: 70px; } .col-bo3-pct { width: 70px; } .col-bo5 { width: 70px; } .col-bo5-pct { width: 70px; }
     .col-series { width: 70px; } .col-series-wr { width: 70px; } .col-game { width: 70px; } .col-game-wr { width: 70px; }
-    .col-streak { width: 70px; } .col-last { width: 150px; }
+    .col-streak { width: 70px; } .col-last { width: 160px; }
     .col-bo3, .col-bo3-pct, .col-bo5, .col-bo5-pct, .col-series, .col-series-wr, .col-game, .col-game-wr, .col-streak, .col-last, .sch-time, .hist-score, .col-date, .sch-fin-score, .sch-live-score { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: 0; }
     .spine-row { display: flex; justify-content: center; align-items: stretch; width: 100%; height: 100%; }
     .spine-l { flex: 1; flex-basis: 0; display: flex; align-items: center; justify-content: flex-end; padding: 0; font-weight: 600; transition: background 0.15s; }
