@@ -1,4 +1,5 @@
-﻿import { Updater } from "../../core/updater.js";
+import { ensureDayInitialized, reconcileLeagueStates } from "../../core/scheduler/dynamicCronManager.js";
+import { Updater } from "../../core/updater.js";
 import { requireAdmin } from "./auth.js";
 
 function parseForceSlugs(body) {
@@ -30,8 +31,14 @@ export async function handleForceUpdate(request, env) {
     } catch (_error) {
       return new Response("Config load failed", { status: 500 });
     }
+
+    const now = Date.now();
+    await updater.refreshScheduleBoardOnDayRollover(runtimeConfig);
+    await ensureDayInitialized(env, runtimeConfig, now);
+
     const cache = await updater.loadCachedData(runtimeConfig.TOURNAMENTS);
     await updater.runFandomUpdate(runtimeConfig, cache, true, forceSlugs);
+    await reconcileLeagueStates(env, runtimeConfig, now);
 
     return new Response("OK", { status: 200 });
   } catch (error) {

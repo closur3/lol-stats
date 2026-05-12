@@ -75,6 +75,10 @@ export class Updater {
     await runFandomUpdateFn(this.env, this.githubClient, runtimeConfig, cache, force, forceSlugs, options, this.logger);
   }
 
+  async refreshScheduleBoardOnDayRollover(runtimeConfig) {
+    return refreshScheduleBoardOnDayRollover(this.env, runtimeConfig, cleanupStaleHomeKeys, refreshHomeStaticFromCache);
+  }
+
   async cleanupStaleHomeKeys(runtimeConfig) {
     return cleanupStaleHomeKeys(this.env, runtimeConfig);
   }

@@ -59,10 +59,11 @@ export default {
   async scheduled(event, env) {
     const githubClient = new GitHubClient(env);
     const runtimeConfig = await loadTourConfig(env, githubClient);
+    const updater = new Updater(env);
+    await updater.refreshScheduleBoardOnDayRollover(runtimeConfig);
     await ensureDayInitialized(env, runtimeConfig, event.scheduledTime);
 
     const executionSlugs = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
-    const updater = new Updater(env);
     await updater.runScheduledUpdate(executionSlugs);
     await reconcileLeagueStates(env, runtimeConfig, event.scheduledTime);
   }
