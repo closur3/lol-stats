@@ -38,7 +38,14 @@ function buildLeagueTable(tournament, stats, sortMeta) {
 }
 
 export function renderLeagueSection(tournament, globalStats, timeData, tournamentMeta, isArchive) {
-  const rawStats = globalStats[tournament.slug] || {};
+  const rawStats = globalStats[tournament.slug];
+  if (!rawStats || typeof rawStats !== "object" || Array.isArray(rawStats)) {
+    throw new Error(`globalStats missing: ${tournament.slug}`);
+  }
+  const leagueTimeData = timeData[tournament.slug];
+  if (!leagueTimeData || typeof leagueTimeData !== "object" || Array.isArray(leagueTimeData)) {
+    throw new Error(`timeData missing: ${tournament.slug}`);
+  }
   const stats = dataUtils.sortTeams(rawStats);
   const sortMeta = {
     bo3PriorMean: sortPolicy.getBestOfPriorMean(stats, 3),
@@ -46,7 +53,7 @@ export function renderLeagueSection(tournament, globalStats, timeData, tournamen
   };
   const summary = buildLeagueSummary(stats);
   const tableBody = buildLeagueTable(tournament, stats, sortMeta);
-  const timeTableHtml = buildTimeTable(timeData[tournament.slug] || {});
+  const timeTableHtml = buildTimeTable(leagueTimeData);
 
   let emojiStr = "";
   if (!isArchive && tournamentMeta[tournament.slug]) {

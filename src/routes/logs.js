@@ -5,7 +5,7 @@ import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { HTMLRenderer } from '../render/htmlRenderer.js';
 import { dateUtils } from '../utils/dateUtils.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
-import { readScheduleMeta } from '../core/facts/scheduleMetaStore.js';
+import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
 
 async function loadSortedTournaments(env) {
   const githubClient = new GitHubClient(env);
@@ -27,7 +27,7 @@ async function loadLogMetaBySlug(env, slugs) {
   const metaPairs = await Promise.all(slugs.map(async slug => {
     const [rawMatches, meta] = await Promise.all([
       readRawMatches(env, slug),
-      readScheduleMeta(env, slug)
+      ensureScheduleMeta(env, slug)
     ]);
     return [slug, {
       totalMatchCount: rawMatches.length,

@@ -5,7 +5,7 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged } from '../../utils/kvStore.js';
 import { generateArchiveStaticHTML } from './archiveBuilder.js';
 import { UPDATE_CONFIG } from './types.js';
-import { readScheduleMetas } from '../facts/scheduleMetaStore.js';
+import { ensureScheduleMetas } from '../facts/scheduleMetaStore.js';
 
 export async function refreshHomeStaticFromCache(env) {
   return rebuildStaticPagesFromCache(env, { includeArchive: false, requireData: false });
@@ -60,7 +60,7 @@ export async function rebuildStaticPagesFromCache(env, options = {}) {
 
   const sortedTournaments = dateUtils.sortTournamentsByDate(homeEntries.map(home => home.tournament));
   const runtimeConfig = { TOURNAMENTS: sortedTournaments };
-  const scheduleMetas = await readScheduleMetas(env, sortedTournaments);
+  const scheduleMetas = await ensureScheduleMetas(env, sortedTournaments);
   const scheduleMetaBySlug = new Map(scheduleMetas.map(meta => [meta.slug, meta]));
   const tournamentIndexMap = new Map((sortedTournaments || []).map((tournament, index) => [tournament.slug, index]));
   const globalStats = {};

@@ -2,7 +2,7 @@ import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 import { readRawMatches } from "../../core/facts/rawMatchesStore.js";
-import { readScheduleMeta } from "../../core/facts/scheduleMetaStore.js";
+import { ensureScheduleMeta } from "../../core/facts/scheduleMetaStore.js";
 
 function assertDisplaySnapshot(snapshot, key, prefix) {
   const slug = key.slice(prefix.length);
@@ -69,7 +69,7 @@ export async function handleBackup(request, env) {
   await Promise.all(Object.keys(home).map(async slug => {
     const [matches, meta] = await Promise.all([
       readRawMatches(env, slug),
-      readScheduleMeta(env, slug)
+      ensureScheduleMeta(env, slug)
     ]);
     rawMatches[slug] = matches;
     scheduleMeta[slug] = meta;

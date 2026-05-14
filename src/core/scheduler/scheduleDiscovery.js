@@ -1,8 +1,8 @@
-import { readScheduleMetas } from "../facts/scheduleMetaStore.js";
+import { ensureScheduleMetas } from "../facts/scheduleMetaStore.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
 export async function fetchTournamentMetasFromScheduleMeta(env, tournaments) {
-  return readScheduleMetas(env, tournaments);
+  return ensureScheduleMetas(env, tournaments);
 }
 
 export function buildWindowFromMeta(meta) {

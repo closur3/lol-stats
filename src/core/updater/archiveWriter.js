@@ -13,11 +13,15 @@ export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
   const tournamentWithMap = { ...tournament, teamMap };
   const miniConfig = { TOURNAMENTS: [tournamentWithMap] };
   const analysis = Analyzer.runFullAnalysis({ [tournament.slug]: rawMatches }, miniConfig);
+  const stats = analysis.globalStats[tournament.slug];
+  const timeGrid = analysis.timeGrid[tournament.slug];
+  if (!stats || typeof stats !== "object" || Array.isArray(stats)) throw new Error(`Archive stats missing: ${tournament.slug}`);
+  if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) throw new Error(`Archive timeGrid missing: ${tournament.slug}`);
   return {
     tournament,
     rawMatches,
-    stats: analysis.globalStats[tournament.slug] || {},
-    timeGrid: analysis.timeGrid[tournament.slug] || {},
+    stats,
+    timeGrid,
     teamMap
   };
 }
