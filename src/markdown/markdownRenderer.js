@@ -9,6 +9,18 @@ export function generateFullRateString(bo3FullMatches, bo3TotalMatches, bo5FullM
   return `📊 **Fullrate**: ${core}\n\n`;
 }
 
+function readMarkdownRegionGrid(timeGrid, slug) {
+  if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) {
+    throw new Error("timeGrid must be a JSON object");
+  }
+  const regionGrid = timeGrid[slug];
+  if (regionGrid === undefined) return {};
+  if (!regionGrid || typeof regionGrid !== "object" || Array.isArray(regionGrid)) {
+    throw new Error(`Invalid markdown timeGrid: ${slug}`);
+  }
+  return regionGrid;
+}
+
 export function generateMarkdown(tournament, stats, timeGrid) {
   const sorted = dataUtils.sortTeams(stats);
 
@@ -43,7 +55,7 @@ export function generateMarkdown(tournament, stats, timeGrid) {
 
   markdown += `\n## \n📅 **Time Slot Distribution**\n\n| Time Slot | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Total |\n| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n`;
 
-  const regionGrid = timeGrid[tournament.slug] || {};
+  const regionGrid = readMarkdownRegionGrid(timeGrid, tournament.slug);
   const hours = Object.keys(regionGrid).filter(hourKey => hourKey !== "Total" && !isNaN(hourKey)).map(Number).sort((leftHour, rightHour) => leftHour - rightHour);
 
   [...hours, "Total"].forEach(hourOrTotal => {

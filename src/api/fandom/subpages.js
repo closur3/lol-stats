@@ -1,4 +1,10 @@
-﻿import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+
+function readAllPages(data) {
+  const pages = data?.query?.allpages;
+  if (!Array.isArray(pages)) throw new Error("Invalid subpages payload");
+  return pages;
+}
 
 export async function fetchAllSubpages(basePage) {
   const allPages = [basePage];
@@ -22,7 +28,7 @@ export async function fetchAllSubpages(basePage) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
-    const pages = data?.query?.allpages || [];
+    const pages = readAllPages(data);
 
     for (const page of pages) {
       const title = page.title;

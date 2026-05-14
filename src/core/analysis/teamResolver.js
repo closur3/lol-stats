@@ -1,5 +1,6 @@
 export function buildResolveName(teamMap = {}) {
-  const teamMapEntries = Object.entries(teamMap || {}).map(([key, value]) => {
+  const normalizedTeamMap = teamMap && typeof teamMap === "object" && !Array.isArray(teamMap) ? teamMap : {};
+  const teamMapEntries = Object.entries(normalizedTeamMap).map(([key, value]) => {
     const upperKey = String(key || "").toUpperCase();
     return {
       key: upperKey,

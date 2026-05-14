@@ -1,4 +1,14 @@
-﻿import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+
+function readRevisionPage(revisionPayload) {
+  const pagesObj = revisionPayload?.query?.pages;
+  if (!pagesObj || typeof pagesObj !== "object" || Array.isArray(pagesObj)) {
+    throw new Error("Invalid revision payload");
+  }
+  const firstPage = Object.values(pagesObj)[0];
+  if (!firstPage || typeof firstPage !== "object") throw new Error("Invalid revision payload");
+  return firstPage;
+}
 
 export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
   const revisionParams = new URLSearchParams({
@@ -18,9 +28,7 @@ export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const revisionPayload = await response.json();
-      const pagesObj = revisionPayload?.query?.pages || {};
-      const firstPage = Object.values(pagesObj)[0];
-      if (!firstPage) throw new Error("Invalid revision payload");
+      const firstPage = readRevisionPage(revisionPayload);
       if (firstPage.missing !== undefined) {
         return {
           pageid: firstPage.pageid || null,

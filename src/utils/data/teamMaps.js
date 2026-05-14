@@ -5,14 +5,15 @@
   return typeof obj[keys[0]] === "string";
 }
 
-export function filterTeamMapForMatches(baseMap, rawMatches = []) {
+export function filterTeamMapForMatches(baseMap, rawMatches) {
   if (!baseMap || typeof baseMap !== "object") return {};
+  if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
   const rawNames = new Set();
   rawMatches.forEach(match => {
     if (match.Team1) rawNames.add(match.Team1);
     if (match.Team2) rawNames.add(match.Team2);
   });
-  if (rawNames.size === 0) return baseMap || {};
+  if (rawNames.size === 0) return baseMap;
 
   const entries = Object.entries(baseMap).map(([entryKey, value]) => ({ entryKey, value, normalizedKey: String(entryKey).toUpperCase() }));
   const needed = {};

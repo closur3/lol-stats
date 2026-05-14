@@ -48,18 +48,33 @@ function isErrorEntry(entry) {
   return entry.action === "BREAKER" || entry.action === "API_ERROR" || entry.level === "ERROR";
 }
 
-export function renderLogPage(leagueLogs, time, sha, options = {}) {
-  if (!leagueLogs) leagueLogs = [];
-  const maxLogEntries = Number(options.maxLogEntries);
+function normalizeLeagueLogItems(leagueLogs) {
+  if (leagueLogs == null) return [];
+  if (Array.isArray(leagueLogs)) return leagueLogs;
+  if (typeof leagueLogs !== "object") throw new Error("leagueLogs must be an array or JSON object");
+  return Object.keys(leagueLogs).map(name => {
+    const value = leagueLogs[name];
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error(`Invalid league log item: ${name}`);
+    }
+    return { name, ...value };
+  });
+}
 
-  const leagueItems = Array.isArray(leagueLogs)
-    ? leagueLogs
-    : Object.keys(leagueLogs).map(name => ({ name, ...(leagueLogs[name] || {}) }));
+function normalizeEntryList(item) {
+  if (item.logs === undefined) return [];
+  if (!Array.isArray(item.logs)) throw new Error(`Invalid logs for league: ${item.name || ""}`);
+  return item.logs;
+}
+
+export function renderLogPage(leagueLogs, time, sha, options = {}) {
+  const maxLogEntries = Number(options.maxLogEntries);
+  const leagueItems = normalizeLeagueLogItems(leagueLogs);
 
   const cardsHtml = leagueItems.map(item => {
     const name = item.name || "";
     const safeName = escapeHtml(name);
-    const entries = item.logs || [];
+    const entries = normalizeEntryList(item);
     const lastEntry = entries[0];
     const phase = resolveLeaguePhase(item);
     const phaseCls = `phase-${phase}`;

@@ -42,10 +42,10 @@ export async function generateArchiveStaticHTML(env) {
   const combined = validSnapshots.map(snap => {
     const snapshotTournament = snap.tournament;
     const miniConfig = { TOURNAMENTS: [{ ...snapshotTournament, teamMap: snap.teamMap }] };
-    const content = HTMLRenderer.renderContentOnly(
+    const content = HTMLRenderer.renderArchiveContentOnly(
       { [snapshotTournament.slug]: snap.stats },
       { [snapshotTournament.slug]: snap.timeGrid },
-      {}, miniConfig, true
+      miniConfig
     );
     return content;
   }).join("");

@@ -1,10 +1,11 @@
-import { renderContentOnly } from './templates/content.js';
+import { renderArchiveContentOnly, renderContentOnly } from './templates/content.js';
 import { renderPageShell, renderNavBar, renderFontLinks, renderBuildFooter } from './templates/page.js';
 import { renderToolsPage } from './templates/tools.js';
 import { renderLogPage } from './templates/logs.js';
 
 export class HTMLRenderer {
   static renderContentOnly = renderContentOnly;
+  static renderArchiveContentOnly = renderArchiveContentOnly;
 
   static renderActionBtn(href, icon, text) {
     return `<a href="${href}" class="action-btn"><span class="btn-icon">${icon}</span> <span class="btn-text">${text}</span></a>`;

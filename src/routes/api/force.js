@@ -51,24 +51,14 @@ export async function handleForceUpdate(request, env) {
       pendingRevisionWrites
     }, logger);
 
-    const warnings = [];
-    try {
-      await refreshScheduleBoardOnDayRollover(env, runtimeConfig);
-    } catch (error) {
-      warnings.push(`day-rollover: ${error.message}`);
-      console.warn(`[API:FORCE] day-rollover failed: ${error.message}`);
-    }
+    await refreshScheduleBoardOnDayRollover(env, runtimeConfig);
 
-    try {
-      await ensureDayInitialized(env, tournaments, now, { applySchedules: "best-effort" });
-      await reconcileLeagueStates(env, tournaments, now, { applySchedules: "best-effort" });
-    } catch (error) {
-      warnings.push(`schedule-reconcile: ${error.message}`);
-      console.warn(`[API:FORCE] schedule reconcile failed: ${error.message}`);
-    }
-
-    if (warnings.length > 0) {
-      return new Response(`PARTIAL warnings=${warnings.join(" | ")}`, { status: 207 });
+    const scheduleWarnings = [];
+    const scheduleOptions = { applySchedules: "best-effort", scheduleWarnings };
+    await ensureDayInitialized(env, tournaments, now, scheduleOptions);
+    await reconcileLeagueStates(env, tournaments, now, scheduleOptions);
+    if (scheduleWarnings.length > 0) {
+      return new Response(`PARTIAL scheduleWarnings=${scheduleWarnings.join(" | ")}`, { status: 207 });
     }
     return new Response("OK", { status: 200 });
   } catch (error) {
