@@ -44,7 +44,8 @@ export function processResults(results, cache, force, forceSlugs, runtimeConfig)
     if (resultItem.status === 'fulfilled') {
       const slug = resultItem.slug;
       const newData = resultItem.data;
-      const oldData = cache.rawMatches[slug] ?? [];
+      const oldData = cache.rawMatches[slug];
+      if (!Array.isArray(oldData)) throw new Error(`RAW_MATCHES missing in previous cache: ${slug}`);
       const isForce = force;
 
       if (!isForce && oldData.length > 10 && newData.length < oldData.length * UPDATE_CONFIG.DROP_THRESHOLD) {

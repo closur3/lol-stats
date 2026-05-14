@@ -24,6 +24,18 @@ export function hasRevisionRecordChanged(previousRecord, nextRecord) {
   return false;
 }
 
+function normalizePreviousRevisionState(slug, previousRevisionState) {
+  if (previousRevisionState == null) return { slug, pages: {} };
+  if (typeof previousRevisionState !== "object" || Array.isArray(previousRevisionState)) {
+    throw new Error(`REV state must be a JSON object: ${slug}`);
+  }
+  const pages = previousRevisionState.pages;
+  if (!pages || typeof pages !== "object" || Array.isArray(pages)) {
+    throw new Error(`REV pages must be a JSON object: ${slug}`);
+  }
+  return { slug, pages };
+}
+
 export async function detectRevisionChanges(env, tournaments) {
   const changedSlugs = new Set();
   const revidChanges = {};
@@ -31,7 +43,7 @@ export async function detectRevisionChanges(env, tournaments) {
   let hasErrors = false;
   let checkedSlugs = 0;
 
-  const revisionChecks = await Promise.all(
+  const revisionCheckResults = await Promise.allSettled(
     (tournaments || []).map(async (tournament) => {
       const slug = tournament?.slug;
       if (!slug) return null;
@@ -42,13 +54,8 @@ export async function detectRevisionChanges(env, tournaments) {
       const dataPages = Array.from(new Set(pages.map(dataUtils.toDataPage)));
       const expandedDataPages = [];
       for (const dataPage of dataPages) {
-        try {
-          const subpages = await FandomClient.fetchAllSubpages(dataPage);
-          expandedDataPages.push(...subpages);
-        } catch (error) {
-          console.log(`[REV:SUBPAGES] ${slug} failed page=${dataPage} error=${error.message}`);
-          expandedDataPages.push(dataPage);
-        }
+        const subpages = await FandomClient.fetchAllSubpages(dataPage);
+        expandedDataPages.push(...subpages);
       }
 
       const finalDataPages = Array.from(new Set(expandedDataPages));
@@ -67,6 +74,15 @@ export async function detectRevisionChanges(env, tournaments) {
       };
     })
   );
+  const revisionChecks = [];
+  for (const checkResult of revisionCheckResults) {
+    if (checkResult.status === 'rejected') {
+      hasErrors = true;
+      console.log(`[REV:ERROR] prepare failed: ${checkResult.reason?.message || 'unknown error'}`);
+      continue;
+    }
+    revisionChecks.push(checkResult.value);
+  }
 
   const revChecks = await Promise.allSettled(
     revisionChecks
@@ -75,14 +91,13 @@ export async function detectRevisionChanges(env, tournaments) {
         const { slug, dataPages, previousRevisionState } = check;
         checkedSlugs++;
 
-        const prevPages = previousRevisionState?.pages || {};
+        const prevRecord = normalizePreviousRevisionState(slug, previousRevisionState);
+        const prevPages = prevRecord.pages;
         const nextPages = {};
         let revisionChanged = false;
-        let pagesFetched = 0;
-        let errCount = 0;
         const changedPages = [];
 
-        const pageResults = await Promise.allSettled(
+        const pageResults = await Promise.all(
           dataPages.map(async (page) => {
             const latest = await FandomClient.fetchLatestRevision(page);
             return { page, latest };
@@ -90,17 +105,10 @@ export async function detectRevisionChanges(env, tournaments) {
         );
 
         for (const pageResult of pageResults) {
-          if (pageResult.status === 'rejected') {
-            errCount++;
-            console.log(`[REV:FETCH] ${slug} error=${pageResult.reason?.message || 'unknown error'}`);
-            continue;
-          }
-
-          const { page, latest } = pageResult.value;
+          const { page, latest } = pageResult;
           if (latest?.missing) continue;
 
           const title = latest.title || page;
-          pagesFetched++;
           nextPages[title] = {
             revid: latest.revid,
             revisionTimeUTC: latest.revisionTimeUTC,
@@ -119,11 +127,9 @@ export async function detectRevisionChanges(env, tournaments) {
           }
         }
 
-        if (errCount > 0 && pagesFetched === 0) hasErrors = true;
-
-        const nextRecord = { slug, pages: nextPages || {} };
+        const nextRecord = { slug, pages: nextPages };
         const shouldWriteRev = hasRevisionRecordChanged(
-          { slug, pages: prevPages || {} },
+          { slug, pages: prevPages },
           nextRecord
         );
 
@@ -131,9 +137,7 @@ export async function detectRevisionChanges(env, tournaments) {
           slug,
           shouldWriteRev,
           nextRecord,
-          pagesFetched,
           revisionChanged,
-          errCount,
           changedPages
         };
       })
@@ -146,17 +150,15 @@ export async function detectRevisionChanges(env, tournaments) {
       continue;
     }
 
-    const { slug, shouldWriteRev, nextRecord, pagesFetched, revisionChanged, errCount, changedPages } = checkResult.value;
+    const { slug, shouldWriteRev, nextRecord, revisionChanged, changedPages } = checkResult.value;
 
-    if (shouldWriteRev && pagesFetched > 0) {
+    if (shouldWriteRev) {
       pendingRevisionWrites[slug] = nextRecord;
     }
 
     if (revisionChanged) {
       changedSlugs.add(slug);
       console.log(`[REV:CHANGE] ${slug} pages=${changedPages.length}${changedPages.length ? ` | ${changedPages.join(", ")}` : ""}`);
-    } else if (errCount > 0) {
-      console.log(`[REV:PARTIAL] ${slug} ok=${pagesFetched} err=${errCount}`);
     }
   }
 

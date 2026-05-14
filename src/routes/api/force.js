@@ -67,8 +67,10 @@ export async function handleForceUpdate(request, env) {
       console.warn(`[API:FORCE] schedule reconcile failed: ${error.message}`);
     }
 
-    const message = warnings.length > 0 ? `OK warnings=${warnings.join(" | ")}` : "OK";
-    return new Response(message, { status: 200 });
+    if (warnings.length > 0) {
+      return new Response(`PARTIAL warnings=${warnings.join(" | ")}`, { status: 207 });
+    }
+    return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Worker Error: ${error.message}`, { status: 500 });
   }
