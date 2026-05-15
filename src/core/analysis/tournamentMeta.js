@@ -1,5 +1,4 @@
 import { timePolicy } from '../../utils/timePolicy.js';
-import { parseMatchBestOf, parseMatchScore } from './matchFields.js';
 
 export function computeTournamentMetaFromRawMatches(rawMatches) {
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
@@ -17,9 +16,9 @@ export function computeTournamentMetaFromRawMatches(rawMatches) {
       todayEarliest = ts;
     }
 
-    const team1Score = parseMatchScore(match.Team1Score, `${match.MatchId}.Team1Score`);
-    const team2Score = parseMatchScore(match.Team2Score, `${match.MatchId}.Team2Score`);
-    const bestOf = parseMatchBestOf(match.BestOf, `${match.MatchId}.BestOf`);
+    const team1Score = Number.parseInt(match.Team1Score, 10) || 0;
+    const team2Score = Number.parseInt(match.Team2Score, 10) || 0;
+    const bestOf = Number.parseInt(match.BestOf, 10);
     const isFinished = Math.max(team1Score, team2Score) >= Math.ceil(bestOf / 2);
     if (isFinished) continue;
 

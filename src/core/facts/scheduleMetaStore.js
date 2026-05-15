@@ -31,11 +31,9 @@ export function normalizeScheduleMeta(slug, meta) {
 }
 
 export function sameScheduleMeta(left, right) {
-  const leftFields = assertScheduleMetaFields("left SCHEDULE_META", left);
-  const rightFields = assertScheduleMetaFields("right SCHEDULE_META", right);
-  return leftFields.todayEarliestTimestamp === rightFields.todayEarliestTimestamp
-    && leftFields.todayUnfinished === rightFields.todayUnfinished
-    && leftFields.hasHistoryUnfinished === rightFields.hasHistoryUnfinished;
+  return left.todayEarliestTimestamp === right.todayEarliestTimestamp
+    && left.todayUnfinished === right.todayUnfinished
+    && left.hasHistoryUnfinished === right.hasHistoryUnfinished;
 }
 
 export async function rebuildScheduleMetaFromRawMatches(env, slug) {
