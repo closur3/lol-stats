@@ -4,7 +4,6 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { dataUtils } from '../../utils/dataUtils.js';
 import { kvDelete, kvPutIfChanged } from '../../utils/kvStore.js';
 import { Analyzer } from '../analyzer.js';
-import { renderCache } from '../../cache/renderCache.js';
 import { rebuildArchiveIndexFromSnapshots } from './archiveIndex.js';
 import { loadTeamsConfig } from './teamsConfigLoader.js';
 
@@ -28,7 +27,6 @@ export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
 
 async function refreshArchiveDerivedState(env, options = {}) {
   await rebuildArchiveIndexFromSnapshots(env, { allowEmpty: options.allowEmptyIndex === true });
-  renderCache.invalidateArchive();
 }
 
 function buildTournamentFromArchivePayload(payload) {

@@ -1,4 +1,3 @@
-import { renderCache } from '../cache/renderCache.js';
 import { renderArchiveFromFacts } from '../render/ssrRenderService.js';
 
 export class ArchiveRouter {
@@ -12,14 +11,7 @@ export class ArchiveRouter {
   }
 
   static async handleArchive(request, env) {
-    const cached = renderCache.getArchive();
-    if (cached) {
-      return new Response(cached, { headers: ArchiveRouter.htmlHeaders() });
-    }
-
     const html = await renderArchiveFromFacts(env);
-
-    renderCache.setArchive(html);
     return new Response(html, { headers: ArchiveRouter.htmlHeaders() });
   }
 }

@@ -1,7 +1,6 @@
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { kvPutIfChanged, kvDelete } from '../../utils/kvStore.js';
 import { rebuildArchiveIndexFromSnapshots } from './archiveIndex.js';
-import { renderCache } from '../../cache/renderCache.js';
 
 export async function cleanupStaleHomeKeys(env, runtimeConfig) {
   if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
@@ -73,10 +72,5 @@ export async function cleanupStaleHomeKeys(env, runtimeConfig) {
       ...staleRawMatchesKeys.map(key => kvDelete(env, key)),
       ...staleScheduleMetaKeys.map(key => kvDelete(env, key))
     ]);
-  }
-
-  if (staleHomeKeys.length > 0) {
-    renderCache.invalidateArchive();
-    console.log(`[ARCHIVE:CACHE] invalidated`);
   }
 }
