@@ -1,4 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+import { kvPut } from "../../utils/kvStore.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 import { assertScheduleMetaFields } from "../facts/scheduleMetaStore.js";
 
@@ -14,8 +15,7 @@ export async function readControl(env) {
 }
 
 export async function writeControl(env, state) {
-  const kv = env["lol-stats-kv"];
-  await kv.put(kvKeys.scheduleDay(), JSON.stringify(state));
+  await kvPut(env, kvKeys.scheduleDay(), state);
 }
 
 export function attachSchedulePlan(state, schedules, nowUtc, applied) {

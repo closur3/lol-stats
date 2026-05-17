@@ -2,7 +2,7 @@ import { FandomClient } from '../../api/fandomClient.js';
 import { GitHubClient } from '../../api/githubClient.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { dataUtils } from '../../utils/dataUtils.js';
-import { kvDelete, kvPutIfChanged } from '../../utils/kvStore.js';
+import { kvDelete, kvPut } from '../../utils/kvStore.js';
 import { Analyzer } from '../analyzer.js';
 import { rebuildArchiveIndexFromSnapshots } from './archiveIndex.js';
 import { loadTeamsConfig } from './teamsConfigLoader.js';
@@ -10,8 +10,7 @@ import { loadTeamsConfig } from './teamsConfigLoader.js';
 export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
   if (!Array.isArray(rawMatches)) throw new Error(`Archive rawMatches invalid: ${tournament.slug}`);
   const tournamentWithMap = { ...tournament, teamMap };
-  const miniConfig = { TOURNAMENTS: [tournamentWithMap] };
-  const analysis = Analyzer.runFullAnalysis({ [tournament.slug]: rawMatches }, miniConfig);
+  const analysis = Analyzer.runFullAnalysis({ [tournament.slug]: rawMatches }, [tournamentWithMap]);
   const stats = analysis.globalStats[tournament.slug];
   const timeGrid = analysis.timeGrid[tournament.slug];
   if (!stats || typeof stats !== "object" || Array.isArray(stats)) throw new Error(`Archive stats missing: ${tournament.slug}`);
@@ -50,7 +49,7 @@ export async function rebuildArchiveFromPayload(env, payload) {
 
   const tournament = buildTournamentFromArchivePayload(payload);
   const teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, matches);
-  await kvPutIfChanged(env, kvKeys.archive(payload.slug), buildArchiveSnapshot(tournament, matches, teamMap));
+  await kvPut(env, kvKeys.archive(payload.slug), buildArchiveSnapshot(tournament, matches, teamMap));
   await refreshArchiveDerivedState(env);
 }
 
@@ -70,6 +69,6 @@ export async function writeManualArchive(env, payload) {
     teamMap: {}
   };
 
-  await kvPutIfChanged(env, kvKeys.archive(payload.slug), snapshot);
+  await kvPut(env, kvKeys.archive(payload.slug), snapshot);
   await refreshArchiveDerivedState(env);
 }

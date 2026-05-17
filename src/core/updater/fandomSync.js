@@ -10,16 +10,12 @@ import { writeTournamentFacts } from './factWriter.js';
 import { appendLeagueLogs } from './logPersistence.js';
 import { commitRevisionWrites } from './revWriter.js';
 import { UPDATE_CONFIG } from './types.js';
-import { loadTeamsConfig } from './teamsConfigLoader.js';
 
-function buildScopedRuntimeConfig(runtimeConfig, scopeSlugs) {
-  if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+function buildScopedTournaments(tournaments, scopeSlugs) {
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
   }
-  return {
-    ...runtimeConfig,
-    TOURNAMENTS: runtimeConfig.TOURNAMENTS.filter(tournament => scopeSlugs.has(tournament.slug))
-  };
+  return tournaments.filter(tournament => scopeSlugs.has(tournament.slug));
 }
 
 function buildScopedRawMatches(rawMatches, scopeSlugs) {
@@ -57,18 +53,18 @@ async function createFandomClient(env) {
   };
 }
 
-async function fetchAndProcessFandom(env, runtimeConfig, cache, force, forceSlugs) {
-  const candidates = determineCandidates(runtimeConfig.TOURNAMENTS, forceSlugs);
+async function fetchAndProcessFandom(env, tournaments, cache, force, forceSlugs) {
+  const candidates = determineCandidates(tournaments, forceSlugs);
   if (candidates.length === 0) {
-    console.log(`[UPDATE:SKIP] all tournaments skipped`);
+    console.log(`[FANDOM:SKIP] no-candidates`);
     return null;
   }
 
   const { authContext, fandomClient } = await createFandomClient(env);
   const results = await fetchMatchData(fandomClient, candidates);
-  const processed = processResults(results, cache, force, forceSlugs, runtimeConfig);
-  const { failedSlugs, syncItems, skipItems, breakers, apiErrors } = processed;
-  console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${breakers.length} apiErrors=${apiErrors.length} failed=${failedSlugs.size}`);
+  const processed = processResults(results, cache, force, forceSlugs, tournaments);
+  const { brokenSlugs, errorSlugs, syncItems, skipItems, dropBreakers, fetchErrors } = processed;
+  console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
   return { authContext, ...processed };
 }
 
@@ -80,41 +76,42 @@ function attachRevisionChanges(items, revidChanges) {
   }
 }
 
-function buildLogs(runtimeConfig, processed, authContext, logger) {
-  const { syncItems, skipItems, breakers, apiErrors, displayNameMap } = processed;
-  generateLog(syncItems, skipItems, breakers, apiErrors, authContext, logger);
-  return buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap);
+function buildLogs(tournaments, processed, authContext, logger) {
+  const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = processed;
+  generateLog(syncItems, skipItems, dropBreakers, fetchErrors, authContext, logger);
+  return buildLeagueLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap);
 }
 
-async function persistFacts(env, runtimeConfig, cache, teamsRaw, writeScopeSlugs) {
+async function persistFacts(env, scopedTournaments, cache, teamsRaw, writeScopeSlugs) {
   if (writeScopeSlugs.size === 0) return;
-  const scopedRuntimeConfig = buildScopedRuntimeConfig(runtimeConfig, writeScopeSlugs);
-  await prepareTournamentContext(env, scopedRuntimeConfig, cache, teamsRaw);
+  await prepareTournamentContext(env, scopedTournaments, cache, teamsRaw);
   const scopedRawMatches = buildScopedRawMatches(cache.rawMatches, writeScopeSlugs);
-  const analysis = Analyzer.runFullAnalysis(scopedRawMatches, scopedRuntimeConfig, UPDATE_CONFIG.MAX_SCHEDULE_DAYS);
-  await writeTournamentFacts(env, scopedRuntimeConfig, cache, analysis, writeScopeSlugs);
+  const analysis = Analyzer.runFullAnalysis(scopedRawMatches, scopedTournaments, UPDATE_CONFIG.MAX_SCHEDULE_DAYS);
+  await writeTournamentFacts(env, scopedTournaments, cache, analysis, writeScopeSlugs);
   return analysis;
 }
 
-async function rebuildProjections(env, runtimeConfig, cache, analysis, writeScopeSlugs) {
+async function rebuildProjections(env, scopedTournaments, cache, analysis, writeScopeSlugs) {
   if (writeScopeSlugs.size === 0) return;
-  const scopedRuntimeConfig = buildScopedRuntimeConfig(runtimeConfig, writeScopeSlugs);
-  await writeHomeProjections(env, scopedRuntimeConfig, cache, analysis, writeScopeSlugs);
+  await writeHomeProjections(env, scopedTournaments, cache, analysis, writeScopeSlugs);
 }
 
-export async function runFandomUpdate(env, githubClient, runtimeConfig, cache, force = false, forceSlugs = null, options = {}, logger) {
+export async function runFandomUpdate(env, githubClient, tournaments, teamsRaw, cache, force = false, forceSlugs = null, options = {}, logger) {
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
-  const teamsRaw = await loadTeamsConfig(env, githubClient);
-  const processed = await fetchAndProcessFandom(env, runtimeConfig, cache, force, forceSlugs);
+  const processed = await fetchAndProcessFandom(env, tournaments, cache, force, forceSlugs);
   if (!processed) return;
 
-  const { failedSlugs, syncItems, skipItems, authContext } = processed;
+  const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = processed;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
-  const leagueLogEntries = buildLogs(runtimeConfig, processed, authContext, logger);
+  const leagueLogEntries = buildLogs(tournaments, processed, authContext, logger);
 
-  const writeScopeSlugs = buildWriteScopeSlugs(runtimeConfig, syncItems, skipItems, forceWrite, forceSlugs);
-  const analysis = await persistFacts(env, runtimeConfig, cache, teamsRaw, writeScopeSlugs);
-  await rebuildProjections(env, runtimeConfig, cache, analysis, writeScopeSlugs);
-  await appendLeagueLogs(env, leagueLogEntries);
-  await commitRevisionWrites(env, pendingRevisionWrites, failedSlugs);
+  const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, skipItems, forceWrite, forceSlugs);
+  const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
+  const analysis = await persistFacts(env, scopedTournaments, cache, teamsRaw, writeScopeSlugs);
+  const failedSlugs = new Set([...brokenSlugs, ...errorSlugs]);
+  await Promise.all([
+    rebuildProjections(env, scopedTournaments, cache, analysis, writeScopeSlugs),
+    appendLeagueLogs(env, leagueLogEntries),
+    commitRevisionWrites(env, pendingRevisionWrites, failedSlugs)
+  ]);
 }

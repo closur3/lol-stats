@@ -20,7 +20,7 @@ export async function renderHomeFromFacts(env) {
     renderInput.globalStats,
     renderInput.timeGrid,
     limitedScheduleMap,
-    renderInput.runtimeConfig,
+    renderInput.tournaments,
     false,
     renderInput.tournamentMeta
   );
@@ -67,11 +67,11 @@ export async function renderArchiveFromFacts(env) {
 
   const combined = validSnapshots.map(snap => {
     const snapshotTournament = snap.tournament;
-    const miniConfig = { TOURNAMENTS: [{ ...snapshotTournament, teamMap: snap.teamMap }] };
+    const miniTournaments = [{ ...snapshotTournament, teamMap: snap.teamMap }];
     const content = HTMLRenderer.renderArchiveContentOnly(
       { [snapshotTournament.slug]: snap.stats },
       { [snapshotTournament.slug]: snap.timeGrid },
-      miniConfig
+      miniTournaments
     );
     return content;
   }).join("");

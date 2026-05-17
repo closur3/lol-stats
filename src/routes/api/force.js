@@ -1,10 +1,10 @@
-import { ensureDayInitialized, reconcileLeagueStates } from "../../core/scheduler/dynamicCronManager.js";
+import { runScheduleMaintenance } from "../../core/scheduler/dynamicCronManager.js";
 import { GitHubClient } from "../../api/githubClient.js";
 import { Logger } from "../../infrastructure/logger.js";
-import { loadRuntimeConfig } from "../../core/updater/configLoader.js";
+import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
+import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
 import { loadPreviousCachedData } from "../../core/updater/cache.js";
 import { runFandomUpdate } from "../../core/updater/fandomSync.js";
-import { refreshScheduleBoardOnDayRollover } from "../../core/updater/dayRollover.js";
 import { detectRevisionChanges } from "../../core/updater/revisionDetector.js";
 import { requireAdmin } from "./auth.js";
 
@@ -32,31 +32,31 @@ export async function handleForceUpdate(request, env) {
 
     const githubClient = new GitHubClient(env);
     const logger = new Logger();
-    let runtimeConfig;
+    let tournaments, teamsRaw;
     try {
-      runtimeConfig = await loadRuntimeConfig(env, githubClient);
+      [tournaments, teamsRaw] = await Promise.all([
+        loadTourConfig(env, githubClient),
+        loadTeamsConfig(env, githubClient)
+      ]);
     } catch (error) {
       return new Response(`Config load failed: ${error.message}`, { status: 500 });
     }
+    if (!Array.isArray(tournaments)) return new Response("Invalid tournaments config", { status: 500 });
 
     const now = Date.now();
-    const tournaments = runtimeConfig.TOURNAMENTS;
     const forcedTournaments = tournaments.filter(tournament => forceSlugs.has(tournament.slug));
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
     const cache = await loadPreviousCachedData(env, forcedTournaments);
     const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, forcedTournaments);
-    await runFandomUpdate(env, githubClient, runtimeConfig, cache, true, forceSlugs, {
+    await runFandomUpdate(env, githubClient, tournaments, teamsRaw, cache, true, forceSlugs, {
       forceWrite: true,
       revidChanges,
       pendingRevisionWrites
     }, logger);
 
-    await refreshScheduleBoardOnDayRollover(env, runtimeConfig, now);
-
     const scheduleWarnings = [];
     const scheduleOptions = { applySchedules: "best-effort", scheduleWarnings };
-    await ensureDayInitialized(env, tournaments, now, scheduleOptions);
-    await reconcileLeagueStates(env, tournaments, now, scheduleOptions);
+    await runScheduleMaintenance(env, tournaments, now, scheduleOptions);
     if (scheduleWarnings.length > 0) {
       return new Response(`PARTIAL scheduleWarnings=${scheduleWarnings.join(" | ")}`, { status: 207 });
     }

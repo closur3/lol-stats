@@ -1,10 +1,10 @@
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
-import { kvPutIfChanged, kvDelete } from '../../utils/kvStore.js';
+import { kvPut, kvDelete } from '../../utils/kvStore.js';
 import { rebuildArchiveIndexFromSnapshots } from './archiveIndex.js';
 
-export async function cleanupStaleHomeKeys(env, runtimeConfig) {
-  if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+export async function cleanupStaleHomeKeys(env, tournaments) {
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
   }
   const kv = env["lol-stats-kv"];
   const [allHomeKeys, allLogKeys, allRevKeys, allRawMatchesKeys, allScheduleMetaKeys] = await Promise.all([
@@ -15,7 +15,7 @@ export async function cleanupStaleHomeKeys(env, runtimeConfig) {
     kv.list({ prefix: kvKeys.SCHEDULE_META_PREFIX })
   ]);
 
-  const activeSlugs = new Set(runtimeConfig.TOURNAMENTS.map(tournament => {
+  const activeSlugs = new Set(tournaments.map(tournament => {
     if (!tournament?.slug) throw new Error("Tournament slug missing");
     return tournament.slug;
   }));
@@ -57,7 +57,7 @@ export async function cleanupStaleHomeKeys(env, runtimeConfig) {
     const archiveWrites = staleHomeKeys.map((k, i) => {
       const archiveSnapshot = { ...staleData[i] };
       delete archiveSnapshot.scheduleMap;
-      return kvPutIfChanged(env, kvKeys.archive(k.slice(kvKeys.HOME_PREFIX.length)), archiveSnapshot);
+      return kvPut(env, kvKeys.archive(k.slice(kvKeys.HOME_PREFIX.length)), archiveSnapshot);
     });
     await Promise.all(archiveWrites);
     await rebuildArchiveIndexFromSnapshots(env);

@@ -1,3 +1,3 @@
 export { buildActiveBucketCronsFromState } from "./cronBuckets.js";
-export { ensureDayInitialized, planTodayPlay } from "./schedulePlanner.js";
-export { reconcileLeagueStates, resolveScheduledExecutionSlugs } from "./scheduleReconciler.js";
+export { ensureDayInitialized, planTodayPlay, reconcileLeagueStates, runScheduleMaintenance } from "./schedulePlanner.js";
+export { resolveScheduledExecutionSlugs } from "./scheduleReconciler.js";

@@ -7,21 +7,21 @@ function assertObject(value, label) {
   }
 }
 
-function assertRuntimeConfig(runtimeConfig) {
-  if (!runtimeConfig || typeof runtimeConfig !== "object" || !Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+function assertTournaments(tournaments) {
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
   }
 }
 
-export function renderContentOnly(globalStats, timeData, scheduleMap, runtimeConfig, isArchive = false, tournamentMeta) {
+export function renderContentOnly(globalStats, timeData, scheduleMap, tournaments, isArchive = false, tournamentMeta) {
   assertObject(globalStats, "globalStats");
   assertObject(timeData, "timeData");
   assertObject(scheduleMap, "scheduleMap");
-  assertRuntimeConfig(runtimeConfig);
+  assertTournaments(tournaments);
   if (!isArchive) assertObject(tournamentMeta, "tournamentMeta");
 
   const injectedData = `<script>window.g_stats = Object.assign(window.g_stats ?? {}, ${JSON.stringify(globalStats)});</script>`;
-  const tablesHtml = runtimeConfig.TOURNAMENTS
+  const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
     .map(tournament => renderLeagueSection(tournament, globalStats, timeData, tournamentMeta, isArchive))
     .join("");
@@ -30,6 +30,6 @@ export function renderContentOnly(globalStats, timeData, scheduleMap, runtimeCon
   return `${tablesHtml} ${scheduleHtml} ${injectedData}`;
 }
 
-export function renderArchiveContentOnly(globalStats, timeData, runtimeConfig) {
-  return renderContentOnly(globalStats, timeData, {}, runtimeConfig, true, null);
+export function renderArchiveContentOnly(globalStats, timeData, tournaments) {
+  return renderContentOnly(globalStats, timeData, {}, tournaments, true, null);
 }

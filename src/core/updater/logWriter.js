@@ -12,7 +12,7 @@ export function formatDeltaTag(item) {
   return "~0";
 }
 
-export function generateLog(syncItems, skipItems, breakers, apiErrors, authContext, logger) {
+export function generateLog(syncItems, skipItems, dropBreakers, fetchErrors, authContext, logger) {
   const isAnon = (!authContext || authContext.isAnonymous);
   const authSuffix = isAnon ? " 👻" : "";
 
@@ -23,7 +23,7 @@ export function generateLog(syncItems, skipItems, breakers, apiErrors, authConte
 
   let trafficLight, action, content;
 
-  if (syncDetails.length === 0 && apiErrors.length === 0 && breakers.length === 0) {
+  if (syncDetails.length === 0 && fetchErrors.length === 0 && dropBreakers.length === 0) {
     trafficLight = "⚪"; action = "[SKIP]";
 
     let parts = [];
@@ -31,14 +31,14 @@ export function generateLog(syncItems, skipItems, breakers, apiErrors, authConte
 
     content = parts.join(" | ");
   } else {
-    const hasErr = apiErrors.length > 0 || breakers.length > 0;
+    const hasErr = fetchErrors.length > 0 || dropBreakers.length > 0;
     trafficLight = hasErr ? "🔴" : "🟢";
     action = hasErr ? "[ERR!]" : "[SYNC]";
 
     let parts = [];
     if (syncDetails.length > 0) parts.push(`🔄 ${syncDetails.join(", ")}`);
-    if (breakers.length > 0) parts.push(`🚧 ${breakers.join(", ")}`);
-    if (apiErrors.length > 0) parts.push(`❌ ${apiErrors.join(", ")}`);
+    if (dropBreakers.length > 0) parts.push(`🚧 ${dropBreakers.join(", ")}`);
+    if (fetchErrors.length > 0) parts.push(`❌ ${fetchErrors.join(", ")}`);
 
     content = parts.join(" | ");
   }
@@ -56,7 +56,7 @@ function pickLatestRevisionTrigger(revidChanges) {
   );
 }
 
-export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors, authContext, runtimeConfig, displayNameMap) {
+export function buildLeagueLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap) {
   const loggedAt = timePolicy.getNow().fullDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
@@ -100,7 +100,7 @@ export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors,
     });
   });
 
-  breakers.forEach(breaker => {
+  dropBreakers.forEach(breaker => {
     if (typeof breaker !== "string" || breaker.length === 0) throw new Error("breaker log item invalid");
     const slug = breaker.split("(")[0];
     const dropMatch = breaker.match(/\(Drop .+\)/);
@@ -109,9 +109,9 @@ export function buildLeagueLogEntries(syncItems, skipItems, breakers, apiErrors,
     pushEntry(slug, { action: "BREAKER", level: "ERROR", displayName: name, dropInfo, isAnon });
   });
 
-  apiErrors.forEach(apiError => {
-    if (typeof apiError !== "string" || apiError.length === 0) throw new Error("api error log item invalid");
-    const slug = apiError.split("(")[0];
+  fetchErrors.forEach(fetchError => {
+    if (typeof fetchError !== "string" || fetchError.length === 0) throw new Error("fetch error log item invalid");
+    const slug = fetchError.split("(")[0];
     const name = getDisplayName(slug);
     pushEntry(slug, { action: "API_ERROR", level: "ERROR", displayName: name, isAnon });
   });

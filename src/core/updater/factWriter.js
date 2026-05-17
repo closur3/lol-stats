@@ -1,11 +1,11 @@
 import { writeRawMatches } from "../facts/rawMatchesStore.js";
 import { writeScheduleMeta } from "../facts/scheduleMetaStore.js";
 
-export async function writeTournamentFacts(env, runtimeConfig, cache, analysis, writeScopeSlugs) {
-  if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+export async function writeTournamentFacts(env, tournaments, cache, analysis, writeScopeSlugs) {
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
   }
-  await Promise.all(runtimeConfig.TOURNAMENTS.map(async (tournament) => {
+  await Promise.all(tournaments.map(async (tournament) => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
     if (!writeScopeSlugs.has(slug)) return;

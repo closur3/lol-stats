@@ -44,18 +44,15 @@ async function prepareRevisionCheck(env, tournament) {
   if (pages.length === 0) throw new Error(`Tournament overview_page missing: ${slug}`);
 
   const dataPages = Array.from(new Set(pages.map(dataUtils.toDataPage)));
-  const expandedDataPages = [];
-  for (const dataPage of dataPages) {
-    const subpages = await FandomClient.fetchAllSubpages(dataPage);
-    expandedDataPages.push(...subpages);
-  }
+  const subpageResults = await Promise.all(dataPages.map(page => FandomClient.fetchAllSubpages(page)));
+  const expandedDataPages = Array.from(new Set(subpageResults.flat()));
 
   const previousRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(slug), { type: "json" });
   console.log(`[REV:CHECK] ${slug}`);
 
   return {
     slug,
-    dataPages: Array.from(new Set(expandedDataPages)),
+    dataPages: expandedDataPages,
     previousRevisionState
   };
 }

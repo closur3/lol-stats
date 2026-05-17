@@ -1,5 +1,5 @@
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
-import { kvPutIfChanged } from '../../utils/kvStore.js';
+import { kvPut } from '../../utils/kvStore.js';
 
 export async function commitRevisionWrites(env, pendingRevisionWrites, failedSlugs = new Set(), failedHomeSlugs = new Set()) {
   const entries = Object.entries(pendingRevisionWrites).filter(([slug, record]) => {
@@ -10,6 +10,6 @@ export async function commitRevisionWrites(env, pendingRevisionWrites, failedSlu
   });
 
   await Promise.all(entries.map(([slug, record]) => {
-    return kvPutIfChanged(env, kvKeys.rev(slug), record);
+    return kvPut(env, kvKeys.rev(slug), record);
   }));
 }

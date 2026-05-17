@@ -22,6 +22,6 @@ export async function appendLeagueLogs(env, leagueLogEntries) {
     const logKey = kvKeys.log(slug);
     const oldLogs = await readExistingLogEntries(kv, logKey);
     const nextLogs = [entry, ...oldLogs].slice(0, UPDATE_CONFIG.MAX_LOG_ENTRIES);
-    await kvPut(env, logKey, JSON.stringify(nextLogs));
+    await kvPut(env, logKey, nextLogs);
   }));
 }

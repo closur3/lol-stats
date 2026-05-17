@@ -40,7 +40,6 @@ export function buildStaticRenderInput(homeEntries, sortedTournaments, scheduleM
   if (!Array.isArray(homeEntries)) throw new Error("homeEntries must be an array");
   if (!Array.isArray(sortedTournaments)) throw new Error("sortedTournaments must be an array");
   if (!(scheduleMetaBySlug instanceof Map)) throw new Error("scheduleMetaBySlug must be a Map");
-  const runtimeConfig = { TOURNAMENTS: sortedTournaments };
   const tournamentIndexMap = new Map(sortedTournaments.map((tournament, index) => [tournament.slug, index]));
   const globalStats = {};
   const timeGrid = {};
@@ -67,7 +66,7 @@ export function buildStaticRenderInput(homeEntries, sortedTournaments, scheduleM
     });
   }
 
-  return { runtimeConfig, globalStats, timeGrid, scheduleMap, tournamentMeta };
+  return { tournaments: sortedTournaments, globalStats, timeGrid, scheduleMap, tournamentMeta };
 }
 
 export function pruneStaticSchedule(scheduleMap, tournamentMeta) {

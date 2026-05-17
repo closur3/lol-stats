@@ -16,9 +16,9 @@ export class Analyzer {
   /**
    * 运行完整分析
    */
-  static runFullAnalysis(allRawMatches, runtimeConfig, maxScheduleDays = DEFAULT_MAX_SCHEDULE_DAYS) {
-    if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-      throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+  static runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DEFAULT_MAX_SCHEDULE_DAYS) {
+    if (!Array.isArray(tournaments)) {
+      throw new Error("tournaments must be an array");
     }
     const globalStats = {};
     const tournamentMeta = {};
@@ -36,7 +36,7 @@ export class Analyzer {
     const todayStr = timePolicy.getNow().dateString;
     const allFutureMatches = {};
 
-    runtimeConfig.TOURNAMENTS.forEach((tournament, tournamentIndex) => {
+    tournaments.forEach((tournament, tournamentIndex) => {
       const rawMatches = allRawMatches[tournament.slug];
       if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES missing in analyzer input: ${tournament.slug}`);
 
@@ -50,7 +50,7 @@ export class Analyzer {
       tournamentMeta[tournament.slug] = meta;
     });
 
-    const scheduleMap = buildScheduleMap(allFutureMatches, runtimeConfig, maxScheduleDays, tournamentMeta);
+    const scheduleMap = buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, tournamentMeta);
 
     return {
       globalStats,

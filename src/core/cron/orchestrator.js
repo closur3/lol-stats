@@ -1,51 +1,42 @@
 import { GitHubClient } from "../../api/githubClient.js";
-import { loadRuntimeConfig } from "../updater/configLoader.js";
+import { loadTourConfig } from "../updater/tourConfigLoader.js";
+import { loadTeamsConfig } from "../updater/teamsConfigLoader.js";
 import { loadPreviousCachedData } from "../updater/cache.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runFandomUpdate } from "../updater/fandomSync.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
-import { refreshScheduleBoardOnDayRollover } from "../updater/dayRollover.js";
-import { ensureDayInitialized, reconcileLeagueStates, resolveScheduledExecutionSlugs } from "../scheduler/dynamicCronManager.js";
+import { reconcileLeagueStates, resolveScheduledExecutionSlugs, runScheduleMaintenance } from "../scheduler/dynamicCronManager.js";
 import { Logger } from "../../infrastructure/logger.js";
 
-const SKIP_CRON = Symbol("skip cron");
-
-function requireTournaments(runtimeConfig) {
-  if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
-  }
-  return runtimeConfig.TOURNAMENTS;
+function filterTournaments(tournaments, slugs) {
+  return tournaments.filter(tournament => slugs.has(tournament.slug));
 }
 
-function intersectTournaments(tournaments, scopeSlugs) {
-  if (!(scopeSlugs instanceof Set)) return tournaments;
-  return tournaments.filter(tournament => scopeSlugs.has(tournament.slug));
-}
-
-async function resolveCronScope(env, event, tournaments) {
-  const executionSlugs = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
-  if (executionSlugs instanceof Set && executionSlugs.size === 0) {
+async function resolveCronTarget(env, event, tournaments) {
+  const target = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
+  if (target.type === 'none') {
     await reconcileLeagueStates(env, tournaments, event.scheduledTime);
-    return SKIP_CRON;
   }
-  return executionSlugs;
+  return target;
 }
 
-async function detectScopedRevisionChanges(env, tournaments, executionSlugs) {
-  const scopedTournaments = intersectTournaments(tournaments, executionSlugs);
+async function detectRevisionChangesForTarget(env, tournaments, target) {
+  const scopedTournaments = target.type === 'scoped'
+    ? filterTournaments(tournaments, target.slugs)
+    : tournaments;
   const { changedSlugs, revidChanges, pendingRevisionWrites, hasErrors, checkedSlugs } = await detectRevisionChanges(env, scopedTournaments);
-  console.log(`[UPDATE:REV] checked=${checkedSlugs} changed=${changedSlugs.size} errors=${hasErrors ? 1 : 0}`);
+  console.log(`[REV:SUMMARY] checked=${checkedSlugs} changed=${changedSlugs.size} errors=${hasErrors ? 1 : 0}`);
 
   return { changedSlugs, revidChanges, pendingRevisionWrites };
 }
 
-async function runChangedRevisionPath(env, githubClient, runtimeConfig, tournaments, revisionResult, logger) {
+async function runRevisionPath(env, githubClient, tournaments, teamsRaw, revisionResult, logger) {
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
-    const changedTournaments = intersectTournaments(tournaments, changedSlugs);
+    const changedTournaments = filterTournaments(tournaments, changedSlugs);
     const cache = await loadPreviousCachedData(env, changedTournaments);
-    console.log(`[UPDATE:GATE] fandom slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runFandomUpdate(env, githubClient, runtimeConfig, cache, false, changedSlugs, {
+    console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
+    await runFandomUpdate(env, githubClient, tournaments, teamsRaw, cache, false, changedSlugs, {
       forceWrite: false,
       revidChanges,
       pendingRevisionWrites
@@ -55,22 +46,21 @@ async function runChangedRevisionPath(env, githubClient, runtimeConfig, tourname
   }
 }
 
-async function runScheduleMaintenancePath(env, runtimeConfig, tournaments, scheduledTimeMs) {
-  await refreshScheduleBoardOnDayRollover(env, runtimeConfig, scheduledTimeMs);
-  await ensureDayInitialized(env, tournaments, scheduledTimeMs);
-  await reconcileLeagueStates(env, tournaments, scheduledTimeMs);
-}
-
 export async function runCron(env, event) {
   const githubClient = new GitHubClient(env);
   const logger = new Logger();
-  const runtimeConfig = await loadRuntimeConfig(env, githubClient);
-  const tournaments = requireTournaments(runtimeConfig);
+  const [tournaments, teamsRaw] = await Promise.all([
+    loadTourConfig(env, githubClient),
+    loadTeamsConfig(env, githubClient)
+  ]);
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
+  }
 
-  const executionSlugs = await resolveCronScope(env, event, tournaments);
-  if (executionSlugs === SKIP_CRON) return;
+  const target = await resolveCronTarget(env, event, tournaments);
+  if (target.type === 'none') return;
 
-  const revisionResult = await detectScopedRevisionChanges(env, tournaments, executionSlugs);
-  await runChangedRevisionPath(env, githubClient, runtimeConfig, tournaments, revisionResult, logger);
-  await runScheduleMaintenancePath(env, runtimeConfig, tournaments, event.scheduledTime);
+  const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
+  await runRevisionPath(env, githubClient, tournaments, teamsRaw, revisionResult, logger);
+  await runScheduleMaintenance(env, tournaments, event.scheduledTime);
 }

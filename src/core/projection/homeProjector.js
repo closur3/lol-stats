@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { kvPutIfChanged } from "../../utils/kvStore.js";
+import { kvPut } from "../../utils/kvStore.js";
 
 function requireObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -8,9 +8,9 @@ function requireObject(value, label) {
   return value;
 }
 
-export function buildWriteScopeSlugs(runtimeConfig, syncItems, skipItems, force, forceSlugs) {
-  if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+export function buildWriteScopeSlugs(tournaments, syncItems, skipItems, force, forceSlugs) {
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
   }
   if (!Array.isArray(syncItems)) throw new Error("syncItems must be an array");
   if (!Array.isArray(skipItems)) throw new Error("skipItems must be an array");
@@ -26,19 +26,19 @@ export function buildWriteScopeSlugs(runtimeConfig, syncItems, skipItems, force,
     return scope;
   }
 
-  for (const tournament of runtimeConfig.TOURNAMENTS) {
+  for (const tournament of tournaments) {
     if (!tournament?.slug) throw new Error("Tournament slug missing");
     scope.add(tournament.slug);
   }
   return scope;
 }
 
-export function buildScheduleBySlug(runtimeConfig, scheduleMap) {
-  if (!Array.isArray(runtimeConfig.TOURNAMENTS)) {
-    throw new Error("runtimeConfig.TOURNAMENTS must be an array");
+export function buildScheduleBySlug(tournaments, scheduleMap) {
+  if (!Array.isArray(tournaments)) {
+    throw new Error("tournaments must be an array");
   }
   requireObject(scheduleMap, "analysis.scheduleMap");
-  const tournamentIndexMap = new Map(runtimeConfig.TOURNAMENTS.map((tournament, index) => [tournament.slug, index]));
+  const tournamentIndexMap = new Map(tournaments.map((tournament, index) => [tournament.slug, index]));
   const scheduleBySlug = {};
 
   for (const [date, matches] of Object.entries(scheduleMap)) {
@@ -86,15 +86,15 @@ export function buildHomeSnapshot(tournament, cache, analysis, scheduleBySlug) {
   };
 }
 
-export async function writeHomeProjections(env, runtimeConfig, cache, analysis, writeScopeSlugs) {
-  const scheduleBySlug = buildScheduleBySlug(runtimeConfig, analysis.scheduleMap);
+export async function writeHomeProjections(env, tournaments, cache, analysis, writeScopeSlugs) {
+  const scheduleBySlug = buildScheduleBySlug(tournaments, analysis.scheduleMap);
 
-  await Promise.all(runtimeConfig.TOURNAMENTS.map(async (tournament) => {
+  await Promise.all(tournaments.map(async (tournament) => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
     if (!writeScopeSlugs.has(slug)) return;
     const homeSnapshot = buildHomeSnapshot(tournament, cache, analysis, scheduleBySlug);
-    await kvPutIfChanged(env, kvKeys.home(slug), homeSnapshot);
+    await kvPut(env, kvKeys.home(slug), homeSnapshot);
     cache.homes[slug] = homeSnapshot;
   }));
 }
