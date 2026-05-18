@@ -142,11 +142,16 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
       if (!slug) throw new Error("Tournament slug missing");
       const meta = metasBySlug.get(slug);
       if (!meta) throw new Error(`SCHEDULE_META missing after load: ${slug}`);
-      const window = buildWindowFromMeta(meta);
-      if (!window) continue;
-      const candidate = buildLeagueState("idle", window);
-      candidate.phase = derivePhase(candidate, meta, now);
-      next.leagues[slug] = candidate;
+
+      const hasUnfinished = meta.hasHistoryUnfinished || meta.todayUnfinished > 0;
+      if (hasUnfinished) {
+        const window = buildWindowFromMeta(meta);
+        if (window) {
+          const candidate = buildLeagueState("idle", window);
+          candidate.phase = derivePhase(candidate, meta, now);
+          next.leagues[slug] = candidate;
+        }
+      }
     }
 
     await writeStateAndSchedules(env, next, now, "PLAN", options);
@@ -156,8 +161,6 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
   const aligned = alignStateLeaguesWithTournaments(state, tournaments);
   const metas = await fetchTournamentMetasFromScheduleMeta(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
-
-  const phaseChanged = syncPhaseByWindowAndMeta(state, metasBySlug, now);
 
   const reconciled = [];
   for (const tournament of tournaments) {
@@ -169,29 +172,28 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
     const meta = metasBySlug.get(slug);
     if (!meta) throw new Error(`SCHEDULE_META missing after load: ${slug}`);
     const hasUnfinished = meta.hasHistoryUnfinished || meta.todayUnfinished > 0;
+
     let nextLeagueState = leagueState;
 
     if (!hasUnfinished) {
       nextLeagueState = buildLeagueState("idle");
-    } else if (!hasPlayWindow(leagueState)) {
-      const window = buildWindowFromMeta(meta);
-      if (!window) throw new Error(`Cannot restore play window for ${slug}`);
-      nextLeagueState = buildLeagueState("idle", window);
+    } else {
+      if (!hasPlayWindow(leagueState)) {
+        const window = buildWindowFromMeta(meta);
+        if (window) nextLeagueState = buildLeagueState("idle", window);
+      }
+      nextLeagueState.phase = derivePhase(nextLeagueState, meta, now);
     }
 
-    nextLeagueState.phase = derivePhase(nextLeagueState, meta, now);
     if (JSON.stringify(leagueState) !== JSON.stringify(nextLeagueState)) {
       state.leagues[slug] = nextLeagueState;
       reconciled.push(`${slug}:${leagueState.phase}->${nextLeagueState.phase}`);
     }
   }
 
-  const hasChanges = !aligned || phaseChanged.length > 0 || reconciled.length > 0;
+  const hasChanges = !aligned || reconciled.length > 0;
   if (!hasChanges) return;
 
-  if (phaseChanged.length > 0) {
-    console.log(`[SCHED:PHASE] date=${today} ${phaseChanged.join(",")}`);
-  }
   if (reconciled.length > 0) {
     console.log(`[SCHED:STATE] date=${today} ${reconciled.join(",")}`);
   }
