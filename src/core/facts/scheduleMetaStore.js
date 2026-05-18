@@ -41,7 +41,6 @@ export async function rebuildScheduleMetaFromRawMatches(env, slug) {
   if (!slug) throw new Error("schedule meta slug missing");
   const rawMatches = await readRawMatches(env, slug);
   const computedMeta = computeTournamentMetaFromRawMatches(rawMatches);
-  console.log(`[SCHED:META] rebuild ${slug}`);
   return writeScheduleMeta(env, slug, computedMeta);
 }
 
