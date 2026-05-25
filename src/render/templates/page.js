@@ -37,15 +37,24 @@ export function renderNavBar(activeMode = "home") {
 <div class="nav-mobile-menu" id="mobileMenu"><nav class="nav-mobile-links">${mobileNav}</nav></div>`;
 }
 
-export function renderBuildFooter(time, sha) {
+export function renderBuildFooter(time, sha, hasActiveCron = false) {
   const shortSha = (sha || "").slice(0, 7) || "unknown";
-  return `<div class="build-footer"><span class="footer-label">deployed:</span> <span class="footer-time">${time || "N/A"}</span> <a href="${GITHUB_COMMIT_BASE}${sha}" target="_blank"><span class="footer-sha">@${shortSha}</span></a></div>`;
+  const dotClass = hasActiveCron ? "active" : "idle";
+  return `<div class="build-footer"><span class="cron-dot ${dotClass}"></span><span class="footer-label">deployed:</span> <span class="footer-time">${time || "N/A"}</span> <a href="${GITHUB_COMMIT_BASE}${sha}" target="_blank"><span class="footer-sha">@${shortSha}</span></a></div>`;
 }
 
 export function renderClientJS() {
   return `<script>${SORT_SCRIPT}${MODAL_SCRIPT}</script>`;
 }
 
-export function renderPageShell(title, bodyContent, navMode = "home", time = null, sha = null) {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>${renderFontLinks()}<style>${homeCSS}</style><link rel="icon" href="/favicon.ico"></head><body>${renderNavBar(navMode)}<div class="container">${bodyContent}</div>${renderBuildFooter(time, sha)}<div id="matchModal" class="modal"><div class="modal-content"><h3 id="modalTitle">Match History</h3><div id="modalList" class="match-list"></div></div></div>${renderClientJS()}</body></html>`;
+export function renderPageShell(title, bodyContent, navMode = "home", time = null, sha = null, hasActiveCron = false, options = {}) {
+  const {
+    css = homeCSS,
+    script = renderClientJS(),
+    containerClass = "container",
+    preBody = "",
+    showModal = true
+  } = options;
+  const modalHtml = showModal ? '<div id="matchModal" class="modal"><div class="modal-content"><h3 id="modalTitle">Match History</h3><div id="modalList" class="match-list"></div></div></div>' : "";
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>${renderFontLinks()}<style>${css}</style><link rel="icon" href="/favicon.ico"></head><body>${preBody}${renderNavBar(navMode)}<div class="${containerClass}">${bodyContent}</div>${renderBuildFooter(time, sha, hasActiveCron)}${modalHtml}${script}</body></html>`;
 }

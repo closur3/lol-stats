@@ -1,5 +1,5 @@
 import logsCSS from '../../styles/logs.js';
-import { renderFontLinks, renderNavBar, renderBuildFooter, renderClientJS } from './page.js';
+import { renderPageShell } from './page.js';
 import { resolveLeaguePhase } from '../../utils/leagueState.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 
@@ -76,7 +76,7 @@ function normalizeEntryList(item) {
   return item.logs;
 }
 
-export function renderLogPage(leagueLogs, time, sha, options = {}) {
+export function renderLogPage(leagueLogs, time, sha, hasActiveCron = false, options = {}) {
   const maxLogEntries = Number(options.maxLogEntries);
   const leagueItems = normalizeLeagueLogItems(leagueLogs);
 
@@ -115,27 +115,11 @@ export function renderLogPage(leagueLogs, time, sha, options = {}) {
     </div>`;
   }).join("");
 
-  const buildFooter = renderBuildFooter(time, sha);
+  const bodyContent = cardsHtml || '<div class="empty-logs">No logs found</div>';
 
-  return `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Logs</title>
-    ${renderFontLinks()}
-    <link rel="icon" href="/favicon.ico">
-    <style>
-        ${logsCSS}
-    </style>
-</head>
-<body>
-    ${renderNavBar("logs")}
-    <div class="logs-cards-container">
-        ${cardsHtml || '<div class="empty-logs">No logs found</div>'}
-    </div>
-    ${buildFooter}
-    ${renderClientJS()}
-</body>
-</html>`;
+  return renderPageShell("Logs", bodyContent, "logs", time, sha, hasActiveCron, {
+    css: logsCSS,
+    containerClass: "logs-cards-container",
+    showModal: false
+  });
 }

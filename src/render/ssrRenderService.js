@@ -3,12 +3,21 @@ import { dateUtils } from '../utils/dateUtils.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
 import { loadScheduleMetaBySlug, buildStaticRenderInput, pruneStaticSchedule } from '../core/updater/staticRenderInput.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
+import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
+
+async function hasActiveCron(env) {
+  const kv = env["lol-stats-kv"];
+  const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
+  if (!state || !Array.isArray(state.schedules)) return false;
+  return state.schedules.some(cron => cron !== IDLE_SWEEP_CRON);
+}
 
 export async function renderHomeFromFacts(env) {
   const homeEntries = await readHomeEntries(env);
 
   if (homeEntries.length === 0) {
-    return HTMLRenderer.renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No active data available</div>`, "home", env.GITHUB_TIME, env.GITHUB_SHA);
+    const activeCron = await hasActiveCron(env);
+    return HTMLRenderer.renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No active data available</div>`, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
   const sortedTournaments = dateUtils.sortTournamentsByDate(homeEntries.map(home => home.tournament));
@@ -25,7 +34,8 @@ export async function renderHomeFromFacts(env) {
     renderInput.tournamentMeta
   );
 
-  return HTMLRenderer.renderPageShell("LoL Stats", homeFragment, "home", env.GITHUB_TIME, env.GITHUB_SHA);
+  const activeCron = await hasActiveCron(env);
+  return HTMLRenderer.renderPageShell("LoL Stats", homeFragment, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
 }
 
 export async function renderArchiveFromFacts(env) {
@@ -34,7 +44,8 @@ export async function renderArchiveFromFacts(env) {
   const dataKeys = allKeys.keys;
 
   if (!dataKeys.length) {
-    return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA);
+    const activeCron = await hasActiveCron(env);
+    return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
   const rawSnapshots = await Promise.all(dataKeys.map(key => kv.get(key.name, { type: "json" })));
@@ -76,5 +87,6 @@ export async function renderArchiveFromFacts(env) {
     return content;
   }).join("");
 
-  return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA);
+  const activeCron = await hasActiveCron(env);
+  return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
 }

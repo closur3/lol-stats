@@ -3,6 +3,8 @@ import { GitHubClient } from '../api/githubClient.js';
 import { loadArchiveConfig } from '../core/updater/archiveIndex.js';
 import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
 import { dateUtils } from '../utils/dateUtils.js';
+import { kvKeys } from '../infrastructure/kv/keyFactory.js';
+import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
 /**
  * 工具页面路由处理
@@ -13,8 +15,8 @@ export class ToolsRouter {
    */
   static async handleTools(request, env) {
     try {
-      // 并行读取活跃赛事和归档赛事
-      const [activeTournaments, archiveResult] = await Promise.all([
+      // 并行读取活跃赛事、归档赛事、CRON 状态
+      const [activeTournaments, archiveResult, activeCron] = await Promise.all([
       (async () => {
         const githubClient = new GitHubClient(env);
         const tournaments = await loadTourConfig(env, githubClient);
@@ -27,6 +29,12 @@ export class ToolsRouter {
         } catch (error) {
           return { archivedTournaments: [], archiveError: error.message };
         }
+      })(),
+      (async () => {
+        const kv = env["lol-stats-kv"];
+        const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
+        if (!state || !Array.isArray(state.schedules)) return false;
+        return state.schedules.some(cron => cron !== IDLE_SWEEP_CRON);
       })()
       ]);
 
@@ -37,7 +45,8 @@ export class ToolsRouter {
         sha,
         activeTournaments,
         archiveResult.archivedTournaments,
-        archiveResult.archiveError
+        archiveResult.archiveError,
+        activeCron
       );
 
       return new Response(html, {

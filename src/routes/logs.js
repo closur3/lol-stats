@@ -6,6 +6,7 @@ import { HTMLRenderer } from '../render/htmlRenderer.js';
 import { dateUtils } from '../utils/dateUtils.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
 import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
+import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
 async function loadSortedTournaments(env) {
   const githubClient = new GitHubClient(env);
@@ -93,7 +94,9 @@ export class LogsRouter {
       loadSortedTournaments(env)
     ]);
     const leagueLogs = buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug);
-    const html = HTMLRenderer.renderLogPage(leagueLogs, env.GITHUB_TIME, env.GITHUB_SHA, {
+    const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
+    const activeCron = state && Array.isArray(state.schedules) ? state.schedules.some(cron => cron !== IDLE_SWEEP_CRON) : false;
+    const html = HTMLRenderer.renderLogPage(leagueLogs, env.GITHUB_TIME, env.GITHUB_SHA, activeCron, {
       maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES
     });
 
