@@ -1,6 +1,6 @@
 import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
-import { resolveLeaguePhase } from '../../utils/leagueState.js';
+import { getLeaguePhaseDisplay, resolveLeaguePhase } from '../../utils/leagueState.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 
 function formatDelta(entry) {
@@ -86,10 +86,9 @@ export function renderLogPage(leagueLogs, time, sha, hasActiveCron = false, opti
     const entries = normalizeEntryList(item);
     const lastEntry = entries[0];
     const phase = resolveLeaguePhase(item);
+    const phaseDisplay = getLeaguePhaseDisplay(phase);
     const phaseCls = `phase-${phase}`;
-    const phaseEmoji = phase === "play" ? "🎮" : phase === "offday" ? "🕊️" : "⏳";
     const phaseEmojiCls = `phase-emoji-${phase}`;
-    const phaseText = phase === "play" ? "PLAY" : phase === "offday" ? "OFFDAY" : "IDLE";
 
     const syncCount = entries.filter(isSyncEntry).length;
     const errCount = entries.filter(isErrorEntry).length;
@@ -108,7 +107,7 @@ export function renderLogPage(leagueLogs, time, sha, hasActiveCron = false, opti
     }).join("");
 
     return `<div class="league-card">
-      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseEmoji}</span><span>${phaseText}</span></span></div></div>
+      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseDisplay.emoji}</span><span>${phaseDisplay.text}</span></span></div></div>
       <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val">${escapeHtml(lastTime)}</span></span></div>
       <div class="timeline">${bars}</div>
       <div class="league-card-logs">${rows}</div>

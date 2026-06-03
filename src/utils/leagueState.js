@@ -17,6 +17,13 @@ function readLeagueMeta(meta) {
   };
 }
 
+const LEAGUE_PHASE_DISPLAY = {
+  play: { emoji: "🎮", text: "PLAY" },
+  idle: { emoji: "⏳", text: "IDLE" },
+  done: { emoji: "☑️", text: "DONE" },
+  offday: { emoji: "🕊️", text: "OFFDAY" }
+};
+
 export function isOffDayMeta(meta) {
   const { earliest, unfinished, historyUnfinished } = readLeagueMeta(meta);
   return earliest === 0 && unfinished === 0 && !historyUnfinished;
@@ -28,19 +35,22 @@ export function resolveLeaguePhase(meta, nowMs = Date.now()) {
   if (historyUnfinished) return "play";
   if (unfinished > 0) return earliest > 0 && nowMs < earliest ? "idle" : "play";
   if (earliest === 0) return "offday";
-  return "idle";
+  return "done";
+}
+
+export function getLeaguePhaseDisplay(phase) {
+  const display = LEAGUE_PHASE_DISPLAY[phase];
+  if (!display) throw new Error(`Invalid league phase: ${phase}`);
+  return display;
 }
 
 export function resolveLogsPhaseLabel(meta, nowMs = Date.now()) {
   const phase = resolveLeaguePhase(meta, nowMs);
-  if (phase === "play") return "🎮PLAY";
-  if (phase === "offday") return "🕊️OFFDAY";
-  return "⏳IDLE";
+  const display = getLeaguePhaseDisplay(phase);
+  return `${display.emoji}${display.text}`;
 }
 
 export function resolveHomeEmojiByPhase(meta, nowMs = Date.now()) {
   const phase = resolveLeaguePhase(meta, nowMs);
-  if (phase === "play") return "🎮";
-  if (phase === "offday") return "🕊️";
-  return "⏳";
+  return getLeaguePhaseDisplay(phase).emoji;
 }
