@@ -2,7 +2,7 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
 function normalizeTournamentConfig(tournament) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
-    throw new Error("config/tour.json tournament must be object");
+    throw new Error("CONFIG_TOUR tournament must be object");
   }
   const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
   const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
@@ -19,17 +19,13 @@ function normalizeTournamentConfig(tournament) {
 }
 
 function normalizeTourConfig(tournaments) {
-  if (!Array.isArray(tournaments)) throw new Error("config/tour.json must be array");
+  if (!Array.isArray(tournaments)) throw new Error("CONFIG_TOUR must be array");
   return tournaments.map(normalizeTournamentConfig);
 }
 
-export async function loadTourConfig(env, githubClient) {
+export async function loadTourConfig(env) {
   const kv = env["lol-stats-kv"];
   const cached = await kv.get(kvKeys.configTour(), { type: "json" });
-  if (cached != null) return normalizeTourConfig(cached);
-
-  const tournaments = await githubClient.fetchJson("config/tour.json");
-  const normalized = normalizeTourConfig(tournaments);
-  await kv.put(kvKeys.configTour(), JSON.stringify(normalized));
-  return normalized;
+  if (cached == null) throw new Error("CONFIG_TOUR missing");
+  return normalizeTourConfig(cached);
 }

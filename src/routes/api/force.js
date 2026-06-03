@@ -35,8 +35,8 @@ export async function handleForceUpdate(request, env) {
     let tournaments, teamsRaw;
     try {
       [tournaments, teamsRaw] = await Promise.all([
-        loadTourConfig(env, githubClient),
-        loadTeamsConfig(env, githubClient)
+        loadTourConfig(env),
+        loadTeamsConfig(env)
       ]);
     } catch (error) {
       return new Response(`Config load failed: ${error.message}`, { status: 500 });

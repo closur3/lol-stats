@@ -1,5 +1,4 @@
 import { FandomClient } from '../../api/fandomClient.js';
-import { GitHubClient } from '../../api/githubClient.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { dataUtils } from '../../utils/dataUtils.js';
 import { Analyzer } from '../analyzer.js';
@@ -41,8 +40,7 @@ function buildTournamentFromArchivePayload(payload) {
 export async function rebuildArchiveFromPayload(env, payload) {
   const authContext = await FandomClient.login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
   const fandomClient = new FandomClient(authContext);
-  const githubClient = new GitHubClient(env);
-  const teamsRaw = await loadTeamsConfig(env, githubClient);
+  const teamsRaw = await loadTeamsConfig(env);
   const matches = await fandomClient.fetchAllMatches(payload.slug, payload.overviewPages, null);
   if (!matches || matches.length === 0) throw new Error("No matches found from Fandom API");
 

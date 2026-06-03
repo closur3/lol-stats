@@ -50,8 +50,8 @@ export async function runCron(env, event) {
   const githubClient = new GitHubClient(env);
   const logger = new Logger();
   const [tournaments, teamsRaw] = await Promise.all([
-    loadTourConfig(env, githubClient),
-    loadTeamsConfig(env, githubClient)
+    loadTourConfig(env),
+    loadTeamsConfig(env)
   ]);
   if (!Array.isArray(tournaments)) {
     throw new Error("tournaments must be an array");

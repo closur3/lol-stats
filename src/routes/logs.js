@@ -1,4 +1,3 @@
-import { GitHubClient } from '../api/githubClient.js';
 import { UPDATE_CONFIG } from '../core/updater/types.js';
 import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
@@ -9,8 +8,7 @@ import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
 async function loadSortedTournaments(env) {
-  const githubClient = new GitHubClient(env);
-  const tournaments = await loadTourConfig(env, githubClient);
+  const tournaments = await loadTourConfig(env);
   return dateUtils.sortTournamentsByDate(tournaments);
 }
 

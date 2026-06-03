@@ -1,15 +1,15 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
-export async function loadTeamsConfig(env, githubClient) {
-  const kv = env["lol-stats-kv"];
-  const cached = await kv.get(kvKeys.configTeams(), { type: "json" });
-  if (cached && typeof cached === "object" && !Array.isArray(cached)) return cached;
-
-  const teams = await githubClient.fetchJson("config/teams.json");
+function normalizeTeamsConfig(teams) {
   if (!teams || typeof teams !== "object" || Array.isArray(teams)) {
-    throw new Error("config/teams.json must be object");
+    throw new Error("CONFIG_TEAMS must be object");
   }
-  await kv.put(kvKeys.configTeams(), JSON.stringify(teams));
   return teams;
 }
 
+export async function loadTeamsConfig(env) {
+  const kv = env["lol-stats-kv"];
+  const cached = await kv.get(kvKeys.configTeams(), { type: "json" });
+  if (cached == null) throw new Error("CONFIG_TEAMS missing");
+  return normalizeTeamsConfig(cached);
+}

@@ -18,8 +18,7 @@ export class ToolsRouter {
       // 并行读取活跃赛事、归档赛事、CRON 状态
       const [activeTournaments, archiveResult, activeCron] = await Promise.all([
       (async () => {
-        const githubClient = new GitHubClient(env);
-        const tournaments = await loadTourConfig(env, githubClient);
+        const tournaments = await loadTourConfig(env);
         return dateUtils.sortTournamentsByDate(tournaments);
       })(),
       (async () => {
