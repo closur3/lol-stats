@@ -98,6 +98,15 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .time-table-cell { color: #ffffff; font-weight: 600; cursor: pointer; }
     .time-table-cell.is-empty { background: #f1f5f9 !important; color: #cbd5e1; cursor: default; }
     .time-empty { color: #cbd5e1; }
+    .floating-actions { position: fixed; left: calc(50vw + min(700px, calc(50vw - 15px)) + 12px); top: 50%; transform: translateY(-50%); z-index: 80; display: flex; flex-direction: column; gap: 8px; padding: 6px; border: 1px solid rgba(226,232,240,0.92); border-radius: 10px; background: rgba(255,255,255,0.9); box-shadow: 0 14px 32px rgba(15,23,42,0.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .floating-action-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #475569; cursor: pointer; transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease; }
+    .floating-action-btn:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; transform: translateY(-1px); }
+    .floating-action-btn:focus-visible { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.16); }
+    .floating-action-btn:disabled { color: #cbd5e1; cursor: default; transform: none; }
+    .floating-action-icon { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .floating-action-btn .icon-collapse { display: none; }
+    .floating-action-btn[data-action-state="collapse"] .icon-expand { display: none; }
+    .floating-action-btn[data-action-state="collapse"] .icon-collapse { display: block; }
     .badge { color: white; border-radius: 4px; padding: 3px 7px; font-size: 11px; font-weight: 600; }
     .footer { text-align: center; font-size: 12px; color: #94a3b8; margin: 40px 0; }
     .sch-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 40px; width: 100%; align-items: start; }
@@ -138,6 +147,9 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
         .title-right-area { width: 100%; justify-content: flex-end !important; padding: 10px 15px 12px 15px; border-top: 1px dashed #e2e8f0; margin-top: 8px; display: flex; }
         .league-summary { font-size: 11px; padding: 3px 8px; }
         .time-box-select { width: 66px; }
+        .floating-actions { top: auto; right: auto; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); flex-direction: row; gap: 6px; padding: 5px; border-radius: 12px; }
+        .floating-action-btn { width: 38px; height: 38px; border-radius: 8px; }
+        .floating-action-icon { width: 18px; height: 18px; }
         details.home-sec > summary.table-title { min-height: 72px; background: linear-gradient(135deg, #f8fafc 0%, #fff 100%); }
         .table-title .league-jump-btn svg { width: 13px; height: 13px; }
     }

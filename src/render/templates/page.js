@@ -3,6 +3,7 @@ import homeCSS from '../../styles/home.js';
 import { SORT_SCRIPT } from '../../client/sort.js';
 import { MODAL_SCRIPT } from '../../client/modal.js';
 import { TIME_TABLE_SCRIPT } from '../../client/timeTable.js';
+import { PAGE_ACTIONS_SCRIPT } from '../../client/pageActions.js';
 
 export function renderFontLinks() {
   return `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">`;
@@ -45,7 +46,23 @@ export function renderBuildFooter(time, sha, hasActiveCron = false) {
 }
 
 export function renderClientJS() {
-  return `<script>${SORT_SCRIPT}${MODAL_SCRIPT}${TIME_TABLE_SCRIPT}</script>`;
+  return `<script>${SORT_SCRIPT}${MODAL_SCRIPT}${TIME_TABLE_SCRIPT}${PAGE_ACTIONS_SCRIPT}</script>`;
+}
+
+function renderFloatingPageActions(navMode) {
+  if (navMode !== "home" && navMode !== "archive") return "";
+  return `<div class="floating-actions" id="floatingPageActions" aria-label="Page actions">
+    <button type="button" class="floating-action-btn" id="floatingToggleLeagues" onclick="toggleAllLeagues()" aria-label="Expand all leagues">
+      <svg class="floating-action-icon icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="m17 15 3 3 3-3"/></svg>
+      <svg class="floating-action-icon icon-collapse" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="m17 21 3-3 3 3"/></svg>
+    </button>
+    <button type="button" class="floating-action-btn" onclick="refreshCurrentPage()" aria-label="Refresh page">
+      <svg class="floating-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15 6.7"/><path d="M3 12a9 9 0 0 1 15-6.7"/><path d="M18 2v5h-5"/><path d="M6 22v-5h5"/></svg>
+    </button>
+    <button type="button" class="floating-action-btn" onclick="scrollToPageTop()" aria-label="Back to top">
+      <svg class="floating-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+    </button>
+  </div>`;
 }
 
 export function renderPageShell(title, bodyContent, navMode = "home", time = null, sha = null, hasActiveCron = false, options = {}) {
@@ -57,5 +74,5 @@ export function renderPageShell(title, bodyContent, navMode = "home", time = nul
     showModal = true
   } = options;
   const modalHtml = showModal ? '<div id="matchModal" class="modal"><div class="modal-content"><h3 id="modalTitle">Match History</h3><div id="modalList" class="match-list"></div></div></div>' : "";
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>${renderFontLinks()}<style>${css}</style><link rel="icon" href="/favicon.ico"></head><body>${preBody}${renderNavBar(navMode)}<div class="${containerClass}">${bodyContent}</div>${renderBuildFooter(time, sha, hasActiveCron)}${modalHtml}${script}</body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>${renderFontLinks()}<style>${css}</style><link rel="icon" href="/favicon.ico"></head><body>${preBody}${renderNavBar(navMode)}<div class="${containerClass}">${bodyContent}</div>${renderBuildFooter(time, sha, hasActiveCron)}${renderFloatingPageActions(navMode)}${modalHtml}${script}</body></html>`;
 }
