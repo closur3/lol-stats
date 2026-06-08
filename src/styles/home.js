@@ -90,6 +90,14 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .t-cell { display: flex; align-items: center; width: 100%; height: 100%; }
     .t-val { flex: 1; flex-basis: 0; text-align: right; font-weight: 600; padding-right: 4px; white-space: nowrap; }
     .t-pct { flex: 1; flex-basis: 0; text-align: left; opacity: 0.9; font-size: 11px; font-weight: 600; padding-left: 4px; white-space: nowrap; }
+    .time-table-block { width: 100%; }
+    .time-filter-cell { pointer-events: auto; vertical-align: middle; text-align: center !important; padding: 8px 4px !important; }
+    .time-box-select { appearance: none; -webkit-appearance: none; width: 68px; height: 26px; border: 1px solid #dbe4ef; border-radius: 7px; background-color: #ffffff; background-image: linear-gradient(45deg, transparent 50%, #64748b 50%), linear-gradient(135deg, #64748b 50%, transparent 50%); background-position: calc(100% - 12px) 10px, calc(100% - 8px) 10px; background-size: 4px 4px, 4px 4px; background-repeat: no-repeat; color: #334155; font-size: 11px; font-weight: 700; cursor: pointer; outline: none; padding: 0 18px 0 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(15,23,42,0.04); }
+    .time-box-select:hover { border-color: #93c5fd; color: #1d4ed8; background-color: #f8fbff; }
+    .time-box-select:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
+    .time-table-cell { color: #ffffff; font-weight: 600; cursor: pointer; }
+    .time-table-cell.is-empty { background: #f1f5f9 !important; color: #cbd5e1; cursor: default; }
+    .time-empty { color: #cbd5e1; }
     .badge { color: white; border-radius: 4px; padding: 3px 7px; font-size: 11px; font-weight: 600; }
     .footer { text-align: center; font-size: 12px; color: #94a3b8; margin: 40px 0; }
     .sch-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 40px; width: 100%; align-items: start; }
@@ -129,6 +137,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
         .arch-title-wrapper a { white-space: normal; line-height: 1.3; }
         .title-right-area { width: 100%; justify-content: flex-end !important; padding: 10px 15px 12px 15px; border-top: 1px dashed #e2e8f0; margin-top: 8px; display: flex; }
         .league-summary { font-size: 11px; padding: 3px 8px; }
+        .time-box-select { width: 66px; }
         details.home-sec > summary.table-title { min-height: 72px; background: linear-gradient(135deg, #f8fafc 0%, #fff 100%); }
         .table-title .league-jump-btn svg { width: 13px; height: 13px; }
     }
