@@ -98,7 +98,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .time-table-cell { color: #ffffff; font-weight: 600; cursor: pointer; }
     .time-table-cell.is-empty { background: #f1f5f9 !important; color: #cbd5e1; cursor: default; }
     .time-empty { color: #cbd5e1; }
-    .floating-actions { position: fixed; left: calc(50vw + min(700px, calc(50vw - 15px)) + 12px); top: 50%; transform: translateY(-50%); z-index: 80; display: flex; flex-direction: column; gap: 8px; padding: 6px; border: 1px solid rgba(226,232,240,0.92); border-radius: 10px; background: rgba(255,255,255,0.9); box-shadow: 0 14px 32px rgba(15,23,42,0.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .floating-actions { position: fixed; left: calc(50vw + min(700px, calc(50vw - 15px)) + 12px); top: 78%; transform: translateY(-50%); z-index: 80; display: flex; flex-direction: column; gap: 4px; padding: 4px; border: 1px solid rgba(226,232,240,0.92); border-radius: 10px; background: rgba(255,255,255,0.9); box-shadow: 0 14px 32px rgba(15,23,42,0.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
     .floating-action-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #475569; cursor: pointer; transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease; }
     .floating-action-btn:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; transform: translateY(-1px); }
     .floating-action-btn:focus-visible { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.16); }
