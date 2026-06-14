@@ -277,7 +277,7 @@ jobs:
               log("")
               log(f"⚙️ 处理阶段 ({len(all_data)} 条 → {total_after} 条)")
               lines = []
-              lines.append(f"├─ 🚫 拦截: {blocked_count} 条" + (f" (日期异常: {date_errors})" if date_errors else ""))
+              lines.append(f"└─ 🚫 拦截: {blocked_count} 条")
               if mapped_names:
                   for i, m in enumerate(mapped_names):
                       prefix = "├─" if i < len(mapped_names) - 1 else "└─"
