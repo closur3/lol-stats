@@ -41,7 +41,7 @@ jobs:
           TARGET_FILE = "config/tour.json"
 
           # ==================== 配置区 ====================
-          PREHEAT_DAYS, EXPIRE_DAYS = 7, 1
+          PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
           WHITELIST = []
           BLACKLIST = ["Opening"]
 
