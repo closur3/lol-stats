@@ -1,6 +1,6 @@
 ﻿import { dataUtils } from '../../../utils/dataUtils.js';
 import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
-import { resolveHomeEmojiByPhase } from '../../../utils/leagueState.js';
+import { resolveHomeEmojiByPhase, resolveLeaguePhase } from '../../../utils/leagueState.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { buildTeamRow } from '../../components/teamRow.js';
 import { buildTimeTable } from '../../components/timeTable.js';
@@ -80,7 +80,7 @@ export function renderLeagueSection(tournament, globalStats, timeData, tournamen
     return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div ${STYLE_TITLE_ROW}><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
   }
 
-  const isSleepCollapsed = resolveHomeEmojiByPhase(meta) === "🕊️";
+  const isSleepCollapsed = resolveLeaguePhase(meta) === "offday";
   const openAttr = (isSleepCollapsed || summary.hasNoData) ? "" : " open";
   return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div ${STYLE_TITLE_ROW}><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
 }
