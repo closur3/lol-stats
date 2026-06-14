@@ -21,7 +21,7 @@ const LEAGUE_PHASE_DISPLAY = {
   play: { emoji: "🎮", text: "PLAY" },
   idle: { emoji: "⏳", text: "IDLE" },
   done: { emoji: "☑️", text: "DONE" },
-  offday: { emoji: "🕊️", text: "OFFDAY" }
+  offday: { emoji: "⏸", text: "OFFDAY" }
 };
 
 export function isOffDayMeta(meta) {
