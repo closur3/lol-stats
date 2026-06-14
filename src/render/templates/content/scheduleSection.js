@@ -11,7 +11,7 @@ const STYLE_SCH_GROUP_BLOCK = 'style="font-weight:700; opacity:0.7"';
 
 export function renderScheduleSection(scheduleMap, globalStats) {
   const dates = Object.keys(scheduleMap).sort();
-  if (dates.length === 0) return `<div class="sch-empty">🕊️ NO FUTURE MATCHES SCHEDULED</div>`;
+  if (dates.length === 0) return `<div class="sch-empty">NO FUTURE MATCHES SCHEDULED</div>`;
 
   let scheduleHtml = `<div class="sch-container">`;
   dates.forEach(scheduleDate => {
