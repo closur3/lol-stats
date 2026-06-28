@@ -7,16 +7,11 @@ import { readRawMatches } from '../core/facts/rawMatchesStore.js';
 import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
-async function loadSortedTournaments(env) {
-  const tournaments = await loadTourConfig(env);
-  return dateUtils.sortTournamentsByDate(tournaments);
-}
-
-async function loadLogsBySlug(kv) {
-  const allLogKeys = await kv.list({ prefix: kvKeys.LOG_PREFIX });
-  const logPairs = await Promise.all(allLogKeys.keys.map(async logKey => {
-    const slug = logKey.name.slice(kvKeys.LOG_PREFIX.length);
-    const logs = await readLogEntries(kv, logKey.name);
+async function loadLogsBySlug(kv, slugs) {
+  if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
+  const logPairs = await Promise.all(slugs.map(async slug => {
+    const logKey = kvKeys.log(slug);
+    const logs = await readLogEntries(kv, logKey);
     return [slug, logs];
   }));
   return new Map(logPairs.filter(([, logs]) => Array.isArray(logs) && logs.length > 0));
@@ -60,20 +55,10 @@ function buildLeagueLogItem(name, slug, logs, homeMeta) {
 
 function buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug) {
   const leagueLogs = [];
-  const consumed = new Set();
 
   for (const tournament of sortedTournaments) {
     const slug = tournament?.slug;
     if (!slug || !logsBySlug.has(slug)) continue;
-    const logs = logsBySlug.get(slug);
-    const name = logs[0]?.displayName;
-    if (!name) throw new Error(`Missing displayName in LOG entries: ${slug}`);
-    leagueLogs.push(buildLeagueLogItem(name, slug, logs, homeBySlug.get(slug)));
-    consumed.add(slug);
-  }
-
-  const orphanSlugs = Array.from(logsBySlug.keys()).filter(slug => !consumed.has(slug)).sort();
-  for (const slug of orphanSlugs) {
     const logs = logsBySlug.get(slug);
     const name = logs[0]?.displayName;
     if (!name) throw new Error(`Missing displayName in LOG entries: ${slug}`);
@@ -86,12 +71,12 @@ function buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug) {
 export class LogsRouter {
   static async handleLogs(_request, env) {
     const kv = env["lol-stats-kv"];
-    const logsBySlug = await loadLogsBySlug(kv);
+    const tournaments = await loadTourConfig(env);
+    const slugs = tournaments.map(t => t.slug);
+    const logsBySlug = await loadLogsBySlug(kv, slugs);
     const logSlugs = Array.from(logsBySlug.keys());
-    const [homeBySlug, sortedTournaments] = await Promise.all([
-      loadLogMetaBySlug(env, logSlugs),
-      loadSortedTournaments(env)
-    ]);
+    const sortedTournaments = dateUtils.sortTournamentsByDate(tournaments);
+    const homeBySlug = await loadLogMetaBySlug(env, logSlugs);
     const leagueLogs = buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug);
     const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
     const activeCron = state && Array.isArray(state.schedules) ? state.schedules.some(cron => cron !== IDLE_SWEEP_CRON) : false;

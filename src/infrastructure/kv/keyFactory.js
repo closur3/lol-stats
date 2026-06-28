@@ -43,4 +43,7 @@ export const kvKeys = {
   configArchive() {
     return "CONFIG_ARCHIVE";
   },
+  archiveIndex() {
+    return "ARCHIVE_INDEX";
+  },
 };

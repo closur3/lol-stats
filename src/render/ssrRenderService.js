@@ -1,5 +1,6 @@
 import { HTMLRenderer } from './htmlRenderer.js';
 import { dateUtils } from '../utils/dateUtils.js';
+import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
 import { loadScheduleMetaBySlug, buildStaticRenderInput, pruneStaticSchedule } from '../core/updater/staticRenderInput.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
@@ -13,7 +14,8 @@ async function hasActiveCron(env) {
 }
 
 export async function renderHomeFromFacts(env) {
-  const homeEntries = await readHomeEntries(env);
+  const tournaments = await loadTourConfig(env);
+  const homeEntries = await readHomeEntries(env, tournaments.map(t => t.slug));
 
   if (homeEntries.length === 0) {
     const activeCron = await hasActiveCron(env);
@@ -40,31 +42,32 @@ export async function renderHomeFromFacts(env) {
 
 export async function renderArchiveFromFacts(env) {
   const kv = env["lol-stats-kv"];
-  const allKeys = await kv.list({ prefix: kvKeys.ARCHIVE_PREFIX });
-  const dataKeys = allKeys.keys;
+  const archiveIndex = await kv.get(kvKeys.archiveIndex(), { type: "json" });
+  const slugs = Array.isArray(archiveIndex) ? archiveIndex : [];
 
-  if (!dataKeys.length) {
+  if (!slugs.length) {
     const activeCron = await hasActiveCron(env);
     return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
-  const rawSnapshots = await Promise.all(dataKeys.map(key => kv.get(key.name, { type: "json" })));
+  const rawSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
   let validSnapshots = rawSnapshots.map((snapshot, index) => {
+    const slug = slugs[index];
     const snapshotTournament = snapshot?.tournament;
     if (!snapshot || !snapshotTournament || !snapshotTournament.slug) {
-      throw new Error(`Invalid archive snapshot: ${dataKeys[index].name}`);
+      throw new Error(`Invalid archive snapshot: ${slug}`);
     }
     if (!Array.isArray(snapshot.rawMatches)) {
-      throw new Error(`Invalid archive rawMatches: ${dataKeys[index].name}`);
+      throw new Error(`Invalid archive rawMatches: ${slug}`);
     }
     if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) {
-      throw new Error(`Invalid archive stats: ${dataKeys[index].name}`);
+      throw new Error(`Invalid archive stats: ${slug}`);
     }
     if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) {
-      throw new Error(`Invalid archive timeGrid: ${dataKeys[index].name}`);
+      throw new Error(`Invalid archive timeGrid: ${slug}`);
     }
     if (!snapshot.teamMap || typeof snapshot.teamMap !== "object" || Array.isArray(snapshot.teamMap)) {
-      throw new Error(`Invalid archive teamMap: ${dataKeys[index].name}`);
+      throw new Error(`Invalid archive teamMap: ${slug}`);
     }
     return snapshot;
   });

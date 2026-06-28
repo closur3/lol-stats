@@ -1,4 +1,5 @@
 import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
+import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 import { readRawMatches } from "../../core/facts/rawMatchesStore.js";
@@ -40,17 +41,16 @@ function assertArchiveSnapshot(snapshot, key) {
   return slug;
 }
 
-async function dumpSnapshotPrefix(kv, prefix, assertSnapshot) {
-  const allKeys = await kv.list({ prefix });
-  const dataKeys = allKeys.keys
-    .map(key => key.name)
-    .sort();
-  const entries = await Promise.all(dataKeys.map(async key => {
+async function dumpSnapshotsBySlug(kv, slugs, buildKey, assertSnapshot) {
+  if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
+  const entries = await Promise.all(slugs.map(async slug => {
+    const key = buildKey(slug);
     const snapshot = await kv.get(key, { type: "json" });
-    const slug = assertSnapshot(snapshot, key);
-    return [slug, snapshot];
+    if (!snapshot) return null;
+    const resolvedSlug = assertSnapshot(snapshot, key);
+    return [resolvedSlug, snapshot];
   }));
-  return Object.fromEntries(entries);
+  return Object.fromEntries(entries.filter(Boolean));
 }
 
 export async function handleBackup(request, env) {
@@ -58,9 +58,14 @@ export async function handleBackup(request, env) {
   if (unauthorized) return unauthorized;
 
   const kv = env["lol-stats-kv"];
+  const tournaments = await loadTourConfig(env);
+  const homeSlugs = tournaments.map(t => t.slug);
+  const archiveIndex = await kv.get(kvKeys.archiveIndex(), { type: "json" });
+  const archiveSlugs = Array.isArray(archiveIndex) ? archiveIndex : [];
+
   const [home, archive, configArchive] = await Promise.all([
-    dumpSnapshotPrefix(kv, kvKeys.HOME_PREFIX, assertHomeSnapshot),
-    dumpSnapshotPrefix(kv, kvKeys.ARCHIVE_PREFIX, assertArchiveSnapshot),
+    dumpSnapshotsBySlug(kv, homeSlugs, kvKeys.home, assertHomeSnapshot),
+    dumpSnapshotsBySlug(kv, archiveSlugs, kvKeys.archive, assertArchiveSnapshot),
     readArchiveIndex(env)
   ]);
   const rawMatches = {};

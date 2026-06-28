@@ -18,13 +18,15 @@ function assertHomeSnapshot(keyName, home) {
   }
 }
 
-export async function readHomeEntries(env) {
+export async function readHomeEntries(env, slugs) {
+  if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
   const kv = env["lol-stats-kv"];
-  const allHomeKeys = await kv.list({ prefix: kvKeys.HOME_PREFIX });
-  const dataKeys = allHomeKeys.keys.map(key => key.name);
-  const rawHomes = await Promise.all(dataKeys.map(key => env["lol-stats-kv"].get(key, { type: "json" })));
-  return rawHomes.map((home, index) => {
-    assertHomeSnapshot(dataKeys[index], home);
+  const entries = await Promise.all(slugs.map(async slug => {
+    const key = kvKeys.home(slug);
+    const home = await kv.get(key, { type: "json" });
+    if (!home) return null;
+    assertHomeSnapshot(key, home);
     return home;
-  });
+  }));
+  return entries.filter(Boolean);
 }

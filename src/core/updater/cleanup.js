@@ -1,5 +1,5 @@
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
-import { rebuildArchiveIndexFromSnapshots } from './archiveIndex.js';
+import { writeArchiveIndex, writeArchiveIndexList } from './archiveIndex.js';
 
 export async function cleanupStaleHomeKeys(env, tournaments) {
   if (!Array.isArray(tournaments)) {
@@ -50,16 +50,24 @@ export async function cleanupStaleHomeKeys(env, tournaments) {
         throw new Error(`Invalid HOME snapshot for archive move: ${slug}`);
       }
       if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES missing for archive move: ${slug}`);
-      return { ...home, rawMatches };
+      return { ...home, rawMatches, __slug: slug };
     }));
 
     const archiveWrites = staleHomeKeys.map((k, i) => {
       const archiveSnapshot = { ...staleData[i] };
       delete archiveSnapshot.scheduleMap;
+      delete archiveSnapshot.__slug;
       return env["lol-stats-kv"].put(kvKeys.archive(k.slice(kvKeys.HOME_PREFIX.length)), JSON.stringify(archiveSnapshot));
     });
     await Promise.all(archiveWrites);
-    await rebuildArchiveIndexFromSnapshots(env);
+
+    const archivedSlugs = staleData.map(d => d.__slug);
+    const existingIndex = await env["lol-stats-kv"].get(kvKeys.archiveIndex(), { type: "json" });
+    const allSlugs = Array.from(new Set([...(Array.isArray(existingIndex) ? existingIndex : []), ...archivedSlugs]));
+    await writeArchiveIndexList(env, allSlugs);
+
+    const allTournaments = staleData.map(d => d.tournament);
+    await writeArchiveIndex(env, allTournaments, { allowEmpty: true });
     console.log(`[ARCHIVE:MOVE] moved=${staleHomeKeys.length}`);
   }
 
