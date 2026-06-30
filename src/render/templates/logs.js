@@ -2,6 +2,7 @@ import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
 import { getLeaguePhaseDisplay, resolveLeaguePhase } from '../../utils/leagueState.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
+import { rpad2 } from '../../core/updater/logWriter.js';
 
 function formatDelta(entry) {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
@@ -17,11 +18,11 @@ function formatDelta(entry) {
   const updated = entry.updated;
   if (entry.action === "SYNC") {
     let delta = "";
-    if (added > 0) delta += `+${added}`;
-    if (updated > 0) delta += `~${updated}`;
-    return delta || "~0";
+    if (added > 0) delta += `+${rpad2(added)}`;
+    if (updated > 0) delta += `~${rpad2(updated)}`;
+    return delta || "~0 ";
   }
-  return `~${added + updated}`;
+  return `~${rpad2(added + updated)}`;
 }
 
 function renderTrigger(entry, icon) {

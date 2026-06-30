@@ -1,15 +1,19 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 
+export function rpad2(n) {
+  return n < 10 ? `${n}\u00A0` : `${n}`;
+}
+
 export function formatDeltaTag(item) {
   if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("log item must be a JSON object");
   if (!Number.isInteger(item.added) || item.added < 0) throw new Error(`log item added invalid: ${item.slug}`);
   if (!Number.isInteger(item.updated) || item.updated < 0) throw new Error(`log item updated invalid: ${item.slug}`);
   const added = item.added;
   const updated = item.updated;
-  if (added > 0 && updated > 0) return `+${added}~${updated}`;
-  if (added > 0) return `+${added}`;
-  if (updated > 0) return `~${updated}`;
-  return "~0";
+  if (added > 0 && updated > 0) return `+${rpad2(added)}~${rpad2(updated)}`;
+  if (added > 0) return `+${rpad2(added)}`;
+  if (updated > 0) return `~${rpad2(updated)}`;
+  return "~0 ";
 }
 
 export function generateLog(syncItems, skipItems, dropBreakers, fetchErrors, authContext, logger) {
