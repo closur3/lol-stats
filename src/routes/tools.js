@@ -1,4 +1,5 @@
 import { HTMLRenderer } from '../render/htmlRenderer.js';
+import { GitHubClient } from '../api/githubClient.js';
 import { loadArchiveConfig } from '../core/updater/archiveIndex.js';
 import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
 import { dateUtils } from '../utils/dateUtils.js';
@@ -22,7 +23,8 @@ export class ToolsRouter {
       })(),
       (async () => {
         try {
-          return { archivedTournaments: await loadArchiveConfig(env), archiveError: null };
+          const githubClient = new GitHubClient(env);
+          return { archivedTournaments: await loadArchiveConfig(env, githubClient), archiveError: null };
         } catch (error) {
           return { archivedTournaments: [], archiveError: error.message };
         }

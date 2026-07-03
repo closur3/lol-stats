@@ -51,11 +51,13 @@ async function readArchiveSnapshotTournaments(env) {
   });
 }
 
-export async function loadArchiveConfig(env) {
+export async function loadArchiveConfig(env, githubClient) {
   const kv = env["lol-stats-kv"];
   const cached = await kv.get(kvKeys.configArchive(), { type: "json" });
-  if (cached == null) throw new Error("CONFIG_ARCHIVE missing. Run admin rebuild to restore.");
-  return normalizeArchiveList(cached);
+  if (cached != null) return normalizeArchiveList(cached);
+
+  const archivedTournaments = await githubClient.fetchJson("config/archive.json");
+  return writeArchiveIndex(env, normalizeArchiveList(archivedTournaments));
 }
 
 export async function readArchiveIndex(env) {
