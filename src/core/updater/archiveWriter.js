@@ -2,7 +2,7 @@ import { FandomClient } from '../../api/fandomClient.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { dataUtils } from '../../utils/dataUtils.js';
 import { Analyzer } from '../analyzer.js';
-import { writeArchiveIndex, writeArchiveIndexList } from './archiveIndex.js';
+import { rebuildArchiveIndexFromSnapshots } from './archiveIndex.js';
 import { loadTeamsConfig } from './teamsConfigLoader.js';
 
 export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
@@ -22,31 +22,8 @@ export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
   };
 }
 
-async function addArchiveToList(env, slug) {
-  const archiveIndex = await env["lol-stats-kv"].get(kvKeys.archiveIndex(), { type: "json" });
-  const slugs = Array.isArray(archiveIndex) ? archiveIndex : [];
-  if (!slugs.includes(slug)) slugs.push(slug);
-  await writeArchiveIndexList(env, slugs);
-  return slugs;
-}
-
-async function removeArchiveFromList(env, slug) {
-  const archiveIndex = await env["lol-stats-kv"].get(kvKeys.archiveIndex(), { type: "json" });
-  const slugs = Array.isArray(archiveIndex) ? archiveIndex : [];
-  const filtered = slugs.filter(s => s !== slug);
-  await writeArchiveIndexList(env, filtered);
-  return filtered;
-}
-
-async function rebuildConfigArchiveFromIndex(env) {
-  const archiveIndex = await env["lol-stats-kv"].get(kvKeys.archiveIndex(), { type: "json" });
-  const slugs = Array.isArray(archiveIndex) ? archiveIndex : [];
-  const snapshots = await Promise.all(slugs.map(slug => env["lol-stats-kv"].get(kvKeys.archive(slug), { type: "json" })));
-  const tournaments = snapshots.map((snapshot, index) => {
-    if (!snapshot?.tournament) throw new Error(`Invalid archive snapshot: ${slugs[index]}`);
-    return snapshot.tournament;
-  });
-  await writeArchiveIndex(env, tournaments, { allowEmpty: true });
+async function refreshArchiveDerivedState(env, options = {}) {
+  await rebuildArchiveIndexFromSnapshots(env, { allowEmpty: options.allowEmptyIndex === true });
 }
 
 function buildTournamentFromArchivePayload(payload) {
@@ -70,16 +47,14 @@ export async function rebuildArchiveFromPayload(env, payload) {
   const tournament = buildTournamentFromArchivePayload(payload);
   const teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, matches);
   await env["lol-stats-kv"].put(kvKeys.archive(payload.slug), JSON.stringify(buildArchiveSnapshot(tournament, matches, teamMap)));
-  await addArchiveToList(env, payload.slug);
-  await rebuildConfigArchiveFromIndex(env);
+  await refreshArchiveDerivedState(env);
 }
 
 export async function deleteArchiveSnapshot(env, slug) {
   const existing = await env["lol-stats-kv"].get(kvKeys.archive(slug), { type: "json" });
   if (!existing) throw new Error(`ARCHIVE snapshot missing: ${slug}`);
   await env["lol-stats-kv"].delete(kvKeys.archive(slug));
-  await removeArchiveFromList(env, slug);
-  await rebuildConfigArchiveFromIndex(env);
+  await refreshArchiveDerivedState(env, { allowEmptyIndex: true });
 }
 
 export async function writeManualArchive(env, payload) {
@@ -92,6 +67,5 @@ export async function writeManualArchive(env, payload) {
   };
 
   await env["lol-stats-kv"].put(kvKeys.archive(payload.slug), JSON.stringify(snapshot));
-  await addArchiveToList(env, payload.slug);
-  await rebuildConfigArchiveFromIndex(env);
+  await refreshArchiveDerivedState(env);
 }

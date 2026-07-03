@@ -29,17 +29,6 @@ function normalizeArchiveList(list) {
   return dateUtils.sortTournamentsByDate(Array.from(bySlug.values()));
 }
 
-export async function readArchiveTournaments(env) {
-  const kv = env["lol-stats-kv"];
-  const archiveIndex = await kv.get(kvKeys.archiveIndex(), { type: "json" });
-  const slugs = Array.isArray(archiveIndex) ? archiveIndex : [];
-  const snapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
-  return snapshots.map((snapshot, index) => {
-    if (!snapshot?.tournament) throw new Error(`Invalid archive snapshot: ${slugs[index]}`);
-    return snapshot.tournament;
-  });
-}
-
 async function readArchiveSnapshotTournaments(env) {
   const kv = env["lol-stats-kv"];
   const allKeys = await kv.list({ prefix: kvKeys.ARCHIVE_PREFIX });
@@ -85,11 +74,5 @@ export async function rebuildArchiveIndexFromSnapshots(env, options = {}) {
   if (localTournaments.length === 0 && options.allowEmpty !== true) {
     throw new Error("Cannot rebuild CONFIG_ARCHIVE from empty ARCHIVE snapshots");
   }
-  await writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true });
-  await writeArchiveIndexList(env, localTournaments.map(t => t.slug));
-  return localTournaments;
-}
-
-export async function writeArchiveIndexList(env, slugs) {
-  await env["lol-stats-kv"].put(kvKeys.archiveIndex(), JSON.stringify(slugs));
+  return writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true });
 }

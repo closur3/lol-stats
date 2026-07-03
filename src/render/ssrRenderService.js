@@ -42,14 +42,14 @@ export async function renderHomeFromFacts(env) {
 
 export async function renderArchiveFromFacts(env) {
   const kv = env["lol-stats-kv"];
-  const archiveIndex = await kv.get(kvKeys.archiveIndex(), { type: "json" });
-  const slugs = Array.isArray(archiveIndex) ? archiveIndex : [];
+  const allKeys = await kv.list({ prefix: kvKeys.ARCHIVE_PREFIX });
 
-  if (!slugs.length) {
+  if (!allKeys.keys.length) {
     const activeCron = await hasActiveCron(env);
     return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
+  const slugs = allKeys.keys.map(key => key.name.slice(kvKeys.ARCHIVE_PREFIX.length));
   const rawSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
   let validSnapshots = rawSnapshots.map((snapshot, index) => {
     const slug = slugs[index];
