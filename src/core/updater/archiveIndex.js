@@ -56,8 +56,11 @@ export async function loadArchiveConfig(env, githubClient) {
   const cached = await kv.get(kvKeys.configArchive(), { type: "json" });
   if (cached != null) return normalizeArchiveList(cached);
 
+  const localTournaments = await readArchiveSnapshotTournaments(env);
+  if (localTournaments.length > 0) return writeArchiveIndex(env, localTournaments);
+
   const archivedTournaments = await githubClient.fetchJson("config/archive.json");
-  return writeArchiveIndex(env, normalizeArchiveList(archivedTournaments));
+  return normalizeArchiveList(archivedTournaments);
 }
 
 export async function readArchiveIndex(env) {
