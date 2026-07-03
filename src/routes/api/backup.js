@@ -1,56 +1,48 @@
 import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
+import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 import { readRawMatches } from "../../core/facts/rawMatchesStore.js";
 import { ensureScheduleMeta } from "../../core/facts/scheduleMetaStore.js";
 
-function assertDisplaySnapshot(snapshot, key, prefix) {
-  const slug = key.slice(prefix.length);
+function assertSnapshot(slug, snapshot) {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
-    throw new Error(`Invalid snapshot: ${key}`);
+    throw new Error(`Invalid snapshot: ${slug}`);
   }
   if (!snapshot.tournament || snapshot.tournament.slug !== slug) {
-    throw new Error(`Invalid snapshot tournament: ${key}`);
+    throw new Error(`Invalid snapshot tournament: ${slug}`);
   }
   if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) {
-    throw new Error(`Invalid snapshot stats: ${key}`);
+    throw new Error(`Invalid snapshot stats: ${slug}`);
   }
   if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) {
-    throw new Error(`Invalid snapshot timeGrid: ${key}`);
+    throw new Error(`Invalid snapshot timeGrid: ${slug}`);
   }
   if (!snapshot.teamMap || typeof snapshot.teamMap !== "object" || Array.isArray(snapshot.teamMap)) {
-    throw new Error(`Invalid snapshot teamMap: ${key}`);
+    throw new Error(`Invalid snapshot teamMap: ${slug}`);
   }
-  return slug;
 }
 
-function assertHomeSnapshot(snapshot, key) {
-  const slug = assertDisplaySnapshot(snapshot, key, kvKeys.HOME_PREFIX);
+function assertHomeFields(slug, snapshot) {
   if (!snapshot.scheduleMap || typeof snapshot.scheduleMap !== "object" || Array.isArray(snapshot.scheduleMap)) {
-    throw new Error(`Invalid HOME scheduleMap: ${key}`);
+    throw new Error(`Invalid HOME scheduleMap: ${slug}`);
   }
-  return slug;
 }
 
-function assertArchiveSnapshot(snapshot, key) {
-  const slug = assertDisplaySnapshot(snapshot, key, kvKeys.ARCHIVE_PREFIX);
+function assertArchiveFields(slug, snapshot) {
   if (!Array.isArray(snapshot.rawMatches)) {
-    throw new Error(`Invalid archive rawMatches: ${key}`);
+    throw new Error(`Invalid archive rawMatches: ${slug}`);
   }
-  return slug;
 }
 
-async function dumpSnapshotPrefix(kv, prefix, assertSnapshot) {
-  const allKeys = await kv.list({ prefix });
-  const dataKeys = allKeys.keys
-    .map(key => key.name)
-    .sort();
-  const entries = await Promise.all(dataKeys.map(async key => {
-    const snapshot = await kv.get(key, { type: "json" });
-    const slug = assertSnapshot(snapshot, key);
+async function readSnapshotsBySlug(kv, slugs, buildKey, ...assertFns) {
+  const entries = await Promise.all(slugs.map(async slug => {
+    const snapshot = await kv.get(buildKey(slug), { type: "json" });
+    if (!snapshot) return null;
+    for (const fn of assertFns) fn(slug, snapshot);
     return [slug, snapshot];
   }));
-  return Object.fromEntries(entries);
+  return Object.fromEntries(entries.filter(Boolean));
 }
 
 export async function handleBackup(request, env) {
@@ -58,11 +50,16 @@ export async function handleBackup(request, env) {
   if (unauthorized) return unauthorized;
 
   const kv = env["lol-stats-kv"];
-  const [home, archive, configArchive] = await Promise.all([
-    dumpSnapshotPrefix(kv, kvKeys.HOME_PREFIX, assertHomeSnapshot),
-    dumpSnapshotPrefix(kv, kvKeys.ARCHIVE_PREFIX, assertArchiveSnapshot),
+  const [tournaments, archiveTournaments] = await Promise.all([
+    loadTourConfig(env),
     readArchiveIndex(env)
   ]);
+
+  const [home, archive] = await Promise.all([
+    readSnapshotsBySlug(kv, tournaments.map(t => t.slug), kvKeys.home, assertSnapshot, assertHomeFields),
+    readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot, assertArchiveFields)
+  ]);
+
   const rawMatches = {};
   const scheduleMeta = {};
   await Promise.all(Object.keys(home).map(async slug => {
@@ -74,7 +71,7 @@ export async function handleBackup(request, env) {
     scheduleMeta[slug] = meta;
   }));
 
-  return new Response(JSON.stringify({ home, rawMatches, scheduleMeta, archive, configArchive }), {
+  return new Response(JSON.stringify({ home, rawMatches, scheduleMeta, archive, configArchive: archiveTournaments }), {
     headers: { "content-type": "application/json" }
   });
 }

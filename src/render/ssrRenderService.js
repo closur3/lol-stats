@@ -2,6 +2,7 @@ import { HTMLRenderer } from './htmlRenderer.js';
 import { dateUtils } from '../utils/dateUtils.js';
 import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
+import { readArchiveIndex } from '../core/updater/archiveIndex.js';
 import { loadScheduleMetaBySlug, buildStaticRenderInput, pruneStaticSchedule } from '../core/updater/staticRenderInput.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
@@ -42,14 +43,14 @@ export async function renderHomeFromFacts(env) {
 
 export async function renderArchiveFromFacts(env) {
   const kv = env["lol-stats-kv"];
-  const allKeys = await kv.list({ prefix: kvKeys.ARCHIVE_PREFIX });
+  const tournaments = await readArchiveIndex(env);
 
-  if (!allKeys.keys.length) {
+  if (!tournaments.length) {
     const activeCron = await hasActiveCron(env);
     return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
-  const slugs = allKeys.keys.map(key => key.name.slice(kvKeys.ARCHIVE_PREFIX.length));
+  const slugs = tournaments.map(t => t.slug);
   const rawSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
   let validSnapshots = rawSnapshots.map((snapshot, index) => {
     const slug = slugs[index];
