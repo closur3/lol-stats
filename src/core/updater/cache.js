@@ -1,11 +1,4 @@
-import { readPreviousRawMatchesMap, readRawMatchesMap } from '../facts/rawMatchesStore.js';
-
-export async function loadCachedData(env, tournaments) {
-  return {
-    rawMatches: await readRawMatchesMap(env, tournaments),
-    homes: {}
-  };
-}
+import { readPreviousRawMatchesMap } from '../facts/rawMatchesStore.js';
 
 export async function loadPreviousCachedData(env, tournaments) {
   return {

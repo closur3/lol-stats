@@ -24,11 +24,6 @@ const LEAGUE_PHASE_DISPLAY = {
   offday: { emoji: "⏸", text: "OFFDAY" }
 };
 
-export function isOffDayMeta(meta) {
-  const { earliest, unfinished, historyUnfinished } = readLeagueMeta(meta);
-  return earliest === 0 && unfinished === 0 && !historyUnfinished;
-}
-
 export function resolveLeaguePhase(meta, nowMs = Date.now()) {
   const { earliest, unfinished, historyUnfinished } = readLeagueMeta(meta);
 
@@ -42,12 +37,6 @@ export function getLeaguePhaseDisplay(phase) {
   const display = LEAGUE_PHASE_DISPLAY[phase];
   if (!display) throw new Error(`Invalid league phase: ${phase}`);
   return display;
-}
-
-export function resolveLogsPhaseLabel(meta, nowMs = Date.now()) {
-  const phase = resolveLeaguePhase(meta, nowMs);
-  const display = getLeaguePhaseDisplay(phase);
-  return `${display.emoji}${display.text}`;
 }
 
 export function resolveHomeEmojiByPhase(meta, nowMs = Date.now()) {

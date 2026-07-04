@@ -1,5 +1,4 @@
-export const BUSINESS_TIME_ZONE = "Asia/Shanghai";
-export const BUSINESS_UTC_OFFSET_HOURS = 8;
+const BUSINESS_UTC_OFFSET_HOURS = 8;
 
 const WEEKDAY_CRON_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const WEEKDAY_DISPLAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
