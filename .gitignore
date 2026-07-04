@@ -5,4 +5,3 @@ dist/
 .dev.vars
 *.log
 tests/
-*.md
