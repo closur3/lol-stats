@@ -37,4 +37,116 @@ export const TOOLS_BOOTSTRAP = `
               return fetch(url, { method: 'POST', headers: getAuthHeaders(extraHeaders), body: body });
           }
           function showResult(ok, text) { showToast(text, ok ? 'success' : 'error'); }
+          var pendingConfigAction = null;
+          var pendingConfigActionButton = null;
+          var pendingConfigActionPayload = null;
+          function getConfigActionMeta(action, payload) {
+              payload = payload || {};
+              var actions = {
+                  'archive-rebuild': {
+                      label: 'Rebuild from ARCHIVE_*',
+                      flow: 'ARCHIVE_* → CONFIG_ARCHIVE',
+                      icon: '↻',
+                      url: '/rebuild-archive-index',
+                      busyText: 'Rebuilding...',
+                      submitText: 'Rebuild',
+                      doneText: 'Rebuilt archive index'
+                  },
+                  'archive-import': {
+                      label: 'Import from GitHub backup',
+                      flow: 'config/archive.json → CONFIG_ARCHIVE',
+                      icon: '⇣',
+                      url: '/import-archive-index',
+                      busyText: 'Importing...',
+                      submitText: 'Import',
+                      doneText: 'Imported archive index'
+                  },
+                  'tour-import': {
+                      label: 'Import from GitHub config',
+                      flow: 'config/tour.json → CONFIG_TOUR',
+                      icon: '⇣',
+                      url: '/import-tour-config',
+                      busyText: 'Importing...',
+                      submitText: 'Import',
+                      doneText: 'Imported active config'
+                  },
+                  'active-runtime-delete': {
+                      label: 'Delete active runtime state',
+                      flow: 'Target: ' + (payload.name || payload.slug || 'Active tournament'),
+                      icon: '!',
+                      url: '/delete-active',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ slug: payload.slug }),
+                      busyText: 'Deleting...',
+                      submitText: 'Delete',
+                      doneText: 'Deleted active runtime state'
+                  },
+                  'archive-delete': {
+                      label: 'Delete archive snapshot',
+                      flow: 'Target: ' + (payload.name || payload.slug || 'Archive tournament'),
+                      icon: '!',
+                      url: '/delete-archive',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ slug: payload.slug, name: payload.name }),
+                      busyText: 'Deleting...',
+                      submitText: 'Delete',
+                      doneText: 'Deleted archive snapshot'
+                  }
+              };
+              return actions[action] || null;
+          }
+          function closeConfigActionConfirm() {
+              pendingConfigAction = null;
+              pendingConfigActionButton = null;
+              pendingConfigActionPayload = null;
+              var overlay = document.getElementById('config-action-confirm');
+              overlay.classList.remove('open');
+              overlay.setAttribute('aria-hidden', 'true');
+          }
+          function previewConfigAction(action, button, payload) {
+              if (!requireAuth()) return;
+              var meta = getConfigActionMeta(action, payload);
+              if (!meta) { showResult(false, '❌ Unknown config action'); return; }
+              pendingConfigAction = action;
+              pendingConfigActionButton = button;
+              pendingConfigActionPayload = payload || null;
+              document.getElementById('indexConfirmIcon').textContent = meta.icon;
+              document.getElementById('indexConfirmTitle').textContent = meta.label;
+              document.getElementById('indexConfirmFlow').textContent = meta.flow;
+              document.getElementById('indexConfirmSubmit').textContent = meta.submitText;
+              var overlay = document.getElementById('config-action-confirm');
+              overlay.classList.add('open');
+              overlay.setAttribute('aria-hidden', 'false');
+          }
+          function confirmConfigAction(button) {
+              if (!pendingConfigAction) return;
+              var meta = getConfigActionMeta(pendingConfigAction, pendingConfigActionPayload);
+              if (!meta) return;
+              var restoreConfirm = setButtonBusy(button, meta.busyText);
+              var restoreAction = pendingConfigActionButton ? setButtonBusy(pendingConfigActionButton, meta.busyText) : function() {};
+              sendAuthorizedPost(meta.url, meta.headers, meta.body).then(function(res) {
+                  restoreConfirm();
+                  restoreAction();
+                  if (checkAuthError(res.status)) return;
+                  if (res.ok) {
+                      closeConfigActionConfirm();
+                      showResult(true, '🧭 ' + meta.doneText);
+                      setTimeout(function() { location.reload(); }, REDIRECT_DELAY_MS);
+                  } else {
+                      res.text().then(function(errorMessage) {
+                          showResult(false, errorMessage ? ('❌ ' + errorMessage) : '❌ Failed');
+                      });
+                  }
+              }).catch(function() {
+                  restoreConfirm();
+                  restoreAction();
+                  showResult(false, NETWORK_ERROR_MSG);
+              });
+          }
+          document.getElementById('config-action-confirm').addEventListener('click', function(event) {
+              if (event.target === this) closeConfigActionConfirm();
+          });
+          document.addEventListener('keydown', function(event) {
+              if (event.key === 'Escape') closeConfigActionConfirm();
+          });
 `;

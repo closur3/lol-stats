@@ -1,6 +1,5 @@
 import { HTMLRenderer } from '../render/htmlRenderer.js';
-import { GitHubClient } from '../api/githubClient.js';
-import { loadArchiveConfig } from '../core/updater/archiveIndex.js';
+import { readArchiveIndex } from '../core/updater/archiveIndex.js';
 import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
 import { dateUtils } from '../utils/dateUtils.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
@@ -23,8 +22,7 @@ export class ToolsRouter {
       })(),
       (async () => {
         try {
-          const githubClient = new GitHubClient(env);
-          return { archivedTournaments: await loadArchiveConfig(env, githubClient), archiveError: null };
+          return { archivedTournaments: await readArchiveIndex(env), archiveError: null };
         } catch (error) {
           return { archivedTournaments: [], archiveError: error.message };
         }

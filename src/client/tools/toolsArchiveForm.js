@@ -25,14 +25,9 @@ export const TOOLS_ARCHIVE_FORM = `
               showToast("📋 Filled Manual Archive form", "success");
           }
 
-          function deleteArchive(slug, name) {
+          function deleteArchive(slug, name, button) {
               if (!requireAuth()) return;
-              if (!confirm('Delete ' + name + '?')) return;
-              sendAuthorizedPost('/delete-archive', { 'Content-Type': 'application/json' }, JSON.stringify({ slug: slug, name: name })).then(function(res) {
-                  if (checkAuthError(res.status)) return;
-                  if (res.ok) { showResult(true, '🗑️ Deleted'); location.reload(); }
-                  else { res.text().then(function(errorMessage) { showResult(false, errorMessage ? ('❌ ' + errorMessage) : '❌ Failed'); }); }
-              }).catch(function() { showResult(false, NETWORK_ERROR_MSG); });
+              previewConfigAction('archive-delete', button, { slug: slug, name: name });
           }
 
           function submitManualArchive() {

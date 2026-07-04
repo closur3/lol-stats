@@ -42,7 +42,8 @@ jobs:
 
           # ==================== 配置区 ====================
           PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
-          WHITELIST = []
+          DEFAULT_REGIONS = ["International", "China", "Korea"]
+          FORCE_INCLUDE_KEYWORDS = []
           BLACKLIST = ["Opening"]
 
           NAME_MAPPING = {
@@ -52,20 +53,18 @@ jobs:
           CARGO_FIELDS = [
               "Name", "OverviewPage", "DateStart", "Date", "Region", "Year", "IsPlayoffs", "League"
           ]
-          CARGO_WHERE = {
+          CARGO_REQUIRED_WHERE = {
               "Year": [now.year],
+          }
+          CARGO_DEFAULT_WHERE = {
               "TournamentLevel": "Primary",
               "IsQualifier": "0",
-              "Region": ["International", "China", "Korea"],
           }
           CARGO_WHERE_RAW = ["DateStart IS NOT NULL"]
           CARGO_ORDER_BY = "DateStart ASC"
           # ================================================
 
           # ==================== 工具函数 ====================
-
-          def fmt_league(s: str) -> str:
-              return s or "null"
 
           def parse_date(s: str):
               return datetime.strptime(s, "%Y-%m-%d").date()
@@ -97,27 +96,74 @@ jobs:
               for line in lines:
                   print(line, flush=True)
 
-          def build_where(where_dict: dict, raw=None) -> str:
-              parts = []
-              for k, v in where_dict.items():
-                  if isinstance(v, list):
-                      if len(v) == 1:
-                          parts.append(f"{k} = '{v[0]}'")
-                      else:
-                          values = ", ".join(f"'{x}'" for x in v)
-                          parts.append(f"{k} IN ({values})")
-                  else:
-                      parts.append(f"{k} = '{v}'")
+          def cargo_string_literal(value, label: str) -> str:
+              text = str(value)
+              if not text:
+                  raise ValueError(f"Empty Cargo value: {label}")
+              if any(ch in text for ch in ("\0", "\r", "\n")):
+                  raise ValueError(f"Invalid Cargo value: {label}")
+              return "'" + text.replace("'", "''") + "'"
+
+          def build_field_condition(field: str, value) -> str:
+              if isinstance(value, list):
+                  if len(value) == 0:
+                      raise ValueError(f"Empty Cargo list: {field}")
+                  if len(value) == 1:
+                      return f"{field} = {cargo_string_literal(value[0], field)}"
+                  values = ", ".join(cargo_string_literal(item, field) for item in value)
+                  return f"{field} IN ({values})"
+              return f"{field} = {cargo_string_literal(value, field)}"
+
+          def build_force_include_condition(keywords: list):
+              if not isinstance(keywords, list):
+                  raise ValueError("FORCE_INCLUDE_KEYWORDS must be list")
+              clauses = []
+              for keyword in keywords:
+                  if not isinstance(keyword, str) or not keyword.strip():
+                      raise ValueError("FORCE_INCLUDE_KEYWORDS item must be non-empty string")
+                  clean_keyword = keyword.strip()
+                  if "%" in clean_keyword or "_" in clean_keyword:
+                      raise ValueError("FORCE_INCLUDE_KEYWORDS item must not contain Cargo LIKE wildcard")
+                  pattern = f"%{clean_keyword}%"
+                  literal = cargo_string_literal(pattern, "FORCE_INCLUDE_KEYWORDS")
+                  clauses.append(f"OverviewPage LIKE {literal}")
+                  clauses.append(f"Name LIKE {literal}")
+              return f"({' OR '.join(clauses)})" if clauses else None
+
+          def build_where_condition(where_dict: dict) -> str:
+              if not isinstance(where_dict, dict) or not where_dict:
+                  raise ValueError("Cargo where dict must be non-empty")
+              return " AND ".join(build_field_condition(k, v) for k, v in where_dict.items())
+
+          def build_default_discovery_condition(where_dict: dict, default_regions: list) -> str:
+              if not isinstance(default_regions, list) or not default_regions:
+                  raise ValueError("DEFAULT_REGIONS must be non-empty list")
+              return f"{build_where_condition(where_dict)} AND {build_field_condition('Region', default_regions)}"
+
+          def build_discovery_condition(where_dict: dict, default_regions: list, force_keywords: list) -> str:
+              default_condition = build_default_discovery_condition(where_dict, default_regions)
+              force_condition = build_force_include_condition(force_keywords)
+              return f"({default_condition} OR {force_condition})" if force_condition else default_condition
+
+          def build_where(required_where: dict, default_where: dict, default_regions: list, force_keywords: list, raw=None) -> str:
+              parts = [
+                  build_where_condition(required_where),
+                  build_discovery_condition(default_where, default_regions, force_keywords)
+              ]
               if raw:
                   parts.extend(raw)
               return " AND ".join(parts)
+
+          def is_force_included(name: str, overview_page: str) -> bool:
+              haystack = f"{name}\n{overview_page}".lower()
+              return any(keyword.strip().lower() in haystack for keyword in FORCE_INCLUDE_KEYWORDS)
 
           def apply_name_mapping(name: str):
               for canonical, keywords in NAME_MAPPING.items():
                   for k in keywords:
                       if k.lower() in name.lower():
-                          return re.compile(re.escape(k), re.IGNORECASE).sub(canonical, name), k
-              return None, None
+                          return re.compile(re.escape(k), re.IGNORECASE).sub(canonical, name)
+              return None
 
           def make_session(url: str, bot_user: str, bot_pass: str) -> requests.Session:
               MAX_LOGIN_ATTEMPTS = 3
@@ -205,18 +251,13 @@ jobs:
 
               LEAGUE_MAPPING = load_json("config/leagues.json", {})
 
-              ALLOWED_REGIONS = set()
-              if "Region" in CARGO_WHERE and CARGO_WHERE["Region"] is not None:
-                  raw = CARGO_WHERE["Region"]
-                  ALLOWED_REGIONS = {str(r) for r in (raw if isinstance(raw, list) else [raw])}
-
               url = "https://lol.fandom.com/api.php"
               session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
 
               cargo_base = {
                   "action": "cargoquery", "format": "json", "tables": "Tournaments",
                   "fields": ", ".join(CARGO_FIELDS),
-                  "where": build_where(CARGO_WHERE, CARGO_WHERE_RAW),
+                  "where": build_where(CARGO_REQUIRED_WHERE, CARGO_DEFAULT_WHERE, DEFAULT_REGIONS, FORCE_INCLUDE_KEYWORDS, CARGO_WHERE_RAW),
                   "order_by": CARGO_ORDER_BY,
               }
               all_data = fetch_cargo(session, url, cargo_base)
@@ -236,15 +277,9 @@ jobs:
                   y = t.get("Year", "")
                   league_full = t.get("League", "")
 
-                  if t.get("IsQualifier") == "1":
-                      blocked_count += 1
-                      continue
+                  force_included = is_force_included(name, ov)
                   hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
-                  if hit_black:
-                      blocked_count += 1
-                      continue
-                  hit_white = next((k for k in WHITELIST if k.upper() in ov.upper()), None)
-                  if ALLOWED_REGIONS and region not in ALLOWED_REGIONS and not hit_white:
+                  if hit_black and not force_included:
                       blocked_count += 1
                       continue
 
@@ -255,7 +290,7 @@ jobs:
                       log(f"❌ 日期异常 | {name} | {e}")
                       continue
 
-                  mapped_name, matched_keyword = apply_name_mapping(name)
+                  mapped_name = apply_name_mapping(name)
                   if mapped_name:
                       mapped_names.append(f"{name} → {mapped_name}")
                       name = mapped_name
@@ -306,7 +341,7 @@ jobs:
                       add_extra_ov(main_events[m_key], p["ov"])
                       merged_playoffs.append((main_events[m_key]["name"], p["name"], str(new_end)))
                   else:
-                      independent_playoffs.append((p["name"], fmt_league(p.get("league_full", ""))))
+                      independent_playoffs.append(p["name"])
                       main_events[f"{p['ov']}_{p['year']}_PO"] = p
 
               if playoff_events:
@@ -316,7 +351,7 @@ jobs:
                   for i, (main_name, po_name, end_date) in enumerate(merged_playoffs):
                       prefix = "├─" if i < len(merged_playoffs) - 1 or independent_playoffs else "└─"
                       lines.append(f"{prefix} ✅ {main_name} + {po_name} → {end_date}")
-                  for i, (po_name, league) in enumerate(independent_playoffs):
+                  for i, po_name in enumerate(independent_playoffs):
                       prefix = "├─" if i < len(independent_playoffs) - 1 else "└─"
                       lines.append(f"{prefix} 📌 {po_name} (独立保留)")
                   log_tree(lines)

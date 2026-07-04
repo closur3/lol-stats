@@ -2,8 +2,6 @@ import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
 import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
-import { readRawMatches } from "../../core/facts/rawMatchesStore.js";
-import { ensureScheduleMeta } from "../../core/facts/scheduleMetaStore.js";
 
 function assertSnapshot(slug, snapshot) {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
@@ -60,18 +58,7 @@ export async function handleBackup(request, env) {
     readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot, assertArchiveFields)
   ]);
 
-  const rawMatches = {};
-  const scheduleMeta = {};
-  await Promise.all(Object.keys(home).map(async slug => {
-    const [matches, meta] = await Promise.all([
-      readRawMatches(env, slug),
-      ensureScheduleMeta(env, slug)
-    ]);
-    rawMatches[slug] = matches;
-    scheduleMeta[slug] = meta;
-  }));
-
-  return new Response(JSON.stringify({ home, rawMatches, scheduleMeta, archive, configArchive: archiveTournaments }), {
+  return new Response(JSON.stringify({ home, archive, configArchive: archiveTournaments }), {
     headers: { "content-type": "application/json" }
   });
 }

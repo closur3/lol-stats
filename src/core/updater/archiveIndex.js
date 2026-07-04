@@ -40,18 +40,6 @@ async function readArchiveSnapshotTournaments(env) {
   });
 }
 
-export async function loadArchiveConfig(env, githubClient) {
-  const kv = env["lol-stats-kv"];
-  const cached = await kv.get(kvKeys.configArchive(), { type: "json" });
-  if (cached != null) return normalizeArchiveList(cached);
-
-  const localTournaments = await readArchiveSnapshotTournaments(env);
-  if (localTournaments.length > 0) return writeArchiveIndex(env, localTournaments);
-
-  const archivedTournaments = await githubClient.fetchJson("config/archive.json");
-  return normalizeArchiveList(archivedTournaments);
-}
-
 export async function readArchiveIndex(env) {
   const kv = env["lol-stats-kv"];
   const cached = await kv.get(kvKeys.configArchive(), { type: "json" });
@@ -75,4 +63,9 @@ export async function rebuildArchiveIndexFromSnapshots(env, options = {}) {
     throw new Error("Cannot rebuild CONFIG_ARCHIVE from empty ARCHIVE snapshots");
   }
   return writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true });
+}
+
+export async function importArchiveIndexFromGitHubBackup(env, githubClient) {
+  const archivedTournaments = await githubClient.fetchJson("config/archive.json");
+  return writeArchiveIndex(env, archivedTournaments);
 }

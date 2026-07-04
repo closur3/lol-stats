@@ -45,6 +45,26 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
           </div>
 
           <div class="wrapper">
+              <div class="table-title">🛠️ Config Index</div>
+              <div class="section-body archive-index-body">
+                  <div class="archive-index-actions">
+                      <button class="index-action-btn index-action-import" onclick="previewConfigAction('tour-import', this)">
+                          <span class="index-action-main">Import active config</span>
+                          <span class="index-action-meta">config/tour.json → CONFIG_TOUR</span>
+                      </button>
+                      <button class="index-action-btn index-action-rebuild" onclick="previewConfigAction('archive-rebuild', this)">
+                          <span class="index-action-main">Rebuild archive index</span>
+                          <span class="index-action-meta">ARCHIVE_* → CONFIG_ARCHIVE</span>
+                      </button>
+                      <button class="index-action-btn index-action-import" onclick="previewConfigAction('archive-import', this)">
+                          <span class="index-action-main">Import archive index</span>
+                          <span class="index-action-meta">config/archive.json → CONFIG_ARCHIVE</span>
+                      </button>
+                  </div>
+              </div>
+          </div>
+
+          <div class="wrapper">
               <div class="table-title">📦 Manual Archive</div>
               <div class="section-body">
                   <div class="form-grid">
@@ -80,6 +100,19 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
           </div>`;
 
   const preBody = `<div id="toast-container"></div>
+      <div id="config-action-confirm" class="index-confirm-overlay" aria-hidden="true">
+          <div class="index-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="indexConfirmTitle">
+              <div id="indexConfirmIcon" class="index-confirm-icon">↻</div>
+              <div class="index-confirm-content">
+                  <h2 id="indexConfirmTitle">Rebuild from ARCHIVE_*</h2>
+                  <div id="indexConfirmFlow" class="index-confirm-flow">ARCHIVE_* → CONFIG_ARCHIVE</div>
+              </div>
+              <div class="index-confirm-actions">
+                  <button class="secondary-btn" onclick="closeConfigActionConfirm()">Cancel</button>
+                  <button id="indexConfirmSubmit" class="primary-btn" onclick="confirmConfigAction(this)">Confirm</button>
+              </div>
+          </div>
+      </div>
       <div id="auth-overlay">
           <div class="auth-card">
               <div class="auth-icon">🔐</div>

@@ -28,4 +28,9 @@ export const TOOLS_ACTIONS = `
                   });
               }).catch(function() { showResult(false, NETWORK_ERROR_MSG); }).then(restore);
           }
+
+          function deleteActive(slug, name, button) {
+              if (!requireAuth()) return;
+              previewConfigAction('active-runtime-delete', button, { slug: slug, name: name });
+          }
 `;

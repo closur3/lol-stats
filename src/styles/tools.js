@@ -71,6 +71,24 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .ops-body .icon-btn-del { color: #dc2626; }
     .ops-body .icon-btn-del:hover { background: #fef2f2; border-color: #fca5a5; }
 
+    .archive-index-body { padding: 18px 20px; }
+    .archive-index-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .index-action-btn { min-height: 78px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 14px 16px; text-align: left; transition: 0.2s; }
+    .index-action-btn:hover { background: #f8fafc; border-color: #94a3b8; box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
+    .index-action-main { font-size: 13px; line-height: 1.3; font-weight: 700; color: #0f172a; }
+    .index-action-meta { font-size: 11px; line-height: 1.35; color: #64748b; overflow-wrap: anywhere; }
+    .index-action-rebuild { border-left: 4px solid #2563eb; }
+    .index-action-import { border-left: 4px solid #f97316; }
+    .index-confirm-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.38); z-index: 1001; padding: 20px; }
+    .index-confirm-overlay.open { display: flex; }
+    .index-confirm-dialog { width: min(420px, 100%); background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 24px 60px rgba(15,23,42,0.22); padding: 20px; display: grid; grid-template-columns: auto 1fr; gap: 14px; }
+    .index-confirm-icon { width: 38px; height: 38px; border-radius: 8px; background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; line-height: 1; }
+    .index-confirm-content { min-width: 0; }
+    .index-confirm-content h2 { margin: 0 0 8px; font-size: 16px; line-height: 1.35; color: #0f172a; letter-spacing: 0; }
+    .index-confirm-flow { font-size: 12px; line-height: 1.45; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; overflow-wrap: anywhere; }
+    .index-confirm-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+    .index-confirm-actions .primary-btn, .index-confirm-actions .secondary-btn { min-width: 96px; }
+
     .primary-btn { background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; transition: 0.2s; margin: 0; white-space: nowrap; }
     .primary-btn:hover { background: #1d4ed8; box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
 
@@ -98,7 +116,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .view-select { width: auto; min-width: 80px; padding: 6px 28px 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #0f172a; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center; -webkit-appearance: none; appearance: none; cursor: pointer; flex-shrink: 0; }
     .view-select:focus { border-color: #2563eb; outline: none; }
 
-    @media (max-width: 650px) { .form-grid { grid-template-columns: 1fr; gap: 12px; } .flex-row { flex-direction: column; align-items: stretch; text-align: left; } .primary-btn, .secondary-btn { width: 100%; } .actions-row-end { flex-direction: column; } .qr-list-container { grid-template-columns: 1fr; } .ops-actions { flex-direction: column; } .ops-body .item { flex-wrap: wrap; } .ops-body .item-right { width: 100%; justify-content: flex-end; margin-top: 4px; } }
+    @media (max-width: 650px) { .form-grid { grid-template-columns: 1fr; gap: 12px; } .flex-row { flex-direction: column; align-items: stretch; text-align: left; } .primary-btn, .secondary-btn { width: 100%; } .actions-row-end { flex-direction: column; } .archive-index-actions { grid-template-columns: 1fr; } .index-confirm-dialog { grid-template-columns: 1fr; } .index-confirm-actions { flex-direction: column-reverse; } .qr-list-container { grid-template-columns: 1fr; } .ops-actions { flex-direction: column; } .ops-body .item { flex-wrap: wrap; } .ops-body .item-right { width: 100%; justify-content: flex-end; margin-top: 4px; } }
 
     
     ${footerCSS}

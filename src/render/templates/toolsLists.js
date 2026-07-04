@@ -13,7 +13,7 @@ export function renderActiveTournamentList(activeTournaments = []) {
           </label>
           <div class="item-right">
               <button class="icon-btn" onclick="forceOne(${escapeJsArg(slug)}, this)" title="Force">🔄</button>
-              <button class="icon-btn icon-btn-del" onclick="deleteArchive(${escapeJsArg(slug)}, ${escapeJsArg(name)})" title="Delete">🗑️</button>
+              <button class="icon-btn icon-btn-del" onclick="deleteActive(${escapeJsArg(slug)}, ${escapeJsArg(name)}, this)" title="Delete">🗑️</button>
           </div>
       </div>`;
   }).join("");
@@ -36,7 +36,7 @@ export function renderArchivedTournamentList(archivedTournaments = []) {
           </label>
           <div class="item-right">
               <button class="icon-btn icon-btn-fill" onclick="fillArchive(${escapeJsArg(slug)})" title="Fill">📋</button>
-              <button class="icon-btn icon-btn-del" onclick="deleteArchive(${escapeJsArg(slug)}, ${escapeJsArg(name)})" title="Delete">🗑️</button>
+              <button class="icon-btn icon-btn-del" onclick="deleteArchive(${escapeJsArg(slug)}, ${escapeJsArg(name)}, this)" title="Delete">🗑️</button>
           </div>
       </div>`;
   }).join("");
