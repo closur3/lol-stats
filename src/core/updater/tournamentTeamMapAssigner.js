@@ -6,7 +6,7 @@ export async function assignTournamentTeamMaps(tournaments, rawMatchesBySlug, te
   }
   for (const tournament of tournaments) {
     const rawMatches = rawMatchesBySlug[tournament.slug];
-    if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES missing for team map assignment: ${tournament.slug}`);
-    tournament.teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, rawMatches);
+    if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing for team map assignment: ${tournament.slug}`);
+    tournament.teamMap = dataUtils.pickTeamMap(teamsRaw, rawMatches);
   }
 }

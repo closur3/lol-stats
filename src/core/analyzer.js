@@ -38,7 +38,7 @@ export class Analyzer {
 
     tournaments.forEach((tournament, tournamentIndex) => {
       const rawMatches = allRawMatches[tournament.slug];
-      if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES missing in analyzer input: ${tournament.slug}`);
+      if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in analyzer input: ${tournament.slug}`);
 
       const resolveName = buildResolveName(tournament.teamMap);
       const { stats, parsedMatches, tournamentMeta: meta } = parseAllMatches(rawMatches, resolveName, todayStr, tournament.slug, tournament.league, tournamentIndex, allFutureMatches);

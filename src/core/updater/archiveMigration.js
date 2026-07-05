@@ -36,7 +36,7 @@ async function migrateArchiveTournament(env, tournament, teamsRaw) {
   const rawMatches = await readMigrationRawMatches(env, tournament.slug);
   if (rawMatches == null) return null;
 
-  const teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, rawMatches);
+  const teamMap = dataUtils.pickTeamMap(teamsRaw, rawMatches);
   const archiveSnapshot = buildArchiveSnapshot(tournament, rawMatches, teamMap);
   await env["lol-stats-kv"].put(kvKeys.archive(tournament.slug), JSON.stringify(archiveSnapshot));
   await deleteActiveRuntimeFacts(env, tournament.slug);

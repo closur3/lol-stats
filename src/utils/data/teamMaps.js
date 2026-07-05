@@ -1,12 +1,20 @@
-﻿export function isFlatTeamMap(obj) {
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
-  const keys = Object.keys(obj);
-  if (keys.length === 0) return false;
-  return typeof obj[keys[0]] === "string";
+export function assertTeamAliasMap(teamAliasMap) {
+  if (!teamAliasMap || typeof teamAliasMap !== "object" || Array.isArray(teamAliasMap)) {
+    throw new Error("ConfigTeams must be a JSON object");
+  }
+  for (const [rawName, displayName] of Object.entries(teamAliasMap)) {
+    if (typeof rawName !== "string" || !rawName.trim()) {
+      throw new Error("ConfigTeams raw team name missing");
+    }
+    if (typeof displayName !== "string" || !displayName.trim()) {
+      throw new Error(`ConfigTeams display name missing: ${rawName}`);
+    }
+  }
+  return teamAliasMap;
 }
 
-export function filterTeamMapForMatches(baseMap, rawMatches) {
-  if (!baseMap || typeof baseMap !== "object") return {};
+export function filterTeamMapForMatches(teamAliasMap, rawMatches) {
+  const baseMap = assertTeamAliasMap(teamAliasMap);
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
   const rawNames = new Set();
   rawMatches.forEach(match => {
@@ -39,13 +47,6 @@ export function filterTeamMapForMatches(baseMap, rawMatches) {
   return needed;
 }
 
-export function pickTeamMap(teamsRaw, tournament, rawMatches) {
-  if (!teamsRaw || typeof teamsRaw !== "object") return {};
-  let base = {};
-  if (teamsRaw.by_slug && teamsRaw.by_slug[tournament.slug]) base = teamsRaw.by_slug[tournament.slug];
-  else if (teamsRaw.by_league && teamsRaw.by_league[tournament.league]) base = teamsRaw.by_league[tournament.league];
-  else if (teamsRaw[tournament.slug] && typeof teamsRaw[tournament.slug] === "object") base = teamsRaw[tournament.slug];
-  else if (teamsRaw[tournament.league] && typeof teamsRaw[tournament.league] === "object") base = teamsRaw[tournament.league];
-  else if (isFlatTeamMap(teamsRaw)) base = teamsRaw;
-  return filterTeamMapForMatches(base, rawMatches);
+export function pickTeamMap(teamAliasMap, rawMatches) {
+  return filterTeamMapForMatches(teamAliasMap, rawMatches);
 }

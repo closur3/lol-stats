@@ -53,7 +53,7 @@ export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, forc
       const slug = resultItem.slug;
       const newData = resultItem.data;
       const oldData = rawMatchesBySlug[slug];
-      if (!Array.isArray(oldData)) throw new Error(`RAW_MATCHES missing in active update scope: ${slug}`);
+      if (!Array.isArray(oldData)) throw new Error(`RawMatches missing in active update scope: ${slug}`);
       const isForce = force;
 
       if (!isForce && oldData.length > 10 && newData.length < oldData.length * UPDATE_CONFIG.DROP_THRESHOLD) {
@@ -66,7 +66,7 @@ export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, forc
             rawMatchesBySlug[slug] = newData;
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           } else {
-            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${oldData.length}->${newData.length} (deleted=${changedCount.deleted}), preserving previous RAW_MATCHES`);
+            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${oldData.length}->${newData.length} (deleted=${changedCount.deleted}), preserving previous RawMatches`);
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           }
         } else {

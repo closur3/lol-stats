@@ -21,7 +21,7 @@ function buildScopedTournaments(tournaments, scopeSlugs) {
 function buildScopedRawMatches(rawMatches, scopeSlugs) {
   return Object.fromEntries([...scopeSlugs].map(slug => {
     const matches = rawMatches[slug];
-    if (!Array.isArray(matches)) throw new Error(`RAW_MATCHES missing in analysis scope: ${slug}`);
+    if (!Array.isArray(matches)) throw new Error(`RawMatches missing in analysis scope: ${slug}`);
     return [slug, matches];
   }));
 }

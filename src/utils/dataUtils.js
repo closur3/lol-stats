@@ -1,7 +1,7 @@
 ﻿import { extractCookies } from './data/cookies.js';
 import { getFirstOverviewPage, normalizeOverviewPages, parseOverviewPages, toDataPage } from './data/overviewPages.js';
 import { color, pct, rate } from './data/stats.js';
-import { filterTeamMapForMatches, isFlatTeamMap, pickTeamMap } from './data/teamMaps.js';
+import { assertTeamAliasMap, filterTeamMapForMatches, pickTeamMap } from './data/teamMaps.js';
 import { sortTeams } from './data/teamSort.js';
 
 export const dataUtils = {
@@ -10,7 +10,7 @@ export const dataUtils = {
   color,
   extractCookies,
   sortTeams,
-  isFlatTeamMap,
+  assertTeamAliasMap,
   filterTeamMapForMatches,
   pickTeamMap,
   normalizeOverviewPages,

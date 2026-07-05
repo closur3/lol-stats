@@ -10,7 +10,7 @@ export async function writeActiveTournamentFacts(env, tournaments, rawMatchesByS
     if (!slug) throw new Error("Tournament slug missing");
     if (!writeScopeSlugs.has(slug)) return;
     const rawMatches = rawMatchesBySlug[slug];
-    if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES missing in write scope: ${slug}`);
+    if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in write scope: ${slug}`);
     if (!analysis.tournamentMeta || typeof analysis.tournamentMeta !== "object" || Array.isArray(analysis.tournamentMeta)) {
       throw new Error("analysis.tournamentMeta must be a JSON object");
     }

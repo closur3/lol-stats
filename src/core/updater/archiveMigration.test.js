@@ -30,7 +30,7 @@ function createKv(initialValues) {
 }
 
 describe("migrateArchiveSnapshotsFromActiveFacts", () => {
-  it("builds ARCHIVE from existing RAW_MATCHES and deletes active runtime facts", async () => {
+  it("builds ArchiveSnapshot from existing RawMatches and deletes active runtime facts", async () => {
     const archiveTournament = tournament();
     const kv = createKv({
       ConfigArchive: [archiveTournament],

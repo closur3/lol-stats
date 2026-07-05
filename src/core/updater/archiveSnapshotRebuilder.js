@@ -11,6 +11,6 @@ export async function rebuildArchiveSnapshot(env, tournament) {
   const matches = await fandomClient.fetchAllMatches(tournament.slug, tournament.overview_page, null);
   if (!matches || matches.length === 0) throw new Error("No matches found from Fandom API");
 
-  const teamMap = dataUtils.pickTeamMap(teamsRaw, tournament, matches);
+  const teamMap = dataUtils.pickTeamMap(teamsRaw, matches);
   await env["lol-stats-kv"].put(kvKeys.archive(tournament.slug), JSON.stringify(buildArchiveSnapshot(tournament, matches, teamMap)));
 }

@@ -70,22 +70,6 @@ jobs:
           def parse_date(s: str):
               return datetime.strptime(s, "%Y-%m-%d").date()
 
-          def load_json(path: str, default=None):
-              if not os.path.exists(path):
-                  return default
-              try:
-                  with open(path, "r", encoding="utf-8") as f:
-                      return json.load(f)
-              except Exception as e:
-                  print(f"⚠️ Failed to parse {path}: {e}", flush=True)
-                  try:
-                      backup = f"{path}.corrupted.{int(time.time())}"
-                      os.rename(path, backup)
-                      print(f"  损坏文件已备份: {backup}", flush=True)
-                  except Exception:
-                      pass
-                  return default
-
           def load_required_json_array(path: str) -> list:
               with open(path, "r", encoding="utf-8") as f:
                   value = json.load(f)
@@ -104,6 +88,18 @@ jobs:
                   if item["slug"] in slugs:
                       raise ValueError(f"Duplicate slug in {path}: {item['slug']}")
                   slugs.add(item["slug"])
+              return value
+
+          def load_required_json_object(path: str) -> dict:
+              with open(path, "r", encoding="utf-8") as f:
+                  value = json.load(f)
+              if not isinstance(value, dict) or isinstance(value, list):
+                  raise ValueError(f"{path} must contain a JSON object")
+              for key, item in value.items():
+                  if not isinstance(key, str) or not key.strip():
+                      raise ValueError(f"{path} key missing")
+                  if not isinstance(item, str) or not item.strip():
+                      raise ValueError(f"{path}.{key} must be a non-empty string")
               return value
 
           def add_extra_ov(ev: dict, ov: str) -> None:
@@ -271,7 +267,7 @@ jobs:
               old_items = load_required_json_array(TARGET_FILE)
               archive_items = load_required_json_array(ARCHIVE_FILE)
 
-              LEAGUE_MAPPING = load_json("config/leagues.json", {})
+              LEAGUE_MAPPING = load_required_json_object("config/leagues.json")
 
               url = "https://lol.fandom.com/api.php"
               session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
