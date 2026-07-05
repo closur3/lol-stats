@@ -43,15 +43,15 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
   if (!aligned && changed.length === 0) {
     const schedules = collectSchedulesFromState(state);
     if (areSchedulesApplied(state, schedules)) return;
-    const applied = await runScheduleApply(env, schedules, "REAPPLY", options);
-    if (applied) recordAppliedSchedules(state, schedules);
+    const applyResult = await runScheduleApply(env, schedules, "REAPPLY", options);
+    if (applyResult === "applied") recordAppliedSchedules(state, schedules);
     await writeScheduleControl(env, state);
     return;
   }
   const schedules = collectSchedulesFromState(state);
   if (!areSchedulesApplied(state, schedules)) {
-    const applied = await runScheduleApply(env, schedules, "RECONCILE", options);
-    if (applied) recordAppliedSchedules(state, schedules);
+    const applyResult = await runScheduleApply(env, schedules, "RECONCILE", options);
+    if (applyResult === "applied") recordAppliedSchedules(state, schedules);
   }
   await writeScheduleControl(env, state);
   const details = changed.length > 0 ? changed.join(",") : "aligned-only";

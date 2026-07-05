@@ -51,26 +51,37 @@ export async function renderArchiveFromFacts(env) {
 
   const slugs = tournaments.map(t => t.slug);
   const rawSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
+  const snapshotErrors = [];
   const validSnapshots = rawSnapshots.map((snapshot, index) => {
     const slug = slugs[index];
     const snapshotTournament = snapshot?.tournament;
     if (!snapshot || !snapshotTournament || !snapshotTournament.slug) {
-      throw new Error(`Invalid archive snapshot: ${slug}`);
+      snapshotErrors.push({ slug, reason: "Missing snapshot" });
+      return null;
     }
     if (!Array.isArray(snapshot.rawMatches)) {
-      throw new Error(`Invalid archive rawMatches: ${slug}`);
+      snapshotErrors.push({ slug, reason: "Invalid raw matches" });
+      return null;
     }
     if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) {
-      throw new Error(`Invalid archive stats: ${slug}`);
+      snapshotErrors.push({ slug, reason: "Invalid stats" });
+      return null;
     }
     if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) {
-      throw new Error(`Invalid archive timeGrid: ${slug}`);
+      snapshotErrors.push({ slug, reason: "Invalid time grid" });
+      return null;
     }
     if (!snapshot.teamMap || typeof snapshot.teamMap !== "object" || Array.isArray(snapshot.teamMap)) {
-      throw new Error(`Invalid archive teamMap: ${slug}`);
+      snapshotErrors.push({ slug, reason: "Invalid team map" });
+      return null;
     }
     return snapshot;
   });
+  if (snapshotErrors.length > 0) {
+    const error = new Error(`${snapshotErrors.length} archive snapshots unavailable`);
+    error.issues = snapshotErrors;
+    throw error;
+  }
 
   const combined = validSnapshots.map(snap => {
     const snapshotTournament = snap.tournament;

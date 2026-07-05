@@ -34,10 +34,10 @@ async function planNewScheduleDay(env, tournaments, now, lastDay, options) {
   console.log(`[SCHED:DAY] ${lastDay || "none"} -> ${today}`);
   const state = buildDailyScheduleState(tournaments, metasBySlug, now);
   const schedules = collectSchedulesFromState(state);
-  const applied = await runScheduleApply(env, schedules, "PLAN", options);
-  if (applied) recordAppliedSchedules(state, schedules);
+  const applyResult = await runScheduleApply(env, schedules, "PLAN", options);
+  if (applyResult === "applied") recordAppliedSchedules(state, schedules);
   await writeScheduleControl(env, state);
-  console.log(`[SCHED:PLAN] date=${state.date} schedules=${schedules.join(",")} apply=${applied ? "applied" : "not-applied"}`);
+  console.log(`[SCHED:PLAN] date=${state.date} schedules=${schedules.join(",")} apply=${applyResult}`);
 }
 
 async function reconcileCurrentScheduleDay(env, tournaments, state, now, options) {
@@ -63,8 +63,8 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
   if (!hasChanges) {
     const schedules = collectSchedulesFromState(state);
     if (areSchedulesApplied(state, schedules)) return;
-    const applied = await runScheduleApply(env, schedules, "REAPPLY", options);
-    if (applied) recordAppliedSchedules(state, schedules);
+    const applyResult = await runScheduleApply(env, schedules, "REAPPLY", options);
+    if (applyResult === "applied") recordAppliedSchedules(state, schedules);
     await writeScheduleControl(env, state);
     return;
   }
@@ -76,8 +76,8 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
 
   const schedules = collectSchedulesFromState(state);
   if (!areSchedulesApplied(state, schedules)) {
-    const applied = await runScheduleApply(env, schedules, "RECONCILE", options);
-    if (applied) recordAppliedSchedules(state, schedules);
+    const applyResult = await runScheduleApply(env, schedules, "RECONCILE", options);
+    if (applyResult === "applied") recordAppliedSchedules(state, schedules);
   }
   await writeScheduleControl(env, state);
 }

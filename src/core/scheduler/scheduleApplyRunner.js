@@ -7,14 +7,14 @@ function recordScheduleApplyFailure(options, reason, error) {
 }
 
 export async function runScheduleApply(env, schedules, reason, options = {}) {
-  if (options.applySchedules === false) return false;
+  if (options.applySchedules === false) return "skipped";
 
   try {
     await applyCloudflareSchedules(env, schedules);
-    return true;
+    return "applied";
   } catch (error) {
     if (options.applySchedules !== "best-effort") throw error;
     recordScheduleApplyFailure(options, reason, error);
-    return false;
+    return "failed";
   }
 }

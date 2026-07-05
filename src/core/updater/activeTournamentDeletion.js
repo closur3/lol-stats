@@ -36,8 +36,8 @@ async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
   const schedules = collectSchedulesFromState(state);
   let appliedChanged = false;
   if (!areSchedulesApplied(state, schedules)) {
-    const applied = await runScheduleApply(env, schedules, "DELETE_ACTIVE", scheduleOptions);
-    if (applied) {
+    const applyResult = await runScheduleApply(env, schedules, "DELETE_ACTIVE", scheduleOptions);
+    if (applyResult === "applied") {
       recordAppliedSchedules(state, schedules);
       appliedChanged = true;
     }

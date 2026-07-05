@@ -1,4 +1,5 @@
 import { renderArchiveFromFacts } from '../render/ssrRenderService.js';
+import { renderArchiveErrorPage } from '../render/templates/error.js';
 
 export class ArchiveRouter {
   static htmlHeaders() {
@@ -11,7 +12,15 @@ export class ArchiveRouter {
   }
 
   static async handleArchive(request, env) {
-    const html = await renderArchiveFromFacts(env);
-    return new Response(html, { headers: ArchiveRouter.htmlHeaders() });
+    try {
+      const html = await renderArchiveFromFacts(env);
+      return new Response(html, { headers: ArchiveRouter.htmlHeaders() });
+    } catch (error) {
+      console.error(`[ARCHIVE:RENDER] ${error.message}`);
+      return new Response(renderArchiveErrorPage(error, env.GITHUB_TIME, env.GITHUB_SHA), {
+        status: 500,
+        headers: ArchiveRouter.htmlHeaders()
+      });
+    }
   }
 }

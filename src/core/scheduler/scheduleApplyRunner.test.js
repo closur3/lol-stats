@@ -19,7 +19,7 @@ describe("runScheduleApply", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(runScheduleApply(env, ["0 */2 * * *"], "TEST")).resolves.toBe(true);
+    await expect(runScheduleApply(env, ["0 */2 * * *"], "TEST")).resolves.toBe("applied");
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual([{ cron: "0 */2 * * *" }]);
   });
@@ -28,7 +28,7 @@ describe("runScheduleApply", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(runScheduleApply(env, ["0 */2 * * *"], "TEST", { applySchedules: false })).resolves.toBe(false);
+    await expect(runScheduleApply(env, ["0 */2 * * *"], "TEST", { applySchedules: false })).resolves.toBe("skipped");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -44,7 +44,7 @@ describe("runScheduleApply", () => {
     await expect(runScheduleApply(env, ["0 */2 * * *"], "TEST", {
       applySchedules: "best-effort",
       scheduleWarnings: warnings
-    })).resolves.toBe(false);
+    })).resolves.toBe("failed");
     expect(warnings).toEqual(["TEST: Cloudflare schedules HTTP 500: failed"]);
   });
 

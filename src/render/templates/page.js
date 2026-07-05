@@ -71,8 +71,10 @@ export function renderPageShell(title, bodyContent, navMode = "home", time = nul
     script = renderClientJS(),
     containerClass = "container",
     preBody = "",
-    showModal = true
+    showModal = true,
+    showPageActions = true
   } = options;
   const modalHtml = showModal ? '<div id="matchModal" class="modal"><div class="modal-content"><h3 id="modalTitle">Match History</h3><div id="modalList" class="match-list"></div></div></div>' : "";
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>${renderFontLinks()}<style>${css}</style><link rel="icon" href="/favicon.ico"></head><body class="page-${navMode}">${preBody}${renderNavBar(navMode)}<div class="${containerClass}">${bodyContent}</div>${renderFloatingPageActions(navMode)}${renderBuildFooter(time, sha, hasActiveCron)}${modalHtml}${script}</body></html>`;
+  const pageActionsHtml = showPageActions ? renderFloatingPageActions(navMode) : "";
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>${renderFontLinks()}<style>${css}</style><link rel="icon" href="/favicon.ico"></head><body class="page-${navMode}">${preBody}${renderNavBar(navMode)}<div class="${containerClass}">${bodyContent}</div>${pageActionsHtml}${renderBuildFooter(time, sha, hasActiveCron)}${modalHtml}${script}</body></html>`;
 }
