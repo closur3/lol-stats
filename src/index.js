@@ -34,9 +34,6 @@ export default {
       case "/rebuild-archive-index":
         return APIRouter.handleRebuildArchiveIndex(request, env);
 
-      case "/import-archive-index":
-        return APIRouter.handleImportArchiveIndex(request, env);
-
       case "/delete-active":
         return APIRouter.handleDeleteActive(request, env);
       

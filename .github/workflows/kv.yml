@@ -2,6 +2,22 @@ name: "Config: Persist KV"
 
 on:
   workflow_dispatch:
+    inputs:
+      persist_config_tour:
+        description: "Persist CONFIG_TOUR from config/tour.json"
+        required: true
+        type: boolean
+        default: true
+      persist_config_teams:
+        description: "Persist CONFIG_TEAMS from config/teams.json"
+        required: true
+        type: boolean
+        default: true
+      persist_config_archive:
+        description: "Persist CONFIG_ARCHIVE from config/archive.json"
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   persist:
@@ -10,10 +26,13 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v7
 
-      - name: Persist CONFIG_TOUR and CONFIG_TEAMS
+      - name: Persist KV configs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PERSIST_CONFIG_TOUR: ${{ inputs.persist_config_tour }}
+          PERSIST_CONFIG_TEAMS: ${{ inputs.persist_config_teams }}
+          PERSIST_CONFIG_ARCHIVE: ${{ inputs.persist_config_archive }}
         run: |
           set -euo pipefail
 
@@ -25,16 +44,26 @@ jobs:
           CLOUDFLARE_KV_NAMESPACE_ID="$(awk '/binding = "lol-stats-kv"/ { getline; gsub(/"/, "", $3); print $3 }' wrangler.toml)"
           [[ -n "${CLOUDFLARE_KV_NAMESPACE_ID}" ]] || { echo "Missing lol-stats-kv namespace id in wrangler.toml."; exit 1; }
 
-          curl -fsSL -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/CONFIG_TOUR" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data-binary @config/tour.json > /dev/null
+          put_config() {
+            local key="$1"
+            local file="$2"
+            [[ -s "${file}" ]] || { echo "Missing config file: ${file}"; exit 1; }
+            curl -fsSL -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${key}" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data-binary @"${file}" > /dev/null
+            echo "${key} updated in Cloudflare KV."
+          }
 
-          curl -fsSL -X PUT \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/CONFIG_TEAMS" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data-binary @config/teams.json > /dev/null
+          if [[ "${PERSIST_CONFIG_TOUR}" == "true" ]]; then
+            put_config "CONFIG_TOUR" "config/tour.json"
+          fi
 
-          echo "CONFIG_TOUR and CONFIG_TEAMS updated in Cloudflare KV."
+          if [[ "${PERSIST_CONFIG_TEAMS}" == "true" ]]; then
+            put_config "CONFIG_TEAMS" "config/teams.json"
+          fi
+
+          if [[ "${PERSIST_CONFIG_ARCHIVE}" == "true" ]]; then
+            put_config "CONFIG_ARCHIVE" "config/archive.json"
+          fi

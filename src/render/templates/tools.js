@@ -38,25 +38,10 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
                       ${archiveListHtml}
                   </div>
                   <div class="ops-actions">
+                      <button class="secondary-btn" onclick="previewConfigAction('archive-rebuild', this)">Rebuild Index</button>
                       <button class="primary-btn" onclick="rebuildSelected()">Rebuild</button>
                   </div>
 
-              </div>
-          </div>
-
-          <div class="wrapper">
-              <div class="table-title">🛠️ Config Index</div>
-              <div class="section-body archive-index-body">
-                  <div class="archive-index-actions">
-                      <button class="index-action-btn index-action-rebuild" onclick="previewConfigAction('archive-rebuild', this)">
-                          <span class="index-action-main">Rebuild archive index</span>
-                          <span class="index-action-meta">ARCHIVE_* → CONFIG_ARCHIVE</span>
-                      </button>
-                      <button class="index-action-btn index-action-import" onclick="previewConfigAction('archive-import', this)">
-                          <span class="index-action-main">Import archive index</span>
-                          <span class="index-action-meta">config/archive.json → CONFIG_ARCHIVE</span>
-                      </button>
-                  </div>
               </div>
           </div>
 

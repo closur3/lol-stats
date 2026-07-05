@@ -64,8 +64,3 @@ export async function rebuildArchiveIndexFromSnapshots(env, options = {}) {
   }
   return writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true });
 }
-
-export async function importArchiveIndexFromGitHubBackup(env, githubClient) {
-  const archivedTournaments = await githubClient.fetchJson("config/archive.json");
-  return writeArchiveIndex(env, archivedTournaments);
-}

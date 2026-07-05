@@ -2,7 +2,7 @@
 import { handleBackup } from "./api/backup.js";
 import { handleDeleteActive } from "./api/activeActions.js";
 import { handleDeleteArchive, handleManualArchive, handleRebuildArchive } from "./api/archiveActions.js";
-import { handleImportArchiveIndex, handleRebuildArchiveIndex } from "./api/archiveIndexActions.js";
+import { handleRebuildArchiveIndex } from "./api/archiveIndexActions.js";
 import { handleForceUpdate } from "./api/force.js";
 
 export class APIRouter {
@@ -10,7 +10,6 @@ export class APIRouter {
   static handleForceUpdate = handleForceUpdate;
   static handleRebuildArchive = handleRebuildArchive;
   static handleRebuildArchiveIndex = handleRebuildArchiveIndex;
-  static handleImportArchiveIndex = handleImportArchiveIndex;
   static handleDeleteActive = handleDeleteActive;
   static handleDeleteArchive = handleDeleteArchive;
   static handleManualArchive = handleManualArchive;

@@ -52,15 +52,6 @@ export const TOOLS_BOOTSTRAP = `
                       submitText: 'Rebuild',
                       doneText: 'Rebuilt archive index'
                   },
-                  'archive-import': {
-                      label: 'Import from GitHub backup',
-                      flow: 'config/archive.json → CONFIG_ARCHIVE',
-                      icon: '⇣',
-                      url: '/import-archive-index',
-                      busyText: 'Importing...',
-                      submitText: 'Import',
-                      doneText: 'Imported archive index'
-                  },
                   'active-runtime-delete': {
                       label: 'Delete active runtime state',
                       flow: 'Target: ' + (payload.name || payload.slug || 'Active tournament'),
