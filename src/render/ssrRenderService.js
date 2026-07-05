@@ -2,7 +2,7 @@ import { HTMLRenderer } from './htmlRenderer.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
 import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
-import { ensureScheduleMetaBySlug, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
+import { restoreMissingScheduleMetaBySlugFromRawMatches, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
@@ -23,7 +23,7 @@ export async function renderHomeFromFacts(env) {
   }
 
   const orderedTournaments = homeEntries.map(home => home.tournament);
-  const scheduleMetaBySlug = await ensureScheduleMetaBySlug(env, orderedTournaments);
+  const scheduleMetaBySlug = await restoreMissingScheduleMetaBySlugFromRawMatches(env, orderedTournaments);
   const renderInput = buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
   const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.tournamentMeta);
 

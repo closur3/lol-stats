@@ -38,20 +38,11 @@ export async function rebuildScheduleMetaFromRawMatches(env, slug) {
   return writeScheduleMeta(env, slug, computedMeta);
 }
 
-export async function ensureScheduleMeta(env, slug) {
+export async function restoreMissingScheduleMetaFromRawMatches(env, slug) {
   if (!slug) throw new Error("schedule meta slug missing");
   const meta = await env["lol-stats-kv"].get(kvKeys.scheduleMeta(slug), { type: "json" });
   if (meta == null) return rebuildScheduleMetaFromRawMatches(env, slug);
   return normalizeScheduleMeta(slug, meta);
-}
-
-export async function ensureScheduleMetas(env, tournaments) {
-  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  return Promise.all(tournaments.map(async (tournament) => {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    return ensureScheduleMeta(env, slug);
-  }));
 }
 
 export async function writeScheduleMeta(env, slug, meta) {

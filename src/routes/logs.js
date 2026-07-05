@@ -3,7 +3,7 @@ import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { HTMLRenderer } from '../render/htmlRenderer.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
-import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
+import { restoreMissingScheduleMetaFromRawMatches } from '../core/facts/scheduleMetaStore.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
 async function readLogsBySlug(kv, slugs) {
@@ -27,7 +27,7 @@ async function readLogMetaBySlug(env, slugs) {
   const metaPairs = await Promise.all(slugs.map(async slug => {
     const [rawMatches, meta] = await Promise.all([
       readRawMatches(env, slug),
-      ensureScheduleMeta(env, slug)
+      restoreMissingScheduleMetaFromRawMatches(env, slug)
     ]);
     return [slug, {
       totalMatchCount: rawMatches.length,

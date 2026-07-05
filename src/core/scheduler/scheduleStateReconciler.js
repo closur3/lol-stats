@@ -1,5 +1,5 @@
 import { timePolicy } from "../../utils/timePolicy.js";
-import { ensureScheduleMetas } from "../facts/scheduleMetaStore.js";
+import { restoreMissingScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
 import {
   alignStateLeaguesWithTournaments,
   areSchedulesApplied,
@@ -15,6 +15,16 @@ import {
   requireScheduleMeta
 } from "./schedulePlanBuilder.js";
 
+async function restoreMissingScheduleMetasForTournaments(env, tournaments) {
+  return Promise.all(
+    tournaments.map(async (tournament) => {
+      const slug = tournament?.slug;
+      if (!slug) throw new Error("Tournament slug missing");
+      return restoreMissingScheduleMetaFromRawMatches(env, slug);
+    })
+  );
+}
+
 export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now(), options = {}) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(nowMs);
@@ -22,7 +32,7 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
   const state = await readScheduleControl(env);
   if (!state || state.date !== today) return;
 
-  const metas = await ensureScheduleMetas(env, tournaments);
+  const metas = await restoreMissingScheduleMetasForTournaments(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
   const aligned = alignStateLeaguesWithTournaments(state, tournaments);
   const changed = [];

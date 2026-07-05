@@ -1,5 +1,5 @@
 import { timePolicy } from "../../utils/timePolicy.js";
-import { ensureScheduleMetas, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
+import { restoreMissingScheduleMetaFromRawMatches, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
 import {
   alignStateLeaguesWithTournaments,
   areSchedulesApplied,
@@ -26,6 +26,16 @@ async function rebuildScheduleMetasForTournaments(env, tournaments) {
   );
 }
 
+async function restoreMissingScheduleMetasForTournaments(env, tournaments) {
+  return Promise.all(
+    tournaments.map(async (tournament) => {
+      const slug = tournament?.slug;
+      if (!slug) throw new Error("Tournament slug missing");
+      return restoreMissingScheduleMetaFromRawMatches(env, slug);
+    })
+  );
+}
+
 async function planNewScheduleDay(env, tournaments, now, lastDay, options) {
   const rebuiltMetas = await rebuildScheduleMetasForTournaments(env, tournaments);
   const metasBySlug = new Map(rebuiltMetas.map(meta => [meta.slug, meta]));
@@ -41,7 +51,7 @@ async function planNewScheduleDay(env, tournaments, now, lastDay, options) {
 
 async function reconcileCurrentScheduleDay(env, tournaments, state, now, options) {
   const alignmentChanged = alignStateLeaguesWithTournaments(state, tournaments);
-  const metas = await ensureScheduleMetas(env, tournaments);
+  const metas = await restoreMissingScheduleMetasForTournaments(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
   const reconciled = [];
 
