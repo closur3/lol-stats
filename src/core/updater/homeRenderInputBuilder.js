@@ -40,23 +40,23 @@ function appendHomeSchedule(scheduleMap, tournamentIndexMap, home) {
   }
 }
 
-export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug) {
+export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaMap) {
   if (!Array.isArray(homeEntries)) throw new Error("homeEntries must be an array");
   if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
-  if (!(scheduleMetaBySlug instanceof Map)) throw new Error("scheduleMetaBySlug must be a Map");
+  if (!(scheduleMetaMap instanceof Map)) throw new Error("scheduleMetaMap must be a Map");
   const tournamentIndexMap = new Map(orderedTournaments.map((tournament, index) => [tournament.slug, index]));
   const globalStats = {};
   const timeGrid = {};
   const scheduleMap = {};
-  const tournamentMeta = {};
+  const scheduleMetaBySlug = {};
 
   for (const home of homeEntries) {
     const slug = home.tournament.slug;
     globalStats[slug] = home.stats;
     timeGrid[slug] = home.timeGrid;
-    const meta = scheduleMetaBySlug.get(slug);
+    const meta = scheduleMetaMap.get(slug);
     if (!meta) throw new Error(`ScheduleMeta missing after load: ${slug}`);
-    tournamentMeta[slug] = meta;
+    scheduleMetaBySlug[slug] = meta;
 
     appendHomeSchedule(scheduleMap, tournamentIndexMap, home);
   }
@@ -70,12 +70,12 @@ export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMe
     });
   }
 
-  return { tournaments: orderedTournaments, globalStats, timeGrid, scheduleMap, tournamentMeta };
+  return { tournaments: orderedTournaments, globalStats, timeGrid, scheduleMap, scheduleMetaBySlug };
 }
 
-export function pruneHomeSchedule(scheduleMap, tournamentMeta) {
+export function pruneHomeSchedule(scheduleMap, scheduleMetaBySlug) {
   const historyUnfinished = {};
-  for (const [slug, meta] of Object.entries(tournamentMeta)) {
+  for (const [slug, meta] of Object.entries(scheduleMetaBySlug)) {
     if (meta.hasHistoryUnfinished) historyUnfinished[slug] = true;
   }
 

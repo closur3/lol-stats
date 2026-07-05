@@ -1,6 +1,6 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
-import { computeTournamentMetaFromRawMatches } from "../analysis/tournamentMeta.js";
+import { computeScheduleMetaFromRawMatches } from "../analysis/scheduleMeta.js";
 import { readRawMatches } from "./rawMatchesStore.js";
 
 function readNonNegativeInteger(value, label) {
@@ -34,7 +34,7 @@ export function normalizeScheduleMeta(slug, meta) {
 export async function rebuildScheduleMetaFromRawMatches(env, slug) {
   if (!slug) throw new Error("schedule meta slug missing");
   const rawMatches = await readRawMatches(env, slug);
-  const computedMeta = computeTournamentMetaFromRawMatches(rawMatches);
+  const computedMeta = computeScheduleMetaFromRawMatches(rawMatches);
   return writeScheduleMeta(env, slug, computedMeta);
 }
 

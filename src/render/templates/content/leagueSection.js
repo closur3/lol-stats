@@ -30,11 +30,11 @@ function buildLeagueSummary(stats) {
   return { html, hasNoData };
 }
 
-function readTournamentMeta(tournamentMeta, slug, isArchive) {
+function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {
   if (isArchive) return null;
-  const meta = tournamentMeta[slug];
+  const meta = scheduleMetaBySlug[slug];
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
-    throw new Error(`tournamentMeta missing: ${slug}`);
+    throw new Error(`scheduleMetaBySlug missing: ${slug}`);
   }
   return meta;
 }
@@ -46,8 +46,8 @@ function buildLeagueTable(tournament, stats, sortMeta) {
   return tableBody;
 }
 
-export function renderLeagueSection(tournament, globalStats, timeData, tournamentMeta, isArchive) {
-  const meta = readTournamentMeta(tournamentMeta, tournament.slug, isArchive);
+export function renderLeagueSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive) {
+  const meta = readScheduleMeta(scheduleMetaBySlug, tournament.slug, isArchive);
   const rawStats = globalStats[tournament.slug];
   if (!rawStats || typeof rawStats !== "object" || Array.isArray(rawStats)) {
     throw new Error(`globalStats missing: ${tournament.slug}`);

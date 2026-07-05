@@ -25,7 +25,7 @@ export async function renderHomeFromFacts(env) {
   const orderedTournaments = homeEntries.map(home => home.tournament);
   const scheduleMetaBySlug = await restoreMissingScheduleMetaBySlugFromRawMatches(env, orderedTournaments);
   const renderInput = buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
-  const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.tournamentMeta);
+  const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.scheduleMetaBySlug);
 
   const homeFragment = HTMLRenderer.renderContentOnly(
     renderInput.globalStats,
@@ -33,7 +33,7 @@ export async function renderHomeFromFacts(env) {
     limitedScheduleMap,
     renderInput.tournaments,
     false,
-    renderInput.tournamentMeta
+    renderInput.scheduleMetaBySlug
   );
 
   const activeCron = await hasActiveCron(env);

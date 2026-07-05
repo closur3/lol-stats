@@ -11,10 +11,10 @@ export async function writeActiveTournamentFacts(env, tournaments, rawMatchesByS
     if (!writeScopeSlugs.has(slug)) return;
     const rawMatches = rawMatchesBySlug[slug];
     if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in write scope: ${slug}`);
-    if (!analysis.tournamentMeta || typeof analysis.tournamentMeta !== "object" || Array.isArray(analysis.tournamentMeta)) {
-      throw new Error("analysis.tournamentMeta must be a JSON object");
+    if (!analysis.scheduleMetaBySlug || typeof analysis.scheduleMetaBySlug !== "object" || Array.isArray(analysis.scheduleMetaBySlug)) {
+      throw new Error("analysis.scheduleMetaBySlug must be a JSON object");
     }
-    const meta = analysis.tournamentMeta[slug];
+    const meta = analysis.scheduleMetaBySlug[slug];
     if (!meta) throw new Error(`ScheduleMeta missing in analysis: ${slug}`);
     await writeRawMatches(env, slug, rawMatches);
     await writeScheduleMeta(env, slug, meta);

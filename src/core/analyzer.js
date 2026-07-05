@@ -1,6 +1,6 @@
 import { TIME_GRID_COLUMN_COUNT, DEFAULT_MAX_SCHEDULE_DAYS } from '../constants/index.js';
 import { timePolicy } from '../utils/timePolicy.js';
-import { computeTournamentMetaFromRawMatches } from './analysis/tournamentMeta.js';
+import { computeScheduleMetaFromRawMatches } from './analysis/scheduleMeta.js';
 import { calculateFullRateStats, generateFullRateString } from './analysis/fullRateStats.js';
 import { buildResolveName } from './analysis/teamResolver.js';
 import { parseAllMatches } from './analysis/matchParser.js';
@@ -11,7 +11,7 @@ import { buildScheduleMap } from './analysis/futureMatchBuilder.js';
  * 统计分析核心模块
  */
 export class Analyzer {
-  static computeTournamentMetaFromRawMatches = computeTournamentMetaFromRawMatches;
+  static computeScheduleMetaFromRawMatches = computeScheduleMetaFromRawMatches;
 
   /**
    * 运行完整分析
@@ -21,7 +21,7 @@ export class Analyzer {
       throw new Error("tournaments must be an array");
     }
     const globalStats = {};
-    const tournamentMeta = {};
+    const scheduleMetaBySlug = {};
 
     const timeGrid = { "ALL": {} };
     const createSlot = () => {
@@ -41,22 +41,22 @@ export class Analyzer {
       if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in analyzer input: ${tournament.slug}`);
 
       const resolveName = buildResolveName(tournament.teamMap);
-      const { stats, parsedMatches, tournamentMeta: meta } = parseAllMatches(rawMatches, resolveName, todayStr, tournament.slug, tournament.league, tournamentIndex, allFutureMatches);
+      const { stats, parsedMatches, scheduleMeta } = parseAllMatches(rawMatches, resolveName, todayStr, tournament.slug, tournament.league, tournamentIndex, allFutureMatches);
 
       globalStats[tournament.slug] = stats;
 
       buildTimeGridAndSchedule(tournament.slug, parsedMatches, timeGrid);
 
-      tournamentMeta[tournament.slug] = meta;
+      scheduleMetaBySlug[tournament.slug] = scheduleMeta;
     });
 
-    const scheduleMap = buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, tournamentMeta);
+    const scheduleMap = buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, scheduleMetaBySlug);
 
     return {
       globalStats,
       timeGrid,
       scheduleMap,
-      tournamentMeta
+      scheduleMetaBySlug
     };
   }
 

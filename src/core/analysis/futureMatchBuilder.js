@@ -1,7 +1,7 @@
 import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 
-export function buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, tournamentMeta) {
+export function buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, scheduleMetaBySlug) {
   let scheduleMap = {};
   const sortedFutureDates = Object.keys(allFutureMatches).sort();
   sortedFutureDates.forEach(date => {
@@ -14,7 +14,7 @@ export function buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays,
   });
 
   const historyUnfinished = {};
-  for (const [slug, meta] of Object.entries(tournamentMeta)) {
+  for (const [slug, meta] of Object.entries(scheduleMetaBySlug)) {
     if (meta.hasHistoryUnfinished) historyUnfinished[slug] = true;
   }
   const todayStr = timePolicy.getNow().dateString;

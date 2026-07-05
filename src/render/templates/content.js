@@ -13,17 +13,17 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentOnly(globalStats, timeData, scheduleMap, tournaments, isArchive = false, tournamentMeta) {
+export function renderContentOnly(globalStats, timeData, scheduleMap, tournaments, isArchive = false, scheduleMetaBySlug) {
   assertObject(globalStats, "globalStats");
   assertObject(timeData, "timeData");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
-  if (!isArchive) assertObject(tournamentMeta, "tournamentMeta");
+  if (!isArchive) assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
 
   const injectedData = `<script>window.g_stats = Object.assign(window.g_stats ?? {}, ${JSON.stringify(globalStats)});</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
-    .map(tournament => renderLeagueSection(tournament, globalStats, timeData, tournamentMeta, isArchive))
+    .map(tournament => renderLeagueSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, globalStats);
 
