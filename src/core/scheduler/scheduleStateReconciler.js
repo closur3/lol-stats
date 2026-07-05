@@ -1,11 +1,15 @@
 import { timePolicy } from "../../utils/timePolicy.js";
-import { fetchTournamentMetasFromScheduleMeta } from "./scheduleDiscovery.js";
+import { ensureScheduleMetas } from "../facts/scheduleMetaStore.js";
 import {
   alignStateLeaguesWithTournaments,
+  areSchedulesApplied,
   assertLeagueState,
-  readScheduleControl
+  readScheduleControl,
+  recordAppliedSchedules,
+  writeScheduleControl
 } from "./scheduleState.js";
-import { ensureSchedulesApplied, writeStateAndSchedules } from "./scheduleWriter.js";
+import { collectSchedulesFromState } from "./cronBuckets.js";
+import { runScheduleApply } from "./scheduleApplyRunner.js";
 import {
   buildNextLeagueState,
   requireScheduleMeta
@@ -18,7 +22,7 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
   const state = await readScheduleControl(env);
   if (!state || state.date !== today) return;
 
-  const metas = await fetchTournamentMetasFromScheduleMeta(env, tournaments);
+  const metas = await ensureScheduleMetas(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
   const aligned = alignStateLeaguesWithTournaments(state, tournaments);
   const changed = [];
@@ -37,10 +41,19 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
   }
 
   if (!aligned && changed.length === 0) {
-    await ensureSchedulesApplied(env, state, now, options);
+    const schedules = collectSchedulesFromState(state);
+    if (areSchedulesApplied(state, schedules)) return;
+    const applied = await runScheduleApply(env, schedules, "REAPPLY", options);
+    if (applied) recordAppliedSchedules(state, schedules);
+    await writeScheduleControl(env, state);
     return;
   }
-  await writeStateAndSchedules(env, state, now, "RECONCILE", options);
+  const schedules = collectSchedulesFromState(state);
+  if (!areSchedulesApplied(state, schedules)) {
+    const applied = await runScheduleApply(env, schedules, "RECONCILE", options);
+    if (applied) recordAppliedSchedules(state, schedules);
+  }
+  await writeScheduleControl(env, state);
   const details = changed.length > 0 ? changed.join(",") : "aligned-only";
   console.log(`[SCHED:STATE] date=${today} ${details}`);
 }

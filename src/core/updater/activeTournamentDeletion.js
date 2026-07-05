@@ -1,6 +1,12 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { readScheduleControl } from "../scheduler/scheduleState.js";
-import { ensureSchedulesApplied } from "../scheduler/scheduleWriter.js";
+import { collectSchedulesFromState } from "../scheduler/cronBuckets.js";
+import { runScheduleApply } from "../scheduler/scheduleApplyRunner.js";
+import {
+  areSchedulesApplied,
+  readScheduleControl,
+  recordAppliedSchedules,
+  writeScheduleControl
+} from "../scheduler/scheduleState.js";
 import { removeActiveTournament } from "./activeTournamentRegistry.js";
 
 function normalizeSlug(slug) {
@@ -21,25 +27,33 @@ async function deleteActiveRuntimeFacts(env, slug) {
   ]);
 }
 
-async function deleteActiveRuntimeScheduleState(env, slug, nowMs, scheduleOptions) {
+async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
   const state = await readScheduleControl(env);
-  if (!state) return false;
-  if (Object.prototype.hasOwnProperty.call(state.leagues, slug)) {
-    delete state.leagues[slug];
+  if (!state) return;
+  const controlChanged = Object.prototype.hasOwnProperty.call(state.leagues, slug);
+  if (controlChanged) delete state.leagues[slug];
+
+  const schedules = collectSchedulesFromState(state);
+  let appliedChanged = false;
+  if (!areSchedulesApplied(state, schedules)) {
+    const applied = await runScheduleApply(env, schedules, "DELETE_ACTIVE", scheduleOptions);
+    if (applied) {
+      recordAppliedSchedules(state, schedules);
+      appliedChanged = true;
+    }
   }
-  return ensureSchedulesApplied(env, state, new Date(nowMs), scheduleOptions);
+  if (controlChanged || appliedChanged) await writeScheduleControl(env, state);
 }
 
 export async function deleteActiveRuntimeState(env, slug, options = {}) {
   const cleanSlug = normalizeSlug(slug);
   await deleteActiveRuntimeFacts(env, cleanSlug);
   await removeActiveTournament(env, cleanSlug);
-  const scheduleChanged = await deleteActiveRuntimeScheduleState(
+  await deleteActiveRuntimeScheduleState(
     env,
     cleanSlug,
-    options.nowMs ?? Date.now(),
     options.scheduleOptions ?? {}
   );
 
-  return { deletedSlug: cleanSlug, scheduleChanged };
+  return { deletedSlug: cleanSlug };
 }

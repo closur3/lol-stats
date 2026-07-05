@@ -1,13 +1,16 @@
 import { timePolicy } from "../../utils/timePolicy.js";
-import { rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
+import { ensureScheduleMetas, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
 import { archiveRemovedActiveTournaments } from "../updater/activeTournamentArchiver.js";
 import {
   alignStateLeaguesWithTournaments,
+  areSchedulesApplied,
   assertLeagueState,
-  readScheduleControl
+  readScheduleControl,
+  recordAppliedSchedules,
+  writeScheduleControl
 } from "./scheduleState.js";
-import { ensureSchedulesApplied, writeStateAndSchedules } from "./scheduleWriter.js";
-import { fetchTournamentMetasFromScheduleMeta } from "./scheduleDiscovery.js";
+import { collectSchedulesFromState } from "./cronBuckets.js";
+import { runScheduleApply } from "./scheduleApplyRunner.js";
 import {
   buildDailyScheduleState,
   buildNextLeagueState,
@@ -29,12 +32,17 @@ async function planNewScheduleDay(env, tournaments, now, lastDay, options) {
   const metasBySlug = new Map(rebuiltMetas.map(meta => [meta.slug, meta]));
   const today = timePolicy.getBusinessDateKey(now);
   console.log(`[SCHED:DAY] ${lastDay || "none"} -> ${today}`);
-  await writeStateAndSchedules(env, buildDailyScheduleState(tournaments, metasBySlug, now), now, "PLAN", options);
+  const state = buildDailyScheduleState(tournaments, metasBySlug, now);
+  const schedules = collectSchedulesFromState(state);
+  const applied = await runScheduleApply(env, schedules, "PLAN", options);
+  if (applied) recordAppliedSchedules(state, schedules);
+  await writeScheduleControl(env, state);
+  console.log(`[SCHED:PLAN] date=${state.date} schedules=${schedules.join(",")} apply=${applied ? "applied" : "not-applied"}`);
 }
 
 async function reconcileCurrentScheduleDay(env, tournaments, state, now, options) {
   const alignmentChanged = alignStateLeaguesWithTournaments(state, tournaments);
-  const metas = await fetchTournamentMetasFromScheduleMeta(env, tournaments);
+  const metas = await ensureScheduleMetas(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
   const reconciled = [];
 
@@ -53,7 +61,11 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
 
   const hasChanges = alignmentChanged || reconciled.length > 0;
   if (!hasChanges) {
-    await ensureSchedulesApplied(env, state, now, options);
+    const schedules = collectSchedulesFromState(state);
+    if (areSchedulesApplied(state, schedules)) return;
+    const applied = await runScheduleApply(env, schedules, "REAPPLY", options);
+    if (applied) recordAppliedSchedules(state, schedules);
+    await writeScheduleControl(env, state);
     return;
   }
 
@@ -62,7 +74,12 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
     console.log(`[SCHED:STATE] date=${today} ${reconciled.join(",")}`);
   }
 
-  await writeStateAndSchedules(env, state, now, "RECONCILE", options);
+  const schedules = collectSchedulesFromState(state);
+  if (!areSchedulesApplied(state, schedules)) {
+    const applied = await runScheduleApply(env, schedules, "RECONCILE", options);
+    if (applied) recordAppliedSchedules(state, schedules);
+  }
+  await writeScheduleControl(env, state);
 }
 
 export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, options = {}) {

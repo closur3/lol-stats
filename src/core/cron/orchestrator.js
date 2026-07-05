@@ -1,6 +1,6 @@
 import { readActiveConfig } from "../updater/activeConfigReader.js";
 import { readTeamsConfig } from "../updater/teamsConfigReader.js";
-import { readActiveUpdateWorkingSet } from "../updater/activeUpdateWorkingSetReader.js";
+import { readPreviousRawMatchesMap } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
@@ -36,9 +36,9 @@ async function runRevisionPath(env, tournaments, teamsRaw, revisionResult, logge
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
-    const workingSet = await readActiveUpdateWorkingSet(env, changedTournaments);
+    const rawMatchesBySlug = await readPreviousRawMatchesMap(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runActiveUpdate(env, tournaments, teamsRaw, workingSet, false, changedSlugs, {
+    await runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySlug, false, changedSlugs, {
       forceWrite: false,
       revidChanges,
       pendingRevisionWrites

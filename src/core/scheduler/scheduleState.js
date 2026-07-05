@@ -22,6 +22,12 @@ export function recordAppliedSchedules(state, schedules) {
   return state;
 }
 
+export function areSchedulesApplied(state, schedules) {
+  if (state.schedules === undefined) return false;
+  if (!Array.isArray(state.schedules)) throw new Error("SCHEDULE_DAY.schedules must be an array");
+  return JSON.stringify(state.schedules) === JSON.stringify(schedules);
+}
+
 export function buildLeagueState(phase = "idle", window = null) {
   return {
     phase,

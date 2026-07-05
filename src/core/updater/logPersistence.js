@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { UPDATE_CONFIG } from "./types.js";
+import { UPDATE_CONFIG } from "./updateConfig.js";
 
 async function readExistingLogEntries(kv, logKey) {
   const logs = await kv.get(logKey, { type: "json" });

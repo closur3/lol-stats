@@ -1,5 +1,5 @@
 import { buildDisplayNameMap, getDisplayName } from './displayName.js';
-import { UPDATE_CONFIG } from './types.js';
+import { UPDATE_CONFIG } from './updateConfig.js';
 
 const getMatchKey = (match) => String(match.MatchId);
 
@@ -38,7 +38,7 @@ function calcChangedCount(oldData, newData) {
   return { added, updated, deleted, changed: added + updated };
 }
 
-export function applyRawMatchFetchResults(results, workingSet, force, forceSlugs, tournaments) {
+export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, forceSlugs, tournaments) {
   const brokenSlugs = new Set();
   const errorSlugs = new Set();
   const syncItems = [];
@@ -52,8 +52,8 @@ export function applyRawMatchFetchResults(results, workingSet, force, forceSlugs
     if (resultItem.status === 'fulfilled') {
       const slug = resultItem.slug;
       const newData = resultItem.data;
-      const oldData = workingSet.rawMatches[slug];
-      if (!Array.isArray(oldData)) throw new Error(`RAW_MATCHES missing in active update working set: ${slug}`);
+      const oldData = rawMatchesBySlug[slug];
+      if (!Array.isArray(oldData)) throw new Error(`RAW_MATCHES missing in active update scope: ${slug}`);
       const isForce = force;
 
       if (!isForce && oldData.length > 10 && newData.length < oldData.length * UPDATE_CONFIG.DROP_THRESHOLD) {
@@ -63,14 +63,14 @@ export function applyRawMatchFetchResults(results, workingSet, force, forceSlugs
         const changedCount = calcChangedCount(oldData, newData);
         if (changedCount.changed === 0 && changedCount.deleted > 0) {
           if (isForce) {
-            workingSet.rawMatches[slug] = newData;
+            rawMatchesBySlug[slug] = newData;
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           } else {
             console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${oldData.length}->${newData.length} (deleted=${changedCount.deleted}), preserving previous RAW_MATCHES`);
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           }
         } else {
-          workingSet.rawMatches[slug] = newData;
+          rawMatchesBySlug[slug] = newData;
           if (changedCount.changed > 0) {
             syncItems.push({
               slug,

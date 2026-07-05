@@ -1,7 +1,7 @@
 import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 import { ensureScheduleMetas } from '../facts/scheduleMetaStore.js';
-import { UPDATE_CONFIG } from './types.js';
+import { UPDATE_CONFIG } from './updateConfig.js';
 
 export async function ensureScheduleMetaBySlug(env, orderedTournaments) {
   const scheduleMetas = await ensureScheduleMetas(env, orderedTournaments);

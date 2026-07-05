@@ -3,7 +3,7 @@ import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js"
 import { Logger } from "../../infrastructure/logger.js";
 import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
 import { readTeamsConfig } from "../../core/updater/teamsConfigReader.js";
-import { readActiveUpdateWorkingSet } from "../../core/updater/activeUpdateWorkingSetReader.js";
+import { readPreviousRawMatchesMap } from "../../core/facts/rawMatchesStore.js";
 import { runActiveUpdate } from "../../core/updater/activeUpdateRunner.js";
 import { detectRevisionChanges } from "../../core/updater/revisionDetector.js";
 import { requireAdmin } from "./auth.js";
@@ -45,9 +45,9 @@ export async function handleForceUpdate(request, env) {
     const now = Date.now();
     const forcedTournaments = tournaments.filter(tournament => forceSlugs.has(tournament.slug));
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
-    const workingSet = await readActiveUpdateWorkingSet(env, forcedTournaments);
+    const rawMatchesBySlug = await readPreviousRawMatchesMap(env, forcedTournaments);
     const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, forcedTournaments);
-    await runActiveUpdate(env, tournaments, teamsRaw, workingSet, true, forceSlugs, {
+    await runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySlug, true, forceSlugs, {
       forceWrite: true,
       revidChanges,
       pendingRevisionWrites

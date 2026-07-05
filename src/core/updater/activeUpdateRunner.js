@@ -9,7 +9,7 @@ import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homePr
 import { writeActiveTournamentFacts } from './activeTournamentFactWriter.js';
 import { appendLeagueLogs } from './logPersistence.js';
 import { commitRevisionWrites } from './revWriter.js';
-import { UPDATE_CONFIG } from './types.js';
+import { UPDATE_CONFIG } from './updateConfig.js';
 
 function buildScopedTournaments(tournaments, scopeSlugs) {
   if (!Array.isArray(tournaments)) {
@@ -53,7 +53,7 @@ async function createFandomClient(env) {
   };
 }
 
-async function fetchRawMatchChanges(env, tournaments, workingSet, force, forceSlugs) {
+async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs) {
   const candidates = determineCandidates(tournaments, forceSlugs);
   if (candidates.length === 0) {
     console.log(`[FANDOM:SKIP] no-candidates`);
@@ -62,7 +62,7 @@ async function fetchRawMatchChanges(env, tournaments, workingSet, force, forceSl
 
   const { authContext, fandomClient } = await createFandomClient(env);
   const results = await fetchMatchesForCandidates(fandomClient, candidates);
-  const processed = applyRawMatchFetchResults(results, workingSet, force, forceSlugs, tournaments);
+  const processed = applyRawMatchFetchResults(results, rawMatchesBySlug, force, forceSlugs, tournaments);
   const { syncItems, skipItems, dropBreakers, fetchErrors } = processed;
   console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
   return { authContext, ...processed };
@@ -82,19 +82,19 @@ function buildActiveUpdateLogs(tournaments, processed, authContext, logger) {
   return buildLeagueLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap);
 }
 
-function buildActiveAnalysis(scopedTournaments, workingSet, writeScopeSlugs) {
-  const scopedRawMatches = buildScopedRawMatches(workingSet.rawMatches, writeScopeSlugs);
+function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
+  const scopedRawMatches = buildScopedRawMatches(rawMatchesBySlug, writeScopeSlugs);
   return Analyzer.runFullAnalysis(scopedRawMatches, scopedTournaments, UPDATE_CONFIG.MAX_SCHEDULE_DAYS);
 }
 
-async function writeActiveProjections(env, scopedTournaments, workingSet, analysis, writeScopeSlugs) {
+async function writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs) {
   if (writeScopeSlugs.size === 0) return;
-  await writeHomeProjections(env, scopedTournaments, workingSet, analysis, writeScopeSlugs);
+  await writeHomeProjections(env, scopedTournaments, analysis, writeScopeSlugs);
 }
 
-export async function runActiveUpdate(env, tournaments, teamsRaw, workingSet, force = false, forceSlugs = null, options = {}, logger) {
+export async function runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySlug, force = false, forceSlugs = null, options = {}, logger) {
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
-  const processed = await fetchRawMatchChanges(env, tournaments, workingSet, force, forceSlugs);
+  const processed = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
   if (!processed) return;
 
   const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = processed;
@@ -105,13 +105,13 @@ export async function runActiveUpdate(env, tournaments, teamsRaw, workingSet, fo
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
   let analysis = null;
   if (writeScopeSlugs.size > 0) {
-    await assignTournamentTeamMaps(scopedTournaments, workingSet, teamsRaw);
-    analysis = buildActiveAnalysis(scopedTournaments, workingSet, writeScopeSlugs);
-    await writeActiveTournamentFacts(env, scopedTournaments, workingSet, analysis, writeScopeSlugs);
+    await assignTournamentTeamMaps(scopedTournaments, rawMatchesBySlug, teamsRaw);
+    analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
+    await writeActiveTournamentFacts(env, scopedTournaments, rawMatchesBySlug, analysis, writeScopeSlugs);
   }
   const failedSlugs = new Set([...brokenSlugs, ...errorSlugs]);
   await Promise.all([
-    writeActiveProjections(env, scopedTournaments, workingSet, analysis, writeScopeSlugs),
+    writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs),
     appendLeagueLogs(env, leagueLogEntries),
     commitRevisionWrites(env, pendingRevisionWrites, failedSlugs)
   ]);

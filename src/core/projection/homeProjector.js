@@ -62,7 +62,7 @@ function buildTournamentScheduleSnapshot(slug, scheduleBySlug) {
   return schedule;
 }
 
-export function buildHomeSnapshot(tournament, workingSet, analysis, scheduleBySlug) {
+export function buildHomeSnapshot(tournament, analysis, scheduleBySlug) {
   const slug = tournament.slug;
   const { teamMap, ...tournamentStored } = tournament;
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) throw new Error("analysis must be a JSON object");
@@ -85,15 +85,14 @@ export function buildHomeSnapshot(tournament, workingSet, analysis, scheduleBySl
   };
 }
 
-export async function writeHomeProjections(env, tournaments, workingSet, analysis, writeScopeSlugs) {
+export async function writeHomeProjections(env, tournaments, analysis, writeScopeSlugs) {
   const scheduleBySlug = buildScheduleBySlug(tournaments, analysis.scheduleMap);
 
   await Promise.all(tournaments.map(async (tournament) => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
     if (!writeScopeSlugs.has(slug)) return;
-    const homeSnapshot = buildHomeSnapshot(tournament, workingSet, analysis, scheduleBySlug);
+    const homeSnapshot = buildHomeSnapshot(tournament, analysis, scheduleBySlug);
     await env["lol-stats-kv"].put(kvKeys.home(slug), JSON.stringify(homeSnapshot));
-    workingSet.homes[slug] = homeSnapshot;
   }));
 }

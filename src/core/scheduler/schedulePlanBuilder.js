@@ -1,11 +1,11 @@
 import { timePolicy } from "../../utils/timePolicy.js";
+import { assertScheduleMetaFields } from "../facts/scheduleMetaStore.js";
 import {
   buildLeagueState,
   buildIdleState,
   derivePhase,
   hasPlayWindow
 } from "./scheduleState.js";
-import { buildWindowFromMeta } from "./scheduleDiscovery.js";
 
 export function requireScheduleMeta(metasBySlug, slug) {
   const meta = metasBySlug.get(slug);
@@ -15,6 +15,15 @@ export function requireScheduleMeta(metasBySlug, slug) {
 
 export function hasUnfinishedMatches(meta) {
   return meta.hasHistoryUnfinished || meta.todayUnfinished > 0;
+}
+
+function buildWindowFromMeta(meta) {
+  const fields = assertScheduleMetaFields("SCHEDULE_META", meta);
+  if (!fields.hasHistoryUnfinished && !fields.todayEarliestTimestamp) return null;
+  return {
+    startHour: fields.hasHistoryUnfinished ? 0 : timePolicy.getBusinessHour(fields.todayEarliestTimestamp),
+    endHour: 23
+  };
 }
 
 export function requirePlayWindow(slug, meta) {

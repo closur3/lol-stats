@@ -1,7 +1,7 @@
 import { writeRawMatches } from "../facts/rawMatchesStore.js";
 import { writeScheduleMeta } from "../facts/scheduleMetaStore.js";
 
-export async function writeActiveTournamentFacts(env, tournaments, workingSet, analysis, writeScopeSlugs) {
+export async function writeActiveTournamentFacts(env, tournaments, rawMatchesBySlug, analysis, writeScopeSlugs) {
   if (!Array.isArray(tournaments)) {
     throw new Error("tournaments must be an array");
   }
@@ -9,7 +9,7 @@ export async function writeActiveTournamentFacts(env, tournaments, workingSet, a
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
     if (!writeScopeSlugs.has(slug)) return;
-    const rawMatches = workingSet.rawMatches[slug];
+    const rawMatches = rawMatchesBySlug[slug];
     if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES missing in write scope: ${slug}`);
     if (!analysis.tournamentMeta || typeof analysis.tournamentMeta !== "object" || Array.isArray(analysis.tournamentMeta)) {
       throw new Error("analysis.tournamentMeta must be a JSON object");

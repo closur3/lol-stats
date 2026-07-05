@@ -1,6 +1,6 @@
 const WORKER_NAME = "lol-stats";
 
-export async function updateSchedules(env, schedules) {
+export async function applyCloudflareSchedules(env, schedules) {
   const token = env.CLOUDFLARE_API_TOKEN;
   const accountId = env.CLOUDFLARE_ACCOUNT_ID;
   if (!token || !accountId) {

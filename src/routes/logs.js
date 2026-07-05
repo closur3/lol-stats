@@ -1,4 +1,4 @@
-import { UPDATE_CONFIG } from '../core/updater/types.js';
+import { UPDATE_CONFIG } from '../core/updater/updateConfig.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { HTMLRenderer } from '../render/htmlRenderer.js';
