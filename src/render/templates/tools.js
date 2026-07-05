@@ -48,10 +48,6 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
               <div class="table-title">🛠️ Config Index</div>
               <div class="section-body archive-index-body">
                   <div class="archive-index-actions">
-                      <button class="index-action-btn index-action-import" onclick="previewConfigAction('tour-import', this)">
-                          <span class="index-action-main">Import active config</span>
-                          <span class="index-action-meta">config/tour.json → CONFIG_TOUR</span>
-                      </button>
                       <button class="index-action-btn index-action-rebuild" onclick="previewConfigAction('archive-rebuild', this)">
                           <span class="index-action-main">Rebuild archive index</span>
                           <span class="index-action-meta">ARCHIVE_* → CONFIG_ARCHIVE</span>

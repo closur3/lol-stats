@@ -37,9 +37,6 @@ export default {
       case "/import-archive-index":
         return APIRouter.handleImportArchiveIndex(request, env);
 
-      case "/import-tour-config":
-        return APIRouter.handleImportTourConfig(request, env);
-
       case "/delete-active":
         return APIRouter.handleDeleteActive(request, env);
       

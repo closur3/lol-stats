@@ -61,15 +61,6 @@ export const TOOLS_BOOTSTRAP = `
                       submitText: 'Import',
                       doneText: 'Imported archive index'
                   },
-                  'tour-import': {
-                      label: 'Import from GitHub config',
-                      flow: 'config/tour.json → CONFIG_TOUR',
-                      icon: '⇣',
-                      url: '/import-tour-config',
-                      busyText: 'Importing...',
-                      submitText: 'Import',
-                      doneText: 'Imported active config'
-                  },
                   'active-runtime-delete': {
                       label: 'Delete active runtime state',
                       flow: 'Target: ' + (payload.name || payload.slug || 'Active tournament'),

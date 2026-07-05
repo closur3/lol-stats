@@ -1,4 +1,3 @@
-import { GitHubClient } from "../../api/githubClient.js";
 import { loadTourConfig } from "../updater/tourConfigLoader.js";
 import { loadTeamsConfig } from "../updater/teamsConfigLoader.js";
 import { loadPreviousCachedData } from "../updater/cache.js";
@@ -30,13 +29,13 @@ async function detectRevisionChangesForTarget(env, tournaments, target) {
   return { changedSlugs, revidChanges, pendingRevisionWrites };
 }
 
-async function runRevisionPath(env, githubClient, tournaments, teamsRaw, revisionResult, logger) {
+async function runRevisionPath(env, tournaments, teamsRaw, revisionResult, logger) {
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
     const cache = await loadPreviousCachedData(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runFandomUpdate(env, githubClient, tournaments, teamsRaw, cache, false, changedSlugs, {
+    await runFandomUpdate(env, tournaments, teamsRaw, cache, false, changedSlugs, {
       forceWrite: false,
       revidChanges,
       pendingRevisionWrites
@@ -47,7 +46,6 @@ async function runRevisionPath(env, githubClient, tournaments, teamsRaw, revisio
 }
 
 export async function runCron(env, event) {
-  const githubClient = new GitHubClient(env);
   const logger = new Logger();
   const [tournaments, teamsRaw] = await Promise.all([
     loadTourConfig(env),
@@ -61,6 +59,6 @@ export async function runCron(env, event) {
   if (target.type === 'none') return;
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
-  await runRevisionPath(env, githubClient, tournaments, teamsRaw, revisionResult, logger);
+  await runRevisionPath(env, tournaments, teamsRaw, revisionResult, logger);
   await runScheduleMaintenance(env, tournaments, event.scheduledTime);
 }

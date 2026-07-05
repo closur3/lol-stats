@@ -72,7 +72,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .ops-body .icon-btn-del:hover { background: #fef2f2; border-color: #fca5a5; }
 
     .archive-index-body { padding: 18px 20px; }
-    .archive-index-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .archive-index-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .index-action-btn { min-height: 78px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 14px 16px; text-align: left; transition: 0.2s; }
     .index-action-btn:hover { background: #f8fafc; border-color: #94a3b8; box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
     .index-action-main { font-size: 13px; line-height: 1.3; font-weight: 700; color: #0f172a; }

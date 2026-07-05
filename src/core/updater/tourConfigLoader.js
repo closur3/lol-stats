@@ -29,14 +29,3 @@ export async function loadTourConfig(env) {
   if (cached == null) throw new Error("CONFIG_TOUR missing");
   return normalizeTourConfig(cached);
 }
-
-export async function writeTourConfig(env, tournaments) {
-  const normalized = normalizeTourConfig(tournaments);
-  await env["lol-stats-kv"].put(kvKeys.configTour(), JSON.stringify(normalized));
-  return normalized;
-}
-
-export async function importTourConfigFromGitHub(env, githubClient) {
-  const tournaments = await githubClient.fetchJson("config/tour.json");
-  return writeTourConfig(env, tournaments);
-}

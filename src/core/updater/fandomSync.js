@@ -96,7 +96,7 @@ async function rebuildProjections(env, scopedTournaments, cache, analysis, write
   await writeHomeProjections(env, scopedTournaments, cache, analysis, writeScopeSlugs);
 }
 
-export async function runFandomUpdate(env, githubClient, tournaments, teamsRaw, cache, force = false, forceSlugs = null, options = {}, logger) {
+export async function runFandomUpdate(env, tournaments, teamsRaw, cache, force = false, forceSlugs = null, options = {}, logger) {
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
   const processed = await fetchAndProcessFandom(env, tournaments, cache, force, forceSlugs);
   if (!processed) return;

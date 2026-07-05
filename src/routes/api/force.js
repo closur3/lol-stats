@@ -1,5 +1,4 @@
 import { runScheduleMaintenance } from "../../core/scheduler/dynamicCronManager.js";
-import { GitHubClient } from "../../api/githubClient.js";
 import { Logger } from "../../infrastructure/logger.js";
 import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
 import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
@@ -30,7 +29,6 @@ export async function handleForceUpdate(request, env) {
       return new Response("Invalid JSON payload", { status: 400 });
     }
 
-    const githubClient = new GitHubClient(env);
     const logger = new Logger();
     let tournaments, teamsRaw;
     try {
@@ -48,7 +46,7 @@ export async function handleForceUpdate(request, env) {
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
     const cache = await loadPreviousCachedData(env, forcedTournaments);
     const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, forcedTournaments);
-    await runFandomUpdate(env, githubClient, tournaments, teamsRaw, cache, true, forceSlugs, {
+    await runFandomUpdate(env, tournaments, teamsRaw, cache, true, forceSlugs, {
       forceWrite: true,
       revidChanges,
       pendingRevisionWrites
