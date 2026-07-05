@@ -27,12 +27,6 @@ function assertHomeFields(slug, snapshot) {
   }
 }
 
-function assertArchiveFields(slug, snapshot) {
-  if (!Array.isArray(snapshot.rawMatches)) {
-    throw new Error(`Invalid archive rawMatches: ${slug}`);
-  }
-}
-
 async function readSnapshotsBySlug(kv, slugs, buildKey, ...assertFns) {
   const entries = await Promise.all(slugs.map(async slug => {
     const snapshot = await kv.get(buildKey(slug), { type: "json" });
@@ -55,7 +49,7 @@ export async function handleBackup(request, env) {
 
   const [home, archive] = await Promise.all([
     readSnapshotsBySlug(kv, tournaments.map(t => t.slug), kvKeys.home, assertSnapshot, assertHomeFields),
-    readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot, assertArchiveFields)
+    readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot)
   ]);
 
   return new Response(JSON.stringify({ home, archive }), {

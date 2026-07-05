@@ -59,10 +59,6 @@ export async function renderArchiveFromFacts(env) {
       snapshotErrors.push({ slug, reason: "Missing snapshot" });
       return null;
     }
-    if (!Array.isArray(snapshot.rawMatches)) {
-      snapshotErrors.push({ slug, reason: "Invalid raw matches" });
-      return null;
-    }
     if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) {
       snapshotErrors.push({ slug, reason: "Invalid stats" });
       return null;

@@ -10,7 +10,6 @@ export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
   if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) throw new Error(`Archive timeGrid missing: ${tournament.slug}`);
   return {
     tournament,
-    rawMatches,
     stats,
     timeGrid,
     teamMap

@@ -45,7 +45,9 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
     const result = await migrateArchiveSnapshotsFromActiveFacts({ "lol-stats-kv": kv }, []);
 
     expect(result).toEqual({ migrated: ["archive-tournament"] });
-    expect(kv.values.get("ArchiveSnapshot_archive-tournament").tournament).toEqual(archiveTournament);
+    const snapshot = kv.values.get("ArchiveSnapshot_archive-tournament");
+    expect(snapshot.tournament).toEqual(archiveTournament);
+    expect(snapshot).not.toHaveProperty("rawMatches");
     expect(kv.values.has("ActiveHome_archive-tournament")).toBe(false);
     expect(kv.values.has("ActiveLog_archive-tournament")).toBe(false);
     expect(kv.values.has("FandomRevision_archive-tournament")).toBe(false);
