@@ -30,8 +30,8 @@ function buildTournamentFromArchivePayload(payload) {
   return {
     slug: payload.slug,
     name: payload.name,
-    overview_page: payload.overviewPages,
     league: payload.league,
+    overview_page: payload.overviewPages,
     start_date: payload.startDate,
     end_date: payload.endDate
   };

@@ -1,7 +1,7 @@
 import { runScheduleMaintenance } from "../../core/scheduler/dynamicCronManager.js";
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { Logger } from "../../infrastructure/logger.js";
-import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
+import { loadActiveConfig } from "../../core/updater/activeConfigLoader.js";
 import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
 import { loadPreviousCachedData } from "../../core/updater/cache.js";
 import { runFandomUpdate } from "../../core/updater/fandomSync.js";
@@ -34,7 +34,7 @@ export async function handleForceUpdate(request, env) {
     let tournaments, teamsRaw;
     try {
       [tournaments, teamsRaw] = await Promise.all([
-        loadTourConfig(env),
+        loadActiveConfig(env),
         loadTeamsConfig(env)
       ]);
     } catch (error) {

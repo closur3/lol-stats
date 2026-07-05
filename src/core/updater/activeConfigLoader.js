@@ -1,8 +1,8 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
-function normalizeTournamentConfig(tournament) {
+function normalizeActiveTournamentConfig(tournament) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
-    throw new Error("CONFIG_TOUR tournament must be object");
+    throw new Error("CONFIG_ACTIVE tournament must be object");
   }
   const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
   const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
@@ -18,14 +18,20 @@ function normalizeTournamentConfig(tournament) {
   return { ...tournament, slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate };
 }
 
-function normalizeTourConfig(tournaments) {
-  if (!Array.isArray(tournaments)) throw new Error("CONFIG_TOUR must be array");
-  return tournaments.map(normalizeTournamentConfig);
+function normalizeActiveConfig(tournaments) {
+  if (!Array.isArray(tournaments)) throw new Error("CONFIG_ACTIVE must be array");
+  const normalized = tournaments.map(normalizeActiveTournamentConfig);
+  const slugs = new Set();
+  for (const tournament of normalized) {
+    if (slugs.has(tournament.slug)) throw new Error(`Duplicate CONFIG_ACTIVE slug: ${tournament.slug}`);
+    slugs.add(tournament.slug);
+  }
+  return normalized;
 }
 
-export async function loadTourConfig(env) {
+export async function loadActiveConfig(env) {
   const kv = env["lol-stats-kv"];
-  const cached = await kv.get(kvKeys.configTour(), { type: "json" });
-  if (cached == null) throw new Error("CONFIG_TOUR missing");
-  return normalizeTourConfig(cached);
+  const cached = await kv.get(kvKeys.configActive(), { type: "json" });
+  if (cached == null) throw new Error("CONFIG_ACTIVE missing");
+  return normalizeActiveConfig(cached);
 }

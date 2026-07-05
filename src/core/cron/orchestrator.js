@@ -1,4 +1,4 @@
-import { loadTourConfig } from "../updater/tourConfigLoader.js";
+import { loadActiveConfig } from "../updater/activeConfigLoader.js";
 import { loadTeamsConfig } from "../updater/teamsConfigLoader.js";
 import { loadPreviousCachedData } from "../updater/cache.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
@@ -50,7 +50,7 @@ export async function runCron(env, event) {
   const logger = new Logger();
   const scheduleOptions = resolveScheduleOptions(env);
   const [tournaments, teamsRaw] = await Promise.all([
-    loadTourConfig(env),
+    loadActiveConfig(env),
     loadTeamsConfig(env)
   ]);
   if (!Array.isArray(tournaments)) {

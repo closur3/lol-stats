@@ -1,4 +1,4 @@
-name: "Tour: Discover Tournaments"
+name: "Active: Discover Tournaments"
 
 on:
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
 
           now = datetime.now()
           today_dt = now.date()
-          TARGET_FILE = "config/tour.json"
+          TARGET_FILE = "config/active.json"
 
           # ==================== 配置区 ====================
           PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
@@ -480,7 +480,7 @@ jobs:
               log(f"📝 变更 | {f'新增: {len(added)}':<10} | {f'更新: {len(updated)}':<10} | {f'移除: {len(removed)}':<10}")
 
               if total_changes > 5:
-                  commit_msg = f"🎯 Tour: +{len(added)}, ~{len(updated)}, -{len(removed)}"
+                  commit_msg = f"🎯 Active: +{len(added)}, ~{len(updated)}, -{len(removed)}"
               elif total_changes > 0:
                   parts = []
                   if added:
@@ -489,9 +489,9 @@ jobs:
                       parts.append(f"~ {' / '.join(updated)}")
                   if removed:
                       parts.append(f"- {' / '.join(removed)}")
-                  commit_msg = f"🎯 Tour: {' | '.join(parts)}"
+                  commit_msg = f"🎯 Active: {' | '.join(parts)}"
               else:
-                  commit_msg = "🎯 Tour: no changes"
+                  commit_msg = "🎯 Active: no changes"
 
               if "GITHUB_OUTPUT" in os.environ:
                   with open(os.environ["GITHUB_OUTPUT"], "a") as f:
@@ -505,7 +505,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
-          file_pattern: 'config/tour.json'
+          file_pattern: 'config/active.json'
 
       - name: Trigger KV Persist
         if: steps.auto_commit.outputs.changes_detected == 'true'

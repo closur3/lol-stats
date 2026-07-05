@@ -21,12 +21,21 @@ function normalizeArchiveTournament(tournament) {
 
 function normalizeArchiveList(list) {
   if (!Array.isArray(list)) throw new Error("CONFIG_ARCHIVE must be array");
-  const bySlug = new Map();
+  const normalized = [];
+  const slugs = new Set();
   for (const tournament of list) {
-    const normalized = normalizeArchiveTournament(tournament);
-    bySlug.set(normalized.slug, normalized);
+    const normalizedTournament = normalizeArchiveTournament(tournament);
+    if (slugs.has(normalizedTournament.slug)) {
+      throw new Error(`Duplicate CONFIG_ARCHIVE slug: ${normalizedTournament.slug}`);
+    }
+    slugs.add(normalizedTournament.slug);
+    normalized.push(normalizedTournament);
   }
-  return dateUtils.sortTournamentsByDate(Array.from(bySlug.values()));
+  return normalized;
+}
+
+function normalizeGeneratedArchiveList(list) {
+  return dateUtils.sortTournamentsByDate(normalizeArchiveList(list));
 }
 
 async function readArchiveSnapshotTournaments(env) {
@@ -49,7 +58,9 @@ export async function readArchiveIndex(env) {
 
 export async function writeArchiveIndex(env, archivedTournaments, options = {}) {
   const kv = env["lol-stats-kv"];
-  const normalized = normalizeArchiveList(archivedTournaments);
+  const normalized = options.generated === true
+    ? normalizeGeneratedArchiveList(archivedTournaments)
+    : normalizeArchiveList(archivedTournaments);
   if (normalized.length === 0 && options.allowEmpty !== true) {
     throw new Error("Refusing to write empty CONFIG_ARCHIVE");
   }
@@ -62,5 +73,5 @@ export async function rebuildArchiveIndexFromSnapshots(env, options = {}) {
   if (localTournaments.length === 0 && options.allowEmpty !== true) {
     throw new Error("Cannot rebuild CONFIG_ARCHIVE from empty ARCHIVE snapshots");
   }
-  return writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true });
+  return writeArchiveIndex(env, localTournaments, { allowEmpty: options.allowEmpty === true, generated: true });
 }

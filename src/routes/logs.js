@@ -1,8 +1,7 @@
 import { UPDATE_CONFIG } from '../core/updater/types.js';
-import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
+import { loadActiveConfig } from '../core/updater/activeConfigLoader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { HTMLRenderer } from '../render/htmlRenderer.js';
-import { dateUtils } from '../utils/dateUtils.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
 import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
@@ -53,10 +52,10 @@ function buildLeagueLogItem(name, slug, logs, homeMeta) {
   };
 }
 
-function buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug) {
+function buildLeagueLogs(tournaments, logsBySlug, homeBySlug) {
   const leagueLogs = [];
 
-  for (const tournament of sortedTournaments) {
+  for (const tournament of tournaments) {
     const slug = tournament?.slug;
     if (!slug || !logsBySlug.has(slug)) continue;
     const logs = logsBySlug.get(slug);
@@ -71,13 +70,12 @@ function buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug) {
 export class LogsRouter {
   static async handleLogs(_request, env) {
     const kv = env["lol-stats-kv"];
-    const tournaments = await loadTourConfig(env);
+    const tournaments = await loadActiveConfig(env);
     const slugs = tournaments.map(t => t.slug);
     const logsBySlug = await loadLogsBySlug(kv, slugs);
     const logSlugs = Array.from(logsBySlug.keys());
-    const sortedTournaments = dateUtils.sortTournamentsByDate(tournaments);
     const homeBySlug = await loadLogMetaBySlug(env, logSlugs);
-    const leagueLogs = buildLeagueLogs(sortedTournaments, logsBySlug, homeBySlug);
+    const leagueLogs = buildLeagueLogs(tournaments, logsBySlug, homeBySlug);
     const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
     const activeCron = state && Array.isArray(state.schedules) ? state.schedules.some(cron => cron !== IDLE_SWEEP_CRON) : false;
     const html = HTMLRenderer.renderLogPage(leagueLogs, env.GITHUB_TIME, env.GITHUB_SHA, activeCron, {

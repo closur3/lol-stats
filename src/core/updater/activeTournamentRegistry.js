@@ -23,8 +23,8 @@ function normalizeActiveTournament(tournament, label) {
   return {
     slug,
     name,
-    overview_page: normalizeOverviewPage(tournament.overview_page, label),
     league,
+    overview_page: normalizeOverviewPage(tournament.overview_page, label),
     start_date: startDate,
     end_date: endDate
   };
@@ -35,6 +35,9 @@ export function buildActiveTournamentMap(tournaments) {
   const active = {};
   for (const tournament of tournaments) {
     const normalized = normalizeActiveTournament(tournament, "ACTIVE_TOURNAMENTS.tournament");
+    if (Object.prototype.hasOwnProperty.call(active, normalized.slug)) {
+      throw new Error(`Duplicate ACTIVE_TOURNAMENTS source slug: ${normalized.slug}`);
+    }
     active[normalized.slug] = normalized;
   }
   return active;

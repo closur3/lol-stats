@@ -1,6 +1,5 @@
 import { HTMLRenderer } from './htmlRenderer.js';
-import { dateUtils } from '../utils/dateUtils.js';
-import { loadTourConfig } from '../core/updater/tourConfigLoader.js';
+import { loadActiveConfig } from '../core/updater/activeConfigLoader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
 import { readArchiveIndex } from '../core/updater/archiveIndex.js';
 import { loadScheduleMetaBySlug, buildStaticRenderInput, pruneStaticSchedule } from '../core/updater/staticRenderInput.js';
@@ -15,7 +14,7 @@ async function hasActiveCron(env) {
 }
 
 export async function renderHomeFromFacts(env) {
-  const tournaments = await loadTourConfig(env);
+  const tournaments = await loadActiveConfig(env);
   const homeEntries = await readHomeEntries(env, tournaments.map(t => t.slug));
 
   if (homeEntries.length === 0) {
@@ -23,9 +22,9 @@ export async function renderHomeFromFacts(env) {
     return HTMLRenderer.renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No active data available</div>`, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
-  const sortedTournaments = dateUtils.sortTournamentsByDate(homeEntries.map(home => home.tournament));
-  const scheduleMetaBySlug = await loadScheduleMetaBySlug(env, sortedTournaments);
-  const renderInput = buildStaticRenderInput(homeEntries, sortedTournaments, scheduleMetaBySlug);
+  const orderedTournaments = homeEntries.map(home => home.tournament);
+  const scheduleMetaBySlug = await loadScheduleMetaBySlug(env, orderedTournaments);
+  const renderInput = buildStaticRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
   const limitedScheduleMap = pruneStaticSchedule(renderInput.scheduleMap, renderInput.tournamentMeta);
 
   const homeFragment = HTMLRenderer.renderContentOnly(
@@ -52,7 +51,7 @@ export async function renderArchiveFromFacts(env) {
 
   const slugs = tournaments.map(t => t.slug);
   const rawSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
-  let validSnapshots = rawSnapshots.map((snapshot, index) => {
+  const validSnapshots = rawSnapshots.map((snapshot, index) => {
     const slug = slugs[index];
     const snapshotTournament = snapshot?.tournament;
     if (!snapshot || !snapshotTournament || !snapshotTournament.slug) {
@@ -72,13 +71,6 @@ export async function renderArchiveFromFacts(env) {
     }
     return snapshot;
   });
-
-  validSnapshots = dateUtils
-    .sortTournamentsByDate(validSnapshots.map(snapshot => {
-      const snapshotTournament = snapshot.tournament;
-      return { ...snapshotTournament, __snapshot: snapshot };
-    }))
-    .map(tournament => tournament.__snapshot);
 
   const combined = validSnapshots.map(snap => {
     const snapshotTournament = snap.tournament;
