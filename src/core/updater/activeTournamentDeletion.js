@@ -1,6 +1,7 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { readControl } from "../scheduler/scheduleState.js";
 import { ensureSchedulesApplied } from "../scheduler/scheduleWriter.js";
+import { removeActiveTournament } from "./activeTournamentRegistry.js";
 
 function normalizeSlug(slug) {
   if (typeof slug !== "string" || !slug.trim()) {
@@ -32,6 +33,7 @@ async function deleteActiveRuntimeScheduleState(env, slug, nowMs, scheduleOption
 export async function deleteActiveRuntimeState(env, slug, options = {}) {
   const cleanSlug = normalizeSlug(slug);
   await deleteActiveRuntimeFacts(env, cleanSlug);
+  await removeActiveTournament(env, cleanSlug);
   const scheduleChanged = await deleteActiveRuntimeScheduleState(
     env,
     cleanSlug,

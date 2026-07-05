@@ -16,7 +16,7 @@ import {
 import { ensureSchedulesApplied, writeStateAndSchedules } from "./scheduleWriter.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 import { rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
-import { cleanupStaleHomeKeys } from "../updater/cleanup.js";
+import { archiveRemovedActiveTournaments } from "../updater/activeTournamentArchiver.js";
 
 function requireMeta(metasBySlug, slug) {
   const meta = metasBySlug.get(slug);
@@ -130,6 +130,7 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(scheduledTimeMs);
   const today = timePolicy.getBusinessDateKey(now);
+  await archiveRemovedActiveTournaments(env, tournaments);
 
   const state = await readControl(env);
   const lastDay = state?.date || null;
@@ -142,7 +143,6 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
         return rebuildScheduleMetaFromRawMatches(env, slug);
       })
     );
-    await cleanupStaleHomeKeys(env, tournaments);
     console.log(`[SCHED:DAY] ${lastDay || "none"} -> ${today}`);
 
     const metasBySlug = new Map(rebuiltMetas.map(meta => [meta.slug, meta]));
