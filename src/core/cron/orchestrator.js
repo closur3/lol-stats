@@ -5,16 +5,17 @@ import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runFandomUpdate } from "../updater/fandomSync.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
 import { reconcileLeagueStates, resolveScheduledExecutionSlugs, runScheduleMaintenance } from "../scheduler/dynamicCronManager.js";
+import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { Logger } from "../../infrastructure/logger.js";
 
 function filterTournaments(tournaments, slugs) {
   return tournaments.filter(tournament => slugs.has(tournament.slug));
 }
 
-async function resolveCronTarget(env, event, tournaments) {
+async function resolveCronTarget(env, event, tournaments, scheduleOptions) {
   const target = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
   if (target.type === 'none') {
-    await reconcileLeagueStates(env, tournaments, event.scheduledTime);
+    await reconcileLeagueStates(env, tournaments, event.scheduledTime, scheduleOptions);
   }
   return target;
 }
@@ -47,6 +48,7 @@ async function runRevisionPath(env, tournaments, teamsRaw, revisionResult, logge
 
 export async function runCron(env, event) {
   const logger = new Logger();
+  const scheduleOptions = resolveScheduleOptions(env);
   const [tournaments, teamsRaw] = await Promise.all([
     loadTourConfig(env),
     loadTeamsConfig(env)
@@ -55,10 +57,10 @@ export async function runCron(env, event) {
     throw new Error("tournaments must be an array");
   }
 
-  const target = await resolveCronTarget(env, event, tournaments);
+  const target = await resolveCronTarget(env, event, tournaments, scheduleOptions);
   if (target.type === 'none') return;
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
   await runRevisionPath(env, tournaments, teamsRaw, revisionResult, logger);
-  await runScheduleMaintenance(env, tournaments, event.scheduledTime);
+  await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
 }

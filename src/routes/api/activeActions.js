@@ -1,4 +1,5 @@
 import { deleteActiveRuntimeState } from "../../core/updater/activeTournamentDeletion.js";
+import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { requireAdmin, requirePost } from "./auth.js";
 
 async function readJsonPayload(request) {
@@ -21,7 +22,7 @@ export async function handleDeleteActive(request, env) {
   try {
     const scheduleWarnings = [];
     const result = await deleteActiveRuntimeState(env, payload.slug, {
-      scheduleOptions: { applySchedules: "best-effort", scheduleWarnings }
+      scheduleOptions: resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings })
     });
     if (scheduleWarnings.length > 0) {
       return new Response(`Deleted active runtime state with schedule warnings: ${scheduleWarnings.join(" | ")}`, { status: 207 });

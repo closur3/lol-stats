@@ -1,4 +1,5 @@
 import { runScheduleMaintenance } from "../../core/scheduler/dynamicCronManager.js";
+import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { Logger } from "../../infrastructure/logger.js";
 import { loadTourConfig } from "../../core/updater/tourConfigLoader.js";
 import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
@@ -53,7 +54,7 @@ export async function handleForceUpdate(request, env) {
     }, logger);
 
     const scheduleWarnings = [];
-    const scheduleOptions = { applySchedules: "best-effort", scheduleWarnings };
+    const scheduleOptions = resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings });
     await runScheduleMaintenance(env, tournaments, now, scheduleOptions);
     if (scheduleWarnings.length > 0) {
       return new Response(`PARTIAL scheduleWarnings=${scheduleWarnings.join(" | ")}`, { status: 207 });
