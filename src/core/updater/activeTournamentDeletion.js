@@ -3,9 +3,9 @@ import { collectSchedulesFromState } from "../scheduler/cronBuckets.js";
 import { runScheduleApply } from "../scheduler/scheduleApplyRunner.js";
 import {
   areSchedulesApplied,
-  readScheduleControl,
+  readScheduleState,
   recordAppliedSchedules,
-  writeScheduleControl
+  writeScheduleState
 } from "../scheduler/scheduleState.js";
 
 function normalizeSlug(slug) {
@@ -27,10 +27,10 @@ async function deleteActiveRuntimeFacts(env, slug) {
 }
 
 async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
-  const state = await readScheduleControl(env);
+  const state = await readScheduleState(env);
   if (!state) return;
-  const controlChanged = Object.prototype.hasOwnProperty.call(state.leagues, slug);
-  if (controlChanged) delete state.leagues[slug];
+  const controlChanged = Object.prototype.hasOwnProperty.call(state.slugStates, slug);
+  if (controlChanged) delete state.slugStates[slug];
 
   const schedules = collectSchedulesFromState(state);
   let appliedChanged = false;
@@ -41,7 +41,7 @@ async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
       appliedChanged = true;
     }
   }
-  if (controlChanged || appliedChanged) await writeScheduleControl(env, state);
+  if (controlChanged || appliedChanged) await writeScheduleState(env, state);
 }
 
 export async function deleteActiveRuntimeState(env, slug, options = {}) {

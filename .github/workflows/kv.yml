@@ -37,6 +37,6 @@ jobs:
             echo "${key} updated in Cloudflare KV."
           }
 
-          put_config "CONFIG_ARCHIVE" "config/archive.json"
-          put_config "CONFIG_ACTIVE" "config/active.json"
-          put_config "CONFIG_TEAMS" "config/teams.json"
+          put_config "ConfigArchive" "config/ConfigArchive.json"
+          put_config "ConfigActive" "config/ConfigActive.json"
+          put_config "ConfigTeams" "config/ConfigTeams.json"

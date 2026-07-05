@@ -4,10 +4,10 @@ import { determineCandidates } from './candidates.js';
 import { fetchMatchesForCandidates } from './matchDataFetcher.js';
 import { assignTournamentTeamMaps } from './tournamentTeamMapAssigner.js';
 import { applyRawMatchFetchResults } from './rawMatchFetchResultApplier.js';
-import { generateLog, buildLeagueLogEntries } from './logWriter.js';
+import { generateLog, buildActiveLogEntries } from './logWriter.js';
 import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homeProjector.js';
 import { writeActiveTournamentFacts } from './activeTournamentFactWriter.js';
-import { appendLeagueLogs } from './logPersistence.js';
+import { appendActiveLogs } from './logPersistence.js';
 import { commitRevisionWrites } from './revWriter.js';
 import { UPDATE_CONFIG } from './updateConfig.js';
 
@@ -79,7 +79,7 @@ function attachRevisionChanges(items, revidChanges) {
 function buildActiveUpdateLogs(tournaments, processed, authContext, logger) {
   const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = processed;
   generateLog(syncItems, skipItems, dropBreakers, fetchErrors, authContext, logger);
-  return buildLeagueLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap);
+  return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap);
 }
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
@@ -99,7 +99,7 @@ export async function runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySl
 
   const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = processed;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
-  const leagueLogEntries = buildActiveUpdateLogs(tournaments, processed, authContext, logger);
+  const activeLogEntries = buildActiveUpdateLogs(tournaments, processed, authContext, logger);
 
   const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, skipItems, forceWrite, forceSlugs);
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
@@ -112,7 +112,7 @@ export async function runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySl
   const failedSlugs = new Set([...brokenSlugs, ...errorSlugs]);
   await Promise.all([
     writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs),
-    appendLeagueLogs(env, leagueLogEntries),
+    appendActiveLogs(env, activeLogEntries),
     commitRevisionWrites(env, pendingRevisionWrites, failedSlugs)
   ]);
 }

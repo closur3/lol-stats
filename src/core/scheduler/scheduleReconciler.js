@@ -1,14 +1,14 @@
-import { buildActiveBucketCronsFromState, shouldRunPlayLeagueAt } from "./cronBuckets.js";
+import { buildActiveBucketCronsFromState, shouldRunPlaySlugAt } from "./cronBuckets.js";
 import {
-  assertLeagueState,
-  readScheduleControl
+  assertSlugScheduleState,
+  readScheduleState
 } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
 export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, eventCron) {
   const now = new Date(scheduledTimeMs);
   const today = timePolicy.getBusinessDateKey(now);
-  const state = await readScheduleControl(env);
+  const state = await readScheduleState(env);
   if (!state || state.date !== today) {
     return { type: 'all' };
   }
@@ -19,9 +19,9 @@ export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, event
   }
 
   const slugs = new Set();
-  for (const [slug, leagueState] of Object.entries(state.leagues)) {
-    assertLeagueState(slug, leagueState);
-    if (shouldRunPlayLeagueAt(leagueState, now)) slugs.add(slug);
+  for (const [slug, slugState] of Object.entries(state.slugStates)) {
+    assertSlugScheduleState(slug, slugState);
+    if (shouldRunPlaySlugAt(slugState, now)) slugs.add(slug);
   }
 
   if (slugs.size === 0) return { type: 'none' };

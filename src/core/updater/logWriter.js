@@ -60,7 +60,7 @@ function pickLatestRevisionTrigger(revidChanges) {
   );
 }
 
-export function buildLeagueLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap) {
+export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap) {
   const loggedAt = timePolicy.getNow().fullDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
@@ -73,7 +73,7 @@ export function buildLeagueLogEntries(syncItems, skipItems, dropBreakers, fetchE
   };
 
   const pushEntry = (slug, entry) => {
-    if (!slug) throw new Error("LOG slug missing");
+    if (!slug) throw new Error("ActiveLog slug missing");
     bySlug[slug] = { loggedAt, ...entry };
   };
 

@@ -12,7 +12,7 @@ describe("deleteArchiveSnapshot", () => {
     await deleteArchiveSnapshot({ "lol-stats-kv": kv }, "archive-slug");
 
     expect(kv.delete).toHaveBeenCalledOnce();
-    expect(kv.delete).toHaveBeenCalledWith("ARCHIVE_archive-slug");
+    expect(kv.delete).toHaveBeenCalledWith("ArchiveSnapshot_archive-slug");
     expect(kv.put).not.toHaveBeenCalled();
   });
 });

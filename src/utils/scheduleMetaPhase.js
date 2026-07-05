@@ -1,14 +1,14 @@
 function readMetaNumber(meta, key) {
   const number = Number(meta[key]);
   if (!Number.isInteger(number) || number < 0) {
-    throw new Error(`Invalid league meta ${key}`);
+    throw new Error(`Invalid ScheduleMeta ${key}`);
   }
   return number;
 }
 
-function readLeagueMeta(meta) {
+function readScheduleMetaPhaseInput(meta) {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
-    throw new Error("league meta must be a JSON object");
+    throw new Error("ScheduleMeta phase input must be a JSON object");
   }
   return {
     earliest: readMetaNumber(meta, "todayEarliestTimestamp"),
@@ -17,15 +17,15 @@ function readLeagueMeta(meta) {
   };
 }
 
-const LEAGUE_PHASE_DISPLAY = {
+const scheduleMetaPhaseDisplay = {
   play: { emoji: "🎮", text: "PLAY" },
   idle: { emoji: "⏳", text: "IDLE" },
   done: { emoji: "☑️", text: "DONE" },
   offday: { emoji: "⏸", text: "OFFDAY" }
 };
 
-export function resolveLeaguePhase(meta, nowMs = Date.now()) {
-  const { earliest, unfinished, historyUnfinished } = readLeagueMeta(meta);
+export function resolveScheduleMetaPhase(meta, nowMs = Date.now()) {
+  const { earliest, unfinished, historyUnfinished } = readScheduleMetaPhaseInput(meta);
 
   if (historyUnfinished) return "play";
   if (unfinished > 0) return earliest > 0 && nowMs < earliest ? "idle" : "play";
@@ -33,13 +33,13 @@ export function resolveLeaguePhase(meta, nowMs = Date.now()) {
   return "done";
 }
 
-export function getLeaguePhaseDisplay(phase) {
-  const display = LEAGUE_PHASE_DISPLAY[phase];
-  if (!display) throw new Error(`Invalid league phase: ${phase}`);
+export function getScheduleMetaPhaseDisplay(phase) {
+  const display = scheduleMetaPhaseDisplay[phase];
+  if (!display) throw new Error(`Invalid ScheduleMeta phase: ${phase}`);
   return display;
 }
 
-export function resolveHomeEmojiByPhase(meta, nowMs = Date.now()) {
-  const phase = resolveLeaguePhase(meta, nowMs);
-  return getLeaguePhaseDisplay(phase).emoji;
+export function resolveHomeEmojiFromScheduleMeta(meta, nowMs = Date.now()) {
+  const phase = resolveScheduleMetaPhase(meta, nowMs);
+  return getScheduleMetaPhaseDisplay(phase).emoji;
 }

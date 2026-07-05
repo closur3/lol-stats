@@ -33,31 +33,31 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
   it("builds ARCHIVE from existing RAW_MATCHES and deletes active runtime facts", async () => {
     const archiveTournament = tournament();
     const kv = createKv({
-      CONFIG_ARCHIVE: [archiveTournament],
-      CONFIG_TEAMS: {},
-      "HOME_archive-tournament": { tournament: archiveTournament },
-      "LOG_archive-tournament": [],
-      "REV_archive-tournament": 123,
-      "RAW_MATCHES_archive-tournament": [],
-      "SCHEDULE_META_archive-tournament": { todayEarliestTimestamp: 0, todayUnfinished: 0, hasHistoryUnfinished: false }
+      ConfigArchive: [archiveTournament],
+      ConfigTeams: {},
+      "ActiveHome_archive-tournament": { tournament: archiveTournament },
+      "ActiveLog_archive-tournament": [],
+      "FandomRevision_archive-tournament": 123,
+      "RawMatches_archive-tournament": [],
+      "ScheduleMeta_archive-tournament": { todayEarliestTimestamp: 0, todayUnfinished: 0, hasHistoryUnfinished: false }
     });
 
     const result = await migrateArchiveSnapshotsFromActiveFacts({ "lol-stats-kv": kv }, []);
 
     expect(result).toEqual({ migrated: ["archive-tournament"] });
-    expect(kv.values.get("ARCHIVE_archive-tournament").tournament).toEqual(archiveTournament);
-    expect(kv.values.has("HOME_archive-tournament")).toBe(false);
-    expect(kv.values.has("LOG_archive-tournament")).toBe(false);
-    expect(kv.values.has("REV_archive-tournament")).toBe(false);
-    expect(kv.values.has("RAW_MATCHES_archive-tournament")).toBe(false);
-    expect(kv.values.has("SCHEDULE_META_archive-tournament")).toBe(false);
-    expect(kv.values.get("CONFIG_ARCHIVE")).toEqual([archiveTournament]);
+    expect(kv.values.get("ArchiveSnapshot_archive-tournament").tournament).toEqual(archiveTournament);
+    expect(kv.values.has("ActiveHome_archive-tournament")).toBe(false);
+    expect(kv.values.has("ActiveLog_archive-tournament")).toBe(false);
+    expect(kv.values.has("FandomRevision_archive-tournament")).toBe(false);
+    expect(kv.values.has("RawMatches_archive-tournament")).toBe(false);
+    expect(kv.values.has("ScheduleMeta_archive-tournament")).toBe(false);
+    expect(kv.values.get("ConfigArchive")).toEqual([archiveTournament]);
   });
 
-  it("skips CONFIG_ARCHIVE entries without active RAW_MATCHES", async () => {
+  it("skips ConfigArchive entries without active RawMatches", async () => {
     const kv = createKv({
-      CONFIG_ARCHIVE: [tournament()],
-      CONFIG_TEAMS: {}
+      ConfigArchive: [tournament()],
+      ConfigTeams: {}
     });
 
     await expect(migrateArchiveSnapshotsFromActiveFacts({ "lol-stats-kv": kv }, []))
@@ -66,17 +66,17 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
     expect(kv.delete).not.toHaveBeenCalled();
   });
 
-  it("fails when CONFIG_ACTIVE and CONFIG_ARCHIVE overlap", async () => {
+  it("fails when ConfigActive and ConfigArchive overlap", async () => {
     const archiveTournament = tournament();
     const kv = createKv({
-      CONFIG_ARCHIVE: [archiveTournament],
-      CONFIG_TEAMS: {},
-      "RAW_MATCHES_archive-tournament": []
+      ConfigArchive: [archiveTournament],
+      ConfigTeams: {},
+      "RawMatches_archive-tournament": []
     });
 
     await expect(migrateArchiveSnapshotsFromActiveFacts({ "lol-stats-kv": kv }, [archiveTournament]))
-      .rejects.toThrow("CONFIG_ACTIVE and CONFIG_ARCHIVE overlap: archive-tournament");
-    expect(kv.values.has("RAW_MATCHES_archive-tournament")).toBe(true);
-    expect(kv.values.has("ARCHIVE_archive-tournament")).toBe(false);
+      .rejects.toThrow("ConfigActive and ConfigArchive overlap: archive-tournament");
+    expect(kv.values.has("RawMatches_archive-tournament")).toBe(true);
+    expect(kv.values.has("ArchiveSnapshot_archive-tournament")).toBe(false);
   });
 });

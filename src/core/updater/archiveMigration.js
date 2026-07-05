@@ -10,14 +10,14 @@ function assertActiveArchiveDisjoint(activeTournaments, archiveTournaments) {
     .map(tournament => tournament.slug)
     .filter(slug => activeSlugs.has(slug));
   if (overlap.length > 0) {
-    throw new Error(`CONFIG_ACTIVE and CONFIG_ARCHIVE overlap: ${overlap.join(",")}`);
+    throw new Error(`ConfigActive and ConfigArchive overlap: ${overlap.join(",")}`);
   }
 }
 
 async function readMigrationRawMatches(env, slug) {
   const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(slug), { type: "json" });
   if (rawMatches == null) return null;
-  if (!Array.isArray(rawMatches)) throw new Error(`RAW_MATCHES invalid for archive migration: ${slug}`);
+  if (!Array.isArray(rawMatches)) throw new Error(`RawMatches invalid for archive migration: ${slug}`);
   return rawMatches;
 }
 

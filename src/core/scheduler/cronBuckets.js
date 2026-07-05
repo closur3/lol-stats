@@ -1,4 +1,4 @@
-import { assertLeagueState, hasPlayWindow, isNowInPlayWindow } from "./scheduleState.js";
+import { assertSlugScheduleState, hasPlayWindow, isNowInPlayWindow } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
 export const IDLE_SWEEP_CRON = "0 */2 * * *";
@@ -49,14 +49,14 @@ function mergeIntervals(intervals) {
 }
 
 export function buildActiveBucketCronsFromState(state) {
-  if (!state?.leagues || typeof state.leagues !== "object" || Array.isArray(state.leagues)) {
-    throw new Error("SCHEDULE_DAY.leagues must be a JSON object");
+  if (!state?.slugStates || typeof state.slugStates !== "object" || Array.isArray(state.slugStates)) {
+    throw new Error("ScheduleState.slugStates must be a JSON object");
   }
   const intervals = [];
-  for (const [slug, leagueState] of Object.entries(state.leagues)) {
-    assertLeagueState(slug, leagueState);
-    if (!hasPlayWindow(leagueState)) continue;
-    intervals.push(...timePolicy.businessWindowToUtcCronSegments(state.date, leagueState.playStartHour, leagueState.playEndHour));
+  for (const [slug, slugState] of Object.entries(state.slugStates)) {
+    assertSlugScheduleState(slug, slugState);
+    if (!hasPlayWindow(slugState)) continue;
+    intervals.push(...timePolicy.businessWindowToUtcCronSegments(state.date, slugState.playStartHour, slugState.playEndHour));
   }
 
   const buckets = mergeIntervals(intervals);
@@ -72,7 +72,7 @@ export function collectSchedulesFromState(state) {
   return schedules;
 }
 
-export function shouldRunPlayLeagueAt(leagueState, nowUtc) {
-  if (!hasPlayWindow(leagueState)) return false;
-  return isNowInPlayWindow(leagueState, nowUtc);
+export function shouldRunPlaySlugAt(slugState, nowUtc) {
+  if (!hasPlayWindow(slugState)) return false;
+  return isNowInPlayWindow(slugState, nowUtc);
 }

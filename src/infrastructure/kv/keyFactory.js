@@ -1,46 +1,46 @@
-const HOME_PREFIX = "HOME_";
-const LOG_PREFIX = "LOG_";
-const ARCHIVE_PREFIX = "ARCHIVE_";
-const REV_PREFIX = "REV_";
-const RAW_MATCHES_PREFIX = "RAW_MATCHES_";
-const SCHEDULE_META_PREFIX = "SCHEDULE_META_";
+const ActiveHomePrefix = "ActiveHome_";
+const ActiveLogPrefix = "ActiveLog_";
+const ArchiveSnapshotPrefix = "ArchiveSnapshot_";
+const FandomRevisionPrefix = "FandomRevision_";
+const RawMatchesPrefix = "RawMatches_";
+const ScheduleMetaPrefix = "ScheduleMeta_";
 
 export const kvKeys = {
-  HOME_PREFIX,
-  LOG_PREFIX,
-  ARCHIVE_PREFIX,
-  REV_PREFIX,
-  RAW_MATCHES_PREFIX,
-  SCHEDULE_META_PREFIX,
+  ActiveHomePrefix,
+  ActiveLogPrefix,
+  ArchiveSnapshotPrefix,
+  FandomRevisionPrefix,
+  RawMatchesPrefix,
+  ScheduleMetaPrefix,
 
   home(slug) {
-    return `${HOME_PREFIX}${slug}`;
+    return `${ActiveHomePrefix}${slug}`;
   },
   log(slug) {
-    return `${LOG_PREFIX}${slug}`;
+    return `${ActiveLogPrefix}${slug}`;
   },
   archive(slug) {
-    return `${ARCHIVE_PREFIX}${slug}`;
+    return `${ArchiveSnapshotPrefix}${slug}`;
   },
   rev(slug) {
-    return `${REV_PREFIX}${slug}`;
+    return `${FandomRevisionPrefix}${slug}`;
   },
   rawMatches(slug) {
-    return `${RAW_MATCHES_PREFIX}${slug}`;
+    return `${RawMatchesPrefix}${slug}`;
   },
   scheduleMeta(slug) {
-    return `${SCHEDULE_META_PREFIX}${slug}`;
+    return `${ScheduleMetaPrefix}${slug}`;
   },
-  scheduleDay() {
-    return "SCHEDULE_DAY";
+  scheduleState() {
+    return "ScheduleState";
   },
   configActive() {
-    return "CONFIG_ACTIVE";
+    return "ConfigActive";
   },
   configTeams() {
-    return "CONFIG_TEAMS";
+    return "ConfigTeams";
   },
   configArchive() {
-    return "CONFIG_ARCHIVE";
+    return "ConfigArchive";
   }
 };

@@ -102,7 +102,7 @@ jobs:
           old_teams = {}
           old_leagues = {}
           try:
-              with open("config/teams.json", "r", encoding="utf-8") as f:
+              with open("config/ConfigTeams.json", "r", encoding="utf-8") as f:
                   old_teams = json.load(f)
           except:
               pass
@@ -122,7 +122,7 @@ jobs:
               n, s = t.get("Name"), t.get("Short")
               if n and s:
                   team_map[n] = s
-          with open("config/teams.json", "w", encoding="utf-8") as f:
+          with open("config/ConfigTeams.json", "w", encoding="utf-8") as f:
               json.dump(team_map, f, indent=2, ensure_ascii=False)
           print(f"✨ [TEAMS] 完成，共 {len(team_map)} 条\n")
 
@@ -165,7 +165,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
-          file_pattern: 'config/teams.json config/leagues.json'
+          file_pattern: 'config/ConfigTeams.json config/leagues.json'
 
       - name: Trigger KV Persist
         if: steps.auto_commit.outputs.changes_detected == 'true'

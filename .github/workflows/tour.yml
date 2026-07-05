@@ -38,8 +38,8 @@ jobs:
 
           now = datetime.now()
           today_dt = now.date()
-          TARGET_FILE = "config/active.json"
-          ARCHIVE_FILE = "config/archive.json"
+          TARGET_FILE = "config/ConfigActive.json"
+          ARCHIVE_FILE = "config/ConfigArchive.json"
 
           # ==================== 配置区 ====================
           PREHEAT_DAYS, EXPIRE_DAYS = 7, 1
@@ -567,7 +567,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
-          file_pattern: 'config/active.json config/archive.json'
+          file_pattern: 'config/ConfigActive.json config/ConfigArchive.json'
 
       - name: Trigger KV Persist
         if: steps.auto_commit.outputs.changes_detected == 'true'

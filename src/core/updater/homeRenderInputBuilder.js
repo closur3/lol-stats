@@ -55,7 +55,7 @@ export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMe
     globalStats[slug] = home.stats;
     timeGrid[slug] = home.timeGrid;
     const meta = scheduleMetaBySlug.get(slug);
-    if (!meta) throw new Error(`SCHEDULE_META missing after load: ${slug}`);
+    if (!meta) throw new Error(`ScheduleMeta missing after load: ${slug}`);
     tournamentMeta[slug] = meta;
 
     appendHomeSchedule(scheduleMap, tournamentIndexMap, home);

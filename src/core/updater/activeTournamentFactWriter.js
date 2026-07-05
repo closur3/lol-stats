@@ -15,7 +15,7 @@ export async function writeActiveTournamentFacts(env, tournaments, rawMatchesByS
       throw new Error("analysis.tournamentMeta must be a JSON object");
     }
     const meta = analysis.tournamentMeta[slug];
-    if (!meta) throw new Error(`SCHEDULE_META missing in analysis: ${slug}`);
+    if (!meta) throw new Error(`ScheduleMeta missing in analysis: ${slug}`);
     await writeRawMatches(env, slug, rawMatches);
     await writeScheduleMeta(env, slug, meta);
   }));

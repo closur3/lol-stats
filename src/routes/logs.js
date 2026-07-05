@@ -19,7 +19,7 @@ async function readLogsBySlug(kv, slugs) {
 async function readLogEntries(kv, logKey) {
   const logs = await kv.get(logKey, { type: "json" });
   if (logs == null) return [];
-  if (!Array.isArray(logs)) throw new Error(`LOG must be an array: ${logKey}`);
+  if (!Array.isArray(logs)) throw new Error(`ActiveLog must be an array: ${logKey}`);
   return logs;
 }
 
@@ -39,9 +39,9 @@ async function readLogMetaBySlug(env, slugs) {
   return new Map(metaPairs);
 }
 
-function buildLeagueLogItem(name, slug, logs, homeMeta) {
-  if (!Array.isArray(logs)) throw new Error(`LOG entries missing: ${slug}`);
-  if (!homeMeta) throw new Error(`LOG meta missing: ${slug}`);
+function buildActiveLogItem(name, slug, logs, homeMeta) {
+  if (!Array.isArray(logs)) throw new Error(`ActiveLog entries missing: ${slug}`);
+  if (!homeMeta) throw new Error(`ActiveLog meta missing: ${slug}`);
   return {
     name,
     logs,
@@ -52,19 +52,19 @@ function buildLeagueLogItem(name, slug, logs, homeMeta) {
   };
 }
 
-function buildLeagueLogs(tournaments, logsBySlug, homeBySlug) {
-  const leagueLogs = [];
+function buildActiveLogItems(tournaments, logsBySlug, homeBySlug) {
+  const activeLogItems = [];
 
   for (const tournament of tournaments) {
     const slug = tournament?.slug;
     if (!slug || !logsBySlug.has(slug)) continue;
     const logs = logsBySlug.get(slug);
     const name = logs[0]?.displayName;
-    if (!name) throw new Error(`Missing displayName in LOG entries: ${slug}`);
-    leagueLogs.push(buildLeagueLogItem(name, slug, logs, homeBySlug.get(slug)));
+    if (!name) throw new Error(`Missing displayName in ActiveLog entries: ${slug}`);
+    activeLogItems.push(buildActiveLogItem(name, slug, logs, homeBySlug.get(slug)));
   }
 
-  return leagueLogs;
+  return activeLogItems;
 }
 
 export class LogsRouter {
@@ -75,10 +75,10 @@ export class LogsRouter {
     const logsBySlug = await readLogsBySlug(kv, slugs);
     const logSlugs = Array.from(logsBySlug.keys());
     const homeBySlug = await readLogMetaBySlug(env, logSlugs);
-    const leagueLogs = buildLeagueLogs(tournaments, logsBySlug, homeBySlug);
-    const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
+    const activeLogItems = buildActiveLogItems(tournaments, logsBySlug, homeBySlug);
+    const state = await kv.get(kvKeys.scheduleState(), { type: "json" });
     const activeCron = state && Array.isArray(state.schedules) ? state.schedules.some(cron => cron !== IDLE_SWEEP_CRON) : false;
-    const html = HTMLRenderer.renderLogPage(leagueLogs, env.GITHUB_TIME, env.GITHUB_SHA, activeCron, {
+    const html = HTMLRenderer.renderLogPage(activeLogItems, env.GITHUB_TIME, env.GITHUB_SHA, activeCron, {
       maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES
     });
 

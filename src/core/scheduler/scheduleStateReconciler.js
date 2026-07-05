@@ -1,17 +1,17 @@
 import { timePolicy } from "../../utils/timePolicy.js";
 import { restoreMissingScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
 import {
-  alignStateLeaguesWithTournaments,
+  alignStateSlugsWithTournaments,
   areSchedulesApplied,
-  assertLeagueState,
-  readScheduleControl,
+  assertSlugScheduleState,
+  readScheduleState,
   recordAppliedSchedules,
-  writeScheduleControl
+  writeScheduleState
 } from "./scheduleState.js";
 import { collectSchedulesFromState } from "./cronBuckets.js";
 import { runScheduleApply } from "./scheduleApplyRunner.js";
 import {
-  buildNextLeagueState,
+  buildNextSlugScheduleState,
   requireScheduleMeta
 } from "./schedulePlanBuilder.js";
 
@@ -25,28 +25,28 @@ async function restoreMissingScheduleMetasForTournaments(env, tournaments) {
   );
 }
 
-export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now(), options = {}) {
+export async function reconcileScheduleSlugStates(env, tournaments, nowMs = Date.now(), options = {}) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(nowMs);
   const today = timePolicy.getBusinessDateKey(now);
-  const state = await readScheduleControl(env);
+  const state = await readScheduleState(env);
   if (!state || state.date !== today) return;
 
   const metas = await restoreMissingScheduleMetasForTournaments(env, tournaments);
   const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
-  const aligned = alignStateLeaguesWithTournaments(state, tournaments);
+  const aligned = alignStateSlugsWithTournaments(state, tournaments);
   const changed = [];
 
   for (const tournament of tournaments) {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
-    const leagueState = state.leagues[slug];
-    assertLeagueState(slug, leagueState);
+    const slugState = state.slugStates[slug];
+    assertSlugScheduleState(slug, slugState);
 
-    const nextLeagueState = buildNextLeagueState(slug, leagueState, requireScheduleMeta(metasBySlug, slug), now);
-    if (JSON.stringify(leagueState) !== JSON.stringify(nextLeagueState)) {
-      state.leagues[slug] = nextLeagueState;
-      changed.push(`${slug}:${leagueState.phase}->${nextLeagueState.phase}`);
+    const nextSlugState = buildNextSlugScheduleState(slug, slugState, requireScheduleMeta(metasBySlug, slug), now);
+    if (JSON.stringify(slugState) !== JSON.stringify(nextSlugState)) {
+      state.slugStates[slug] = nextSlugState;
+      changed.push(`${slug}:${slugState.phase}->${nextSlugState.phase}`);
     }
   }
 
@@ -55,7 +55,7 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
     if (areSchedulesApplied(state, schedules)) return;
     const applyResult = await runScheduleApply(env, schedules, "REAPPLY", options);
     if (applyResult === "applied") recordAppliedSchedules(state, schedules);
-    await writeScheduleControl(env, state);
+    await writeScheduleState(env, state);
     return;
   }
   const schedules = collectSchedulesFromState(state);
@@ -63,7 +63,7 @@ export async function reconcileLeagueStates(env, tournaments, nowMs = Date.now()
     const applyResult = await runScheduleApply(env, schedules, "RECONCILE", options);
     if (applyResult === "applied") recordAppliedSchedules(state, schedules);
   }
-  await writeScheduleControl(env, state);
+  await writeScheduleState(env, state);
   const details = changed.length > 0 ? changed.join(",") : "aligned-only";
   console.log(`[SCHED:STATE] date=${today} ${details}`);
 }

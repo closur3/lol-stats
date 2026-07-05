@@ -24,7 +24,7 @@ export function assertScheduleMetaFields(label, meta) {
 
 export function normalizeScheduleMeta(slug, meta) {
   if (!slug) throw new Error("schedule meta slug missing");
-  const fields = assertScheduleMetaFields(`SCHEDULE_META.${slug}`, meta);
+  const fields = assertScheduleMetaFields(`ScheduleMeta.${slug}`, meta);
   return {
     slug,
     ...fields

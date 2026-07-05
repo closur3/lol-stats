@@ -1,7 +1,7 @@
 import { timePolicy } from "../../utils/timePolicy.js";
 import { assertScheduleMetaFields } from "../facts/scheduleMetaStore.js";
 import {
-  buildLeagueState,
+  buildSlugScheduleState,
   buildIdleState,
   derivePhase,
   hasPlayWindow
@@ -9,7 +9,7 @@ import {
 
 export function requireScheduleMeta(metasBySlug, slug) {
   const meta = metasBySlug.get(slug);
-  if (!meta) throw new Error(`SCHEDULE_META missing after load: ${slug}`);
+  if (!meta) throw new Error(`ScheduleMeta missing after load: ${slug}`);
   return meta;
 }
 
@@ -18,7 +18,7 @@ export function hasUnfinishedMatches(meta) {
 }
 
 function buildWindowFromMeta(meta) {
-  const fields = assertScheduleMetaFields("SCHEDULE_META", meta);
+  const fields = assertScheduleMetaFields("ScheduleMeta", meta);
   if (!fields.hasHistoryUnfinished && !fields.todayEarliestTimestamp) return null;
   return {
     startHour: fields.hasHistoryUnfinished ? 0 : timePolicy.getBusinessHour(fields.todayEarliestTimestamp),
@@ -32,13 +32,13 @@ export function requirePlayWindow(slug, meta) {
   return window;
 }
 
-export function buildNextLeagueState(slug, leagueState, meta, now) {
-  if (!hasUnfinishedMatches(meta)) return buildLeagueState("idle");
-  const nextLeagueState = hasPlayWindow(leagueState)
-    ? { ...leagueState }
-    : buildLeagueState("idle", requirePlayWindow(slug, meta));
-  nextLeagueState.phase = derivePhase(nextLeagueState, meta, now);
-  return nextLeagueState;
+export function buildNextSlugScheduleState(slug, slugState, meta, now) {
+  if (!hasUnfinishedMatches(meta)) return buildSlugScheduleState("idle");
+  const nextSlugState = hasPlayWindow(slugState)
+    ? { ...slugState }
+    : buildSlugScheduleState("idle", requirePlayWindow(slug, meta));
+  nextSlugState.phase = derivePhase(nextSlugState, meta, now);
+  return nextSlugState;
 }
 
 export function buildDailyScheduleState(tournaments, metasBySlug, now) {
@@ -51,9 +51,9 @@ export function buildDailyScheduleState(tournaments, metasBySlug, now) {
     if (!slug) throw new Error("Tournament slug missing");
     const meta = requireScheduleMeta(metasBySlug, slug);
     if (!hasUnfinishedMatches(meta)) continue;
-    const candidate = buildLeagueState("idle", requirePlayWindow(slug, meta));
+    const candidate = buildSlugScheduleState("idle", requirePlayWindow(slug, meta));
     candidate.phase = derivePhase(candidate, meta, now);
-    next.leagues[slug] = candidate;
+    next.slugStates[slug] = candidate;
   }
 
   return next;

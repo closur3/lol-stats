@@ -17,7 +17,7 @@ describe("ArchiveRouter", () => {
     const config = [tournament("missing-one"), tournament("missing-two")];
     const env = {
       "lol-stats-kv": {
-        get: async key => key === "CONFIG_ARCHIVE" ? config : null
+        get: async key => key === "ConfigArchive" ? config : null
       }
     };
 

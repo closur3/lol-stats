@@ -2,7 +2,7 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
 function normalizeArchiveTournament(tournament) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
-    throw new Error("CONFIG_ARCHIVE tournament must be object");
+    throw new Error("ConfigArchive tournament must be object");
   }
   const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
   const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
@@ -13,17 +13,17 @@ function normalizeArchiveTournament(tournament) {
     ? tournament.overview_page.filter(page => typeof page === "string" && page.trim()).map(page => page.trim())
     : [];
   if (!slug || !name || !league || !startDate || !endDate || overviewPage.length === 0) {
-    throw new Error(`Invalid CONFIG_ARCHIVE tournament: ${slug || "(missing slug)"}`);
+    throw new Error(`Invalid ConfigArchive tournament: ${slug || "(missing slug)"}`);
   }
   return { slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate };
 }
 
 function normalizeArchiveConfig(tournaments) {
-  if (!Array.isArray(tournaments)) throw new Error("CONFIG_ARCHIVE must be array");
+  if (!Array.isArray(tournaments)) throw new Error("ConfigArchive must be array");
   const slugs = new Set();
   return tournaments.map(tournament => {
     const normalized = normalizeArchiveTournament(tournament);
-    if (slugs.has(normalized.slug)) throw new Error(`Duplicate CONFIG_ARCHIVE slug: ${normalized.slug}`);
+    if (slugs.has(normalized.slug)) throw new Error(`Duplicate ConfigArchive slug: ${normalized.slug}`);
     slugs.add(normalized.slug);
     return normalized;
   });
@@ -31,6 +31,6 @@ function normalizeArchiveConfig(tournaments) {
 
 export async function readArchiveConfig(env) {
   const storedConfig = await env["lol-stats-kv"].get(kvKeys.configArchive(), { type: "json" });
-  if (storedConfig == null) throw new Error("CONFIG_ARCHIVE missing");
+  if (storedConfig == null) throw new Error("ConfigArchive missing");
   return normalizeArchiveConfig(storedConfig);
 }

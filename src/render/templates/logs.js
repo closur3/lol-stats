@@ -1,6 +1,6 @@
 import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
-import { getLeaguePhaseDisplay, resolveLeaguePhase } from '../../utils/leagueState.js';
+import { getScheduleMetaPhaseDisplay, resolveScheduleMetaPhase } from '../../utils/scheduleMetaPhase.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 import { rpad2 } from '../../core/updater/logWriter.js';
 
@@ -58,14 +58,14 @@ function isErrorEntry(entry) {
   return entry.action === "BREAKER" || entry.action === "API_ERROR" || entry.level === "ERROR";
 }
 
-function normalizeLeagueLogItems(leagueLogs) {
-  if (leagueLogs == null) return [];
-  if (Array.isArray(leagueLogs)) return leagueLogs;
-  if (typeof leagueLogs !== "object") throw new Error("leagueLogs must be an array or JSON object");
-  return Object.keys(leagueLogs).map(name => {
-    const value = leagueLogs[name];
+function normalizeActiveLogItems(activeLogItems) {
+  if (activeLogItems == null) return [];
+  if (Array.isArray(activeLogItems)) return activeLogItems;
+  if (typeof activeLogItems !== "object") throw new Error("activeLogItems must be an array or JSON object");
+  return Object.keys(activeLogItems).map(name => {
+    const value = activeLogItems[name];
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error(`Invalid league log item: ${name}`);
+      throw new Error(`Invalid active log item: ${name}`);
     }
     return { name, ...value };
   });
@@ -73,21 +73,21 @@ function normalizeLeagueLogItems(leagueLogs) {
 
 function normalizeEntryList(item) {
   if (item.logs === undefined) return [];
-  if (!Array.isArray(item.logs)) throw new Error(`Invalid logs for league: ${item.name || ""}`);
+  if (!Array.isArray(item.logs)) throw new Error(`Invalid active logs: ${item.name || ""}`);
   return item.logs;
 }
 
-export function renderLogPage(leagueLogs, time, sha, hasActiveCron = false, options = {}) {
+export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, options = {}) {
   const maxLogEntries = Number(options.maxLogEntries);
-  const leagueItems = normalizeLeagueLogItems(leagueLogs);
+  const items = normalizeActiveLogItems(activeLogItems);
 
-  const cardsHtml = leagueItems.map(item => {
+  const cardsHtml = items.map(item => {
     const name = item.name || "";
     const safeName = escapeHtml(name);
     const entries = normalizeEntryList(item);
     const lastEntry = entries[0];
-    const phase = resolveLeaguePhase(item);
-    const phaseDisplay = getLeaguePhaseDisplay(phase);
+    const phase = resolveScheduleMetaPhase(item);
+    const phaseDisplay = getScheduleMetaPhaseDisplay(phase);
     const phaseCls = `phase-${phase}`;
     const phaseEmojiCls = `phase-emoji-${phase}`;
 

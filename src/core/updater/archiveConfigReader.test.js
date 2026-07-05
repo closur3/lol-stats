@@ -10,7 +10,7 @@ function createEnv(value) {
 }
 
 describe("readArchiveConfig", () => {
-  it("reads CONFIG_ARCHIVE without changing GitHub-defined order", async () => {
+  it("reads ConfigArchive without changing GitHub-defined order", async () => {
     const config = [
       {
         slug: "z-tournament",
@@ -35,8 +35,8 @@ describe("readArchiveConfig", () => {
     expect(result.map(tournament => tournament.slug)).toEqual(["z-tournament", "a-tournament"]);
   });
 
-  it("fails when CONFIG_ARCHIVE is missing", async () => {
-    await expect(readArchiveConfig(createEnv(null))).rejects.toThrow("CONFIG_ARCHIVE missing");
+  it("fails when ConfigArchive is missing", async () => {
+    await expect(readArchiveConfig(createEnv(null))).rejects.toThrow("ConfigArchive missing");
   });
 
   it("rejects duplicate slugs", async () => {
@@ -50,6 +50,6 @@ describe("readArchiveConfig", () => {
     };
 
     await expect(readArchiveConfig(createEnv([tournament, tournament])))
-      .rejects.toThrow("Duplicate CONFIG_ARCHIVE slug: duplicate");
+      .rejects.toThrow("Duplicate ConfigArchive slug: duplicate");
   });
 });

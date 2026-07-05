@@ -5,7 +5,7 @@ import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
 import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
-import { reconcileLeagueStates } from "../scheduler/scheduleStateReconciler.js";
+import { reconcileScheduleSlugStates } from "../scheduler/scheduleStateReconciler.js";
 import { resolveScheduledExecutionSlugs } from "../scheduler/scheduleReconciler.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { migrateArchiveSnapshotsFromActiveFacts } from "../updater/archiveMigration.js";
@@ -18,7 +18,7 @@ function filterTournaments(tournaments, slugs) {
 async function resolveCronTarget(env, event, tournaments, scheduleOptions) {
   const target = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
   if (target.type === 'none') {
-    await reconcileLeagueStates(env, tournaments, event.scheduledTime, scheduleOptions);
+    await reconcileScheduleSlugStates(env, tournaments, event.scheduledTime, scheduleOptions);
   }
   return target;
 }

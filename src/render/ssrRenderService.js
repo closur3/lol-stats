@@ -8,7 +8,7 @@ import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
 async function hasActiveCron(env) {
   const kv = env["lol-stats-kv"];
-  const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
+  const state = await kv.get(kvKeys.scheduleState(), { type: "json" });
   if (!state || !Array.isArray(state.schedules)) return false;
   return state.schedules.some(cron => cron !== IDLE_SWEEP_CRON);
 }

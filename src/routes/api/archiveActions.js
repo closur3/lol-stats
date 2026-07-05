@@ -29,7 +29,7 @@ export async function handleRebuildArchive(request, env) {
   try {
     const archiveConfig = await readArchiveConfig(env);
     const tournament = archiveConfig.find(item => item.slug === slug);
-    if (!tournament) return new Response(`CONFIG_ARCHIVE tournament missing: ${slug}`, { status: 404 });
+    if (!tournament) return new Response(`ConfigArchive tournament missing: ${slug}`, { status: 404 });
     await rebuildArchiveSnapshot(env, tournament);
     return new Response("OK", { status: 200 });
   } catch (error) {

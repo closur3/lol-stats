@@ -2,14 +2,14 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
 function assertRawMatches(slug, rawMatches) {
   if (!Array.isArray(rawMatches)) {
-    throw new Error(`RAW_MATCHES must be an array: ${slug}`);
+    throw new Error(`RawMatches must be an array: ${slug}`);
   }
 }
 
 export async function readRawMatches(env, slug) {
   if (!slug) throw new Error("rawMatches slug missing");
   const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(slug), { type: "json" });
-  if (rawMatches == null) throw new Error(`RAW_MATCHES missing: ${slug}`);
+  if (rawMatches == null) throw new Error(`RawMatches missing: ${slug}`);
   assertRawMatches(slug, rawMatches);
   return rawMatches;
 }
