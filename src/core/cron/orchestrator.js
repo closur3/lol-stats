@@ -8,6 +8,7 @@ import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.j
 import { reconcileLeagueStates } from "../scheduler/scheduleStateReconciler.js";
 import { resolveScheduledExecutionSlugs } from "../scheduler/scheduleReconciler.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
+import { migrateArchiveSnapshotsFromActiveFacts } from "../updater/archiveMigration.js";
 import { Logger } from "../../infrastructure/logger.js";
 
 function filterTournaments(tournaments, slugs) {
@@ -59,6 +60,7 @@ export async function runCron(env, event) {
     throw new Error("tournaments must be an array");
   }
 
+  await migrateArchiveSnapshotsFromActiveFacts(env, tournaments);
   const target = await resolveCronTarget(env, event, tournaments, scheduleOptions);
   if (target.type === 'none') return;
 

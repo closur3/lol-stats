@@ -42,7 +42,7 @@ jobs:
           ARCHIVE_FILE = "config/archive.json"
 
           # ==================== 配置区 ====================
-          PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
+          PREHEAT_DAYS, EXPIRE_DAYS = 7, 1
           DEFAULT_REGIONS = ["International", "China", "Korea"]
           FORCE_INCLUDE_KEYWORDS = []
           BLACKLIST = ["Opening"]
@@ -483,6 +483,8 @@ jobs:
               for slug in removed:
                   archive_map[slug] = old_map[slug]
               archive_output = sorted(archive_map.values(), key=sort_key, reverse=True)
+              old_archive_map = {item.get("slug"): item for item in archive_items if item.get("slug")}
+              new_archive_map = {item.get("slug"): item for item in archive_output if item.get("slug")}
 
               with open(TARGET_FILE, "w", encoding="utf-8") as f:
                   json.dump(unique_res, f, indent=4, ensure_ascii=False)
@@ -496,27 +498,62 @@ jobs:
                   slug for slug in (new_map.keys() & old_map.keys())
                   if new_map[slug] != old_map[slug]
               )
+              archive_added = sorted(new_archive_map.keys() - old_archive_map.keys())
+              archive_updated = sorted(
+                  slug for slug in (new_archive_map.keys() & old_archive_map.keys())
+                  if new_archive_map[slug] != old_archive_map[slug]
+              )
+              archive_removed = sorted(old_archive_map.keys() - new_archive_map.keys())
+              migrated = sorted(set(removed) & set(archive_added))
+              active_removed = sorted(set(removed) - set(migrated))
+              archive_created = sorted(set(archive_added) - set(migrated))
 
-              total_changes = len(added) + len(updated) + len(removed)
+              total_changes = (
+                  len(added)
+                  + len(updated)
+                  + len(active_removed)
+                  + len(archive_created)
+                  + len(archive_updated)
+                  + len(archive_removed)
+                  + len(migrated)
+              )
               elapsed = time.time() - start_time
 
               log("")
               log(f"📊 摘要 | {f'原始: {len(all_data)}':<10} | {f'最终: {len(unique_res)}':<10} | 耗时: {elapsed:.1f}s")
-              log(f"📝 变更 | {f'新增: {len(added)}':<10} | {f'更新: {len(updated)}':<10} | {f'移除: {len(removed)}':<10}")
+              log(f"📝 Active | {f'新增: {len(added)}':<10} | {f'更新: {len(updated)}':<10} | {f'移除: {len(active_removed)}':<10}")
+              log(f"🗄️ Archive | {f'新增: {len(archive_created)}':<10} | {f'更新: {len(archive_updated)}':<10} | {f'移除: {len(archive_removed)}':<10}")
+              log(f"🚚 Migration | {f'迁移: {len(migrated)}':<10}")
+
+              def format_change_parts(add_slugs, update_slugs, remove_slugs):
+                  parts = []
+                  if add_slugs:
+                      parts.append(f"+ {' / '.join(add_slugs)}")
+                  if update_slugs:
+                      parts.append(f"~ {' / '.join(update_slugs)}")
+                  if remove_slugs:
+                      parts.append(f"- {' / '.join(remove_slugs)}")
+                  return " | ".join(parts)
 
               if total_changes > 5:
-                  commit_msg = f"🎯 Active: +{len(added)}, ~{len(updated)}, -{len(removed)}"
+                  commit_msg = (
+                      f"🎯 Tour: active +{len(added)}, ~{len(updated)}, -{len(active_removed)}; "
+                      f"archive +{len(archive_created)}, ~{len(archive_updated)}, -{len(archive_removed)}; "
+                      f"migrate {len(migrated)}"
+                  )
               elif total_changes > 0:
-                  parts = []
-                  if added:
-                      parts.append(f"+ {' / '.join(added)}")
-                  if updated:
-                      parts.append(f"~ {' / '.join(updated)}")
-                  if removed:
-                      parts.append(f"- {' / '.join(removed)}")
-                  commit_msg = f"🎯 Active: {' | '.join(parts)}"
+                  sections = []
+                  active_parts = format_change_parts(added, updated, active_removed)
+                  archive_parts = format_change_parts(archive_created, archive_updated, archive_removed)
+                  if active_parts:
+                      sections.append(f"Active: {active_parts}")
+                  if archive_parts:
+                      sections.append(f"Archive: {archive_parts}")
+                  if migrated:
+                      sections.append(f"Migration: {' / '.join(migrated)}")
+                  commit_msg = f"🎯 Tour: {'; '.join(sections)}"
               else:
-                  commit_msg = "🎯 Active: no changes"
+                  commit_msg = "🎯 Tour: no changes"
 
               if "GITHUB_OUTPUT" in os.environ:
                   with open(os.environ["GITHUB_OUTPUT"], "a") as f:

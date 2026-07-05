@@ -23,16 +23,9 @@ describe("deleteActiveRuntimeState", () => {
   it("persists league removal when the desired cron list is unchanged", async () => {
     const slug = "league-2026";
     const kv = createKv({
-      ACTIVE_TOURNAMENTS: {
-        [slug]: {
-          slug,
-          name: "League 2026",
-          league: "LEAGUE",
-          overview_page: ["League/2026"],
-          start_date: "2026-01-01",
-          end_date: "2026-12-31"
-        }
-      },
+      CONFIG_ACTIVE: [{ slug }],
+      CONFIG_ARCHIVE: [{ slug: "archive-2026" }],
+      ARCHIVE_archive_2026: { slug: "archive-2026" },
       SCHEDULE_DAY: {
         date: "2026-07-05",
         leagues: {
@@ -53,6 +46,8 @@ describe("deleteActiveRuntimeState", () => {
 
     expect(kv.values.get("SCHEDULE_DAY").leagues).toEqual({});
     expect(kv.values.get("SCHEDULE_DAY").schedules).toEqual([IDLE_SWEEP_CRON]);
-    expect(kv.values.get("ACTIVE_TOURNAMENTS")).toEqual({});
+    expect(kv.values.get("CONFIG_ACTIVE")).toEqual([{ slug }]);
+    expect(kv.values.get("CONFIG_ARCHIVE")).toEqual([{ slug: "archive-2026" }]);
+    expect(kv.values.get("ARCHIVE_archive_2026")).toEqual({ slug: "archive-2026" });
   });
 });

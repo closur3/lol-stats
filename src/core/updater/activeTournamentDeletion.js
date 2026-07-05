@@ -7,7 +7,6 @@ import {
   recordAppliedSchedules,
   writeScheduleControl
 } from "../scheduler/scheduleState.js";
-import { removeActiveTournament } from "./activeTournamentRegistry.js";
 
 function normalizeSlug(slug) {
   if (typeof slug !== "string" || !slug.trim()) {
@@ -48,7 +47,6 @@ async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
 export async function deleteActiveRuntimeState(env, slug, options = {}) {
   const cleanSlug = normalizeSlug(slug);
   await deleteActiveRuntimeFacts(env, cleanSlug);
-  await removeActiveTournament(env, cleanSlug);
   await deleteActiveRuntimeScheduleState(
     env,
     cleanSlug,

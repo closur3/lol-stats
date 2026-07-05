@@ -42,8 +42,5 @@ export const kvKeys = {
   },
   configArchive() {
     return "CONFIG_ARCHIVE";
-  },
-  activeTournaments() {
-    return "ACTIVE_TOURNAMENTS";
-  },
+  }
 };

@@ -1,6 +1,5 @@
 import { timePolicy } from "../../utils/timePolicy.js";
 import { ensureScheduleMetas, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
-import { archiveRemovedActiveTournaments } from "../updater/activeTournamentArchiver.js";
 import {
   alignStateLeaguesWithTournaments,
   areSchedulesApplied,
@@ -86,7 +85,6 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(scheduledTimeMs);
   const today = timePolicy.getBusinessDateKey(now);
-  await archiveRemovedActiveTournaments(env, tournaments);
 
   const state = await readScheduleControl(env);
   const lastDay = state?.date || null;
