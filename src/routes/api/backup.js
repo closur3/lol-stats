@@ -1,5 +1,5 @@
 import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
-import { loadActiveConfig } from "../../core/updater/activeConfigLoader.js";
+import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 
@@ -49,7 +49,7 @@ export async function handleBackup(request, env) {
 
   const kv = env["lol-stats-kv"];
   const [tournaments, archiveTournaments] = await Promise.all([
-    loadActiveConfig(env),
+    readActiveConfig(env),
     readArchiveIndex(env)
   ]);
 

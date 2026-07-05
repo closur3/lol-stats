@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { readControl } from "../scheduler/scheduleState.js";
+import { readScheduleControl } from "../scheduler/scheduleState.js";
 import { ensureSchedulesApplied } from "../scheduler/scheduleWriter.js";
 import { removeActiveTournament } from "./activeTournamentRegistry.js";
 
@@ -22,7 +22,7 @@ async function deleteActiveRuntimeFacts(env, slug) {
 }
 
 async function deleteActiveRuntimeScheduleState(env, slug, nowMs, scheduleOptions) {
-  const state = await readControl(env);
+  const state = await readScheduleControl(env);
   if (!state) return false;
   if (Object.prototype.hasOwnProperty.call(state.leagues, slug)) {
     delete state.leagues[slug];

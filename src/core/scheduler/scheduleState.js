@@ -2,7 +2,7 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 import { assertScheduleMetaFields } from "../facts/scheduleMetaStore.js";
 
-export async function readControl(env) {
+export async function readScheduleControl(env) {
   const kv = env["lol-stats-kv"];
   const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
   if (state == null) return null;
@@ -13,7 +13,7 @@ export async function readControl(env) {
   return state;
 }
 
-export async function writeControl(env, state) {
+export async function writeScheduleControl(env, state) {
   await env["lol-stats-kv"].put(kvKeys.scheduleDay(), JSON.stringify(state));
 }
 

@@ -1,4 +1,4 @@
-export async function fetchMatchData(fandomClient, candidates) {
+export async function fetchMatchesForCandidates(fandomClient, candidates) {
   if (!Array.isArray(candidates)) throw new Error("candidates must be an array");
   const results = await Promise.allSettled(
     candidates.map(async (candidate) => {

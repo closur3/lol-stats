@@ -7,9 +7,9 @@ function normalizeTeamsConfig(teams) {
   return teams;
 }
 
-export async function loadTeamsConfig(env) {
+export async function readTeamsConfig(env) {
   const kv = env["lol-stats-kv"];
-  const cached = await kv.get(kvKeys.configTeams(), { type: "json" });
-  if (cached == null) throw new Error("CONFIG_TEAMS missing");
-  return normalizeTeamsConfig(cached);
+  const storedConfig = await kv.get(kvKeys.configTeams(), { type: "json" });
+  if (storedConfig == null) throw new Error("CONFIG_TEAMS missing");
+  return normalizeTeamsConfig(storedConfig);
 }

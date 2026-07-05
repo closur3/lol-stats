@@ -1,12 +1,12 @@
 import { UPDATE_CONFIG } from '../core/updater/types.js';
-import { loadActiveConfig } from '../core/updater/activeConfigLoader.js';
+import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { HTMLRenderer } from '../render/htmlRenderer.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
 import { ensureScheduleMeta } from '../core/facts/scheduleMetaStore.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
-async function loadLogsBySlug(kv, slugs) {
+async function readLogsBySlug(kv, slugs) {
   if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
   const logPairs = await Promise.all(slugs.map(async slug => {
     const logKey = kvKeys.log(slug);
@@ -23,7 +23,7 @@ async function readLogEntries(kv, logKey) {
   return logs;
 }
 
-async function loadLogMetaBySlug(env, slugs) {
+async function readLogMetaBySlug(env, slugs) {
   const metaPairs = await Promise.all(slugs.map(async slug => {
     const [rawMatches, meta] = await Promise.all([
       readRawMatches(env, slug),
@@ -70,11 +70,11 @@ function buildLeagueLogs(tournaments, logsBySlug, homeBySlug) {
 export class LogsRouter {
   static async handleLogs(_request, env) {
     const kv = env["lol-stats-kv"];
-    const tournaments = await loadActiveConfig(env);
+    const tournaments = await readActiveConfig(env);
     const slugs = tournaments.map(t => t.slug);
-    const logsBySlug = await loadLogsBySlug(kv, slugs);
+    const logsBySlug = await readLogsBySlug(kv, slugs);
     const logSlugs = Array.from(logsBySlug.keys());
-    const homeBySlug = await loadLogMetaBySlug(env, logSlugs);
+    const homeBySlug = await readLogMetaBySlug(env, logSlugs);
     const leagueLogs = buildLeagueLogs(tournaments, logsBySlug, homeBySlug);
     const state = await kv.get(kvKeys.scheduleDay(), { type: "json" });
     const activeCron = state && Array.isArray(state.schedules) ? state.schedules.some(cron => cron !== IDLE_SWEEP_CRON) : false;

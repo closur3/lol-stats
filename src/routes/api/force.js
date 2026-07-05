@@ -1,10 +1,10 @@
-import { runScheduleMaintenance } from "../../core/scheduler/dynamicCronManager.js";
+import { runScheduleMaintenance } from "../../core/scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { Logger } from "../../infrastructure/logger.js";
-import { loadActiveConfig } from "../../core/updater/activeConfigLoader.js";
-import { loadTeamsConfig } from "../../core/updater/teamsConfigLoader.js";
-import { loadPreviousCachedData } from "../../core/updater/cache.js";
-import { runFandomUpdate } from "../../core/updater/fandomSync.js";
+import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
+import { readTeamsConfig } from "../../core/updater/teamsConfigReader.js";
+import { readActiveUpdateWorkingSet } from "../../core/updater/activeUpdateWorkingSetReader.js";
+import { runActiveUpdate } from "../../core/updater/activeUpdateRunner.js";
 import { detectRevisionChanges } from "../../core/updater/revisionDetector.js";
 import { requireAdmin } from "./auth.js";
 
@@ -34,8 +34,8 @@ export async function handleForceUpdate(request, env) {
     let tournaments, teamsRaw;
     try {
       [tournaments, teamsRaw] = await Promise.all([
-        loadActiveConfig(env),
-        loadTeamsConfig(env)
+        readActiveConfig(env),
+        readTeamsConfig(env)
       ]);
     } catch (error) {
       return new Response(`Config load failed: ${error.message}`, { status: 500 });
@@ -45,9 +45,9 @@ export async function handleForceUpdate(request, env) {
     const now = Date.now();
     const forcedTournaments = tournaments.filter(tournament => forceSlugs.has(tournament.slug));
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
-    const cache = await loadPreviousCachedData(env, forcedTournaments);
+    const workingSet = await readActiveUpdateWorkingSet(env, forcedTournaments);
     const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, forcedTournaments);
-    await runFandomUpdate(env, tournaments, teamsRaw, cache, true, forceSlugs, {
+    await runActiveUpdate(env, tournaments, teamsRaw, workingSet, true, forceSlugs, {
       forceWrite: true,
       revidChanges,
       pendingRevisionWrites

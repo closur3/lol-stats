@@ -3,8 +3,8 @@ import { timePolicy } from '../../utils/timePolicy.js';
 import { ensureScheduleMetas } from '../facts/scheduleMetaStore.js';
 import { UPDATE_CONFIG } from './types.js';
 
-export async function loadScheduleMetaBySlug(env, sortedTournaments) {
-  const scheduleMetas = await ensureScheduleMetas(env, sortedTournaments);
+export async function ensureScheduleMetaBySlug(env, orderedTournaments) {
+  const scheduleMetas = await ensureScheduleMetas(env, orderedTournaments);
   return new Map(scheduleMetas.map(meta => [meta.slug, meta]));
 }
 
@@ -36,11 +36,11 @@ function appendHomeSchedule(scheduleMap, tournamentIndexMap, home) {
   }
 }
 
-export function buildStaticRenderInput(homeEntries, sortedTournaments, scheduleMetaBySlug) {
+export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug) {
   if (!Array.isArray(homeEntries)) throw new Error("homeEntries must be an array");
-  if (!Array.isArray(sortedTournaments)) throw new Error("sortedTournaments must be an array");
+  if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
   if (!(scheduleMetaBySlug instanceof Map)) throw new Error("scheduleMetaBySlug must be a Map");
-  const tournamentIndexMap = new Map(sortedTournaments.map((tournament, index) => [tournament.slug, index]));
+  const tournamentIndexMap = new Map(orderedTournaments.map((tournament, index) => [tournament.slug, index]));
   const globalStats = {};
   const timeGrid = {};
   const scheduleMap = {};
@@ -66,10 +66,10 @@ export function buildStaticRenderInput(homeEntries, sortedTournaments, scheduleM
     });
   }
 
-  return { tournaments: sortedTournaments, globalStats, timeGrid, scheduleMap, tournamentMeta };
+  return { tournaments: orderedTournaments, globalStats, timeGrid, scheduleMap, tournamentMeta };
 }
 
-export function pruneStaticSchedule(scheduleMap, tournamentMeta) {
+export function pruneHomeSchedule(scheduleMap, tournamentMeta) {
   const historyUnfinished = {};
   for (const [slug, meta] of Object.entries(tournamentMeta)) {
     if (meta.hasHistoryUnfinished) historyUnfinished[slug] = true;

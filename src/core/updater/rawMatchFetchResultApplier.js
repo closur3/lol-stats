@@ -38,7 +38,7 @@ function calcChangedCount(oldData, newData) {
   return { added, updated, deleted, changed: added + updated };
 }
 
-export function processResults(results, cache, force, forceSlugs, tournaments) {
+export function applyRawMatchFetchResults(results, workingSet, force, forceSlugs, tournaments) {
   const brokenSlugs = new Set();
   const errorSlugs = new Set();
   const syncItems = [];
@@ -52,8 +52,8 @@ export function processResults(results, cache, force, forceSlugs, tournaments) {
     if (resultItem.status === 'fulfilled') {
       const slug = resultItem.slug;
       const newData = resultItem.data;
-      const oldData = cache.rawMatches[slug];
-      if (!Array.isArray(oldData)) throw new Error(`RAW_MATCHES missing in previous cache: ${slug}`);
+      const oldData = workingSet.rawMatches[slug];
+      if (!Array.isArray(oldData)) throw new Error(`RAW_MATCHES missing in active update working set: ${slug}`);
       const isForce = force;
 
       if (!isForce && oldData.length > 10 && newData.length < oldData.length * UPDATE_CONFIG.DROP_THRESHOLD) {
@@ -63,14 +63,14 @@ export function processResults(results, cache, force, forceSlugs, tournaments) {
         const changedCount = calcChangedCount(oldData, newData);
         if (changedCount.changed === 0 && changedCount.deleted > 0) {
           if (isForce) {
-            cache.rawMatches[slug] = newData;
+            workingSet.rawMatches[slug] = newData;
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           } else {
-            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${oldData.length}->${newData.length} (deleted=${changedCount.deleted}), preserving cache`);
+            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${oldData.length}->${newData.length} (deleted=${changedCount.deleted}), preserving previous RAW_MATCHES`);
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           }
         } else {
-          cache.rawMatches[slug] = newData;
+          workingSet.rawMatches[slug] = newData;
           if (changedCount.changed > 0) {
             syncItems.push({
               slug,

@@ -1,8 +1,8 @@
 import { HTMLRenderer } from './htmlRenderer.js';
-import { loadActiveConfig } from '../core/updater/activeConfigLoader.js';
+import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
 import { readArchiveIndex } from '../core/updater/archiveIndex.js';
-import { loadScheduleMetaBySlug, buildStaticRenderInput, pruneStaticSchedule } from '../core/updater/staticRenderInput.js';
+import { ensureScheduleMetaBySlug, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
@@ -14,7 +14,7 @@ async function hasActiveCron(env) {
 }
 
 export async function renderHomeFromFacts(env) {
-  const tournaments = await loadActiveConfig(env);
+  const tournaments = await readActiveConfig(env);
   const homeEntries = await readHomeEntries(env, tournaments.map(t => t.slug));
 
   if (homeEntries.length === 0) {
@@ -23,9 +23,9 @@ export async function renderHomeFromFacts(env) {
   }
 
   const orderedTournaments = homeEntries.map(home => home.tournament);
-  const scheduleMetaBySlug = await loadScheduleMetaBySlug(env, orderedTournaments);
-  const renderInput = buildStaticRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
-  const limitedScheduleMap = pruneStaticSchedule(renderInput.scheduleMap, renderInput.tournamentMeta);
+  const scheduleMetaBySlug = await ensureScheduleMetaBySlug(env, orderedTournaments);
+  const renderInput = buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
+  const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.tournamentMeta);
 
   const homeFragment = HTMLRenderer.renderContentOnly(
     renderInput.globalStats,

@@ -1,14 +1,14 @@
 import { buildActiveBucketCronsFromState, shouldRunPlayLeagueAt } from "./cronBuckets.js";
 import {
   assertLeagueState,
-  readControl
+  readScheduleControl
 } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
 export async function resolveScheduledExecutionSlugs(env, scheduledTimeMs, eventCron) {
   const now = new Date(scheduledTimeMs);
   const today = timePolicy.getBusinessDateKey(now);
-  const state = await readControl(env);
+  const state = await readScheduleControl(env);
   if (!state || state.date !== today) {
     return { type: 'all' };
   }

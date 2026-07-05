@@ -1,6 +1,6 @@
 import { HTMLRenderer } from '../render/htmlRenderer.js';
 import { readArchiveIndex } from '../core/updater/archiveIndex.js';
-import { loadActiveConfig } from '../core/updater/activeConfigLoader.js';
+import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
 
@@ -15,7 +15,7 @@ export class ToolsRouter {
     try {
       // 并行读取活跃赛事、归档赛事、CRON 状态
       const [activeTournaments, archiveResult, activeCron] = await Promise.all([
-      loadActiveConfig(env),
+      readActiveConfig(env),
       (async () => {
         try {
           return { archivedTournaments: await readArchiveIndex(env), archiveError: null };

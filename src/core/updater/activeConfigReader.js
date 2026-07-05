@@ -29,9 +29,9 @@ function normalizeActiveConfig(tournaments) {
   return normalized;
 }
 
-export async function loadActiveConfig(env) {
+export async function readActiveConfig(env) {
   const kv = env["lol-stats-kv"];
-  const cached = await kv.get(kvKeys.configActive(), { type: "json" });
-  if (cached == null) throw new Error("CONFIG_ACTIVE missing");
-  return normalizeActiveConfig(cached);
+  const storedConfig = await kv.get(kvKeys.configActive(), { type: "json" });
+  if (storedConfig == null) throw new Error("CONFIG_ACTIVE missing");
+  return normalizeActiveConfig(storedConfig);
 }

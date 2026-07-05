@@ -51,9 +51,9 @@ async function readArchiveSnapshotTournaments(env) {
 
 export async function readArchiveIndex(env) {
   const kv = env["lol-stats-kv"];
-  const cached = await kv.get(kvKeys.configArchive(), { type: "json" });
-  if (cached == null) throw new Error("CONFIG_ARCHIVE missing");
-  return normalizeArchiveList(cached);
+  const storedIndex = await kv.get(kvKeys.configArchive(), { type: "json" });
+  if (storedIndex == null) throw new Error("CONFIG_ARCHIVE missing");
+  return normalizeArchiveList(storedIndex);
 }
 
 export async function writeArchiveIndex(env, archivedTournaments, options = {}) {

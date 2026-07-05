@@ -1,8 +1,8 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { dataUtils } from "../../utils/dataUtils.js";
-import { buildArchiveSnapshot } from "./archiveWriter.js";
+import { buildArchiveSnapshot } from "./archiveSnapshotBuilder.js";
 import { rebuildArchiveIndexFromSnapshots } from "./archiveIndex.js";
-import { loadTeamsConfig } from "./teamsConfigLoader.js";
+import { readTeamsConfig } from "./teamsConfigReader.js";
 import {
   buildActiveTournamentMap,
   readActiveTournamentMap,
@@ -50,7 +50,7 @@ export async function archiveRemovedActiveTournaments(env, tournaments) {
     return { archived: [] };
   }
 
-  const teamsRaw = await loadTeamsConfig(env);
+  const teamsRaw = await readTeamsConfig(env);
   for (const [, tournament] of removedEntries) {
     await archiveRemovedTournament(env, tournament, teamsRaw);
   }

@@ -1,4 +1,6 @@
-import { deleteArchiveSnapshot, rebuildArchiveFromPayload, writeManualArchive } from "../../core/updater/archiveWriter.js";
+import { deleteArchiveSnapshot } from "../../core/updater/archiveSnapshotDeletion.js";
+import { rebuildArchiveSnapshotFromPayload } from "../../core/updater/archiveSnapshotRebuilder.js";
+import { writeManualArchiveSnapshot } from "../../core/updater/manualArchiveSnapshotWriter.js";
 import { dataUtils } from "../../utils/dataUtils.js";
 import { requireAdmin, requirePost } from "./auth.js";
 
@@ -40,7 +42,7 @@ export async function handleRebuildArchive(request, env) {
   if (payloadError) return payloadError;
 
   try {
-    await rebuildArchiveFromPayload(env, payload);
+    await rebuildArchiveSnapshotFromPayload(env, payload);
     return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Error: ${error.message}`, { status: 500 });
@@ -78,7 +80,7 @@ export async function handleManualArchive(request, env) {
   if (payloadError) return payloadError;
 
   try {
-    await writeManualArchive(env, payload);
+    await writeManualArchiveSnapshot(env, payload);
     return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Save Error: ${error.message}`, { status: 500 });

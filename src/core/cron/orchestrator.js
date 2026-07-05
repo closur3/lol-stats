@@ -1,10 +1,12 @@
-import { loadActiveConfig } from "../updater/activeConfigLoader.js";
-import { loadTeamsConfig } from "../updater/teamsConfigLoader.js";
-import { loadPreviousCachedData } from "../updater/cache.js";
+import { readActiveConfig } from "../updater/activeConfigReader.js";
+import { readTeamsConfig } from "../updater/teamsConfigReader.js";
+import { readActiveUpdateWorkingSet } from "../updater/activeUpdateWorkingSetReader.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
-import { runFandomUpdate } from "../updater/fandomSync.js";
+import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
-import { reconcileLeagueStates, resolveScheduledExecutionSlugs, runScheduleMaintenance } from "../scheduler/dynamicCronManager.js";
+import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
+import { reconcileLeagueStates } from "../scheduler/scheduleStateReconciler.js";
+import { resolveScheduledExecutionSlugs } from "../scheduler/scheduleReconciler.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { Logger } from "../../infrastructure/logger.js";
 
@@ -34,9 +36,9 @@ async function runRevisionPath(env, tournaments, teamsRaw, revisionResult, logge
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
-    const cache = await loadPreviousCachedData(env, changedTournaments);
+    const workingSet = await readActiveUpdateWorkingSet(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runFandomUpdate(env, tournaments, teamsRaw, cache, false, changedSlugs, {
+    await runActiveUpdate(env, tournaments, teamsRaw, workingSet, false, changedSlugs, {
       forceWrite: false,
       revidChanges,
       pendingRevisionWrites
@@ -50,8 +52,8 @@ export async function runCron(env, event) {
   const logger = new Logger();
   const scheduleOptions = resolveScheduleOptions(env);
   const [tournaments, teamsRaw] = await Promise.all([
-    loadActiveConfig(env),
-    loadTeamsConfig(env)
+    readActiveConfig(env),
+    readTeamsConfig(env)
   ]);
   if (!Array.isArray(tournaments)) {
     throw new Error("tournaments must be an array");
