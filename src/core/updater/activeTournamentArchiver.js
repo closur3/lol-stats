@@ -1,7 +1,7 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { dataUtils } from "../../utils/dataUtils.js";
+import { readArchiveConfig } from "./archiveConfigReader.js";
 import { buildArchiveSnapshot } from "./archiveSnapshotBuilder.js";
-import { rebuildArchiveIndexFromSnapshots } from "./archiveIndex.js";
 import { readTeamsConfig } from "./teamsConfigReader.js";
 import {
   buildActiveTournamentMap,
@@ -50,11 +50,13 @@ export async function archiveRemovedActiveTournaments(env, tournaments) {
     return { archived: [] };
   }
 
-  const teamsRaw = await readTeamsConfig(env);
-  for (const [, tournament] of removedEntries) {
-    await archiveRemovedTournament(env, tournament, teamsRaw);
+  const [teamsRaw, archiveConfig] = await Promise.all([readTeamsConfig(env), readArchiveConfig(env)]);
+  const archiveBySlug = new Map(archiveConfig.map(tournament => [tournament.slug, tournament]));
+  for (const [slug] of removedEntries) {
+    const archiveTournament = archiveBySlug.get(slug);
+    if (!archiveTournament) throw new Error(`CONFIG_ARCHIVE missing removed active tournament: ${slug}`);
+    await archiveRemovedTournament(env, archiveTournament, teamsRaw);
   }
-  await rebuildArchiveIndexFromSnapshots(env);
   for (const [slug] of removedEntries) {
     await deleteActiveRuntimeFacts(env, slug);
   }

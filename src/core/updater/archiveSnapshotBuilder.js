@@ -16,14 +16,3 @@ export function buildArchiveSnapshot(tournament, rawMatches, teamMap) {
     teamMap
   };
 }
-
-export function buildArchiveTournamentFromPayload(payload) {
-  return {
-    slug: payload.slug,
-    name: payload.name,
-    league: payload.league,
-    overview_page: payload.overviewPages,
-    start_date: payload.startDate,
-    end_date: payload.endDate
-  };
-}

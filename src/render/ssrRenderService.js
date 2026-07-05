@@ -1,7 +1,7 @@
 import { HTMLRenderer } from './htmlRenderer.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
-import { readArchiveIndex } from '../core/updater/archiveIndex.js';
+import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
 import { ensureScheduleMetaBySlug, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
@@ -42,7 +42,7 @@ export async function renderHomeFromFacts(env) {
 
 export async function renderArchiveFromFacts(env) {
   const kv = env["lol-stats-kv"];
-  const tournaments = await readArchiveIndex(env);
+  const tournaments = await readArchiveConfig(env);
 
   if (!tournaments.length) {
     const activeCron = await hasActiveCron(env);

@@ -1,5 +1,5 @@
 import { HTMLRenderer } from '../render/htmlRenderer.js';
-import { readArchiveIndex } from '../core/updater/archiveIndex.js';
+import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
@@ -18,7 +18,7 @@ export class ToolsRouter {
       readActiveConfig(env),
       (async () => {
         try {
-          return { archivedTournaments: await readArchiveIndex(env), archiveError: null };
+          return { archivedTournaments: await readArchiveConfig(env), archiveError: null };
         } catch (error) {
           return { archivedTournaments: [], archiveError: error.message };
         }

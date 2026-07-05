@@ -38,45 +38,9 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
                       ${archiveListHtml}
                   </div>
                   <div class="ops-actions">
-                      <button class="secondary-btn" onclick="previewConfigAction('archive-rebuild', this)">Rebuild Index</button>
                       <button class="primary-btn" onclick="rebuildSelected()">Rebuild</button>
                   </div>
 
-              </div>
-          </div>
-
-          <div class="wrapper">
-              <div class="table-title">📦 Manual Archive</div>
-              <div class="section-body">
-                  <div class="form-grid">
-                      <div class="form-group">
-                          <label class="tool-label">Slug</label>
-                          <input type="text" id="ma-slug" placeholder="lpl-2026-split-1" class="form-input" required>
-                      </div>
-                      <div class="form-group">
-                          <label class="tool-label">Name</label>
-                          <input type="text" id="ma-name" placeholder="LPL 2026 Split 1" class="form-input" required>
-                      </div>
-                      <div class="form-group">
-                          <label class="tool-label">Overview Page</label>
-                          <input type="text" id="ma-overview" placeholder="LPL/2026 Season/Split 1" class="form-input" required>
-                      </div>
-                      <div class="form-group">
-                          <label class="tool-label">League</label>
-                          <input type="text" id="ma-league" placeholder="LPL" class="form-input" required>
-                      </div>
-                      <div class="form-group">
-                          <label class="tool-label">Start Date</label>
-                          <input type="text" id="ma-start" placeholder="YYYY-MM-DD" class="form-input" required>
-                      </div>
-                      <div class="form-group">
-                          <label class="tool-label">End Date</label>
-                          <input type="text" id="ma-end" placeholder="YYYY-MM-DD" class="form-input" required>
-                      </div>
-                  </div>
-                  <div class="actions-row-end">
-                      <button class="primary-btn" onclick="submitManualArchive()">Save Metadata</button>
-                  </div>
               </div>
           </div>`;
 
@@ -85,8 +49,8 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
           <div class="index-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="indexConfirmTitle">
               <div id="indexConfirmIcon" class="index-confirm-icon">↻</div>
               <div class="index-confirm-content">
-                  <h2 id="indexConfirmTitle">Rebuild from ARCHIVE_*</h2>
-                  <div id="indexConfirmFlow" class="index-confirm-flow">ARCHIVE_* → CONFIG_ARCHIVE</div>
+                  <h2 id="indexConfirmTitle">Confirm operation</h2>
+                  <div id="indexConfirmFlow" class="index-confirm-flow"></div>
               </div>
               <div class="index-confirm-actions">
                   <button class="secondary-btn" onclick="closeConfigActionConfirm()">Cancel</button>

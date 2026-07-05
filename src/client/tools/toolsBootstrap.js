@@ -43,15 +43,6 @@ export const TOOLS_BOOTSTRAP = `
           function getConfigActionMeta(action, payload) {
               payload = payload || {};
               var actions = {
-                  'archive-rebuild': {
-                      label: 'Rebuild from ARCHIVE_*',
-                      flow: 'ARCHIVE_* → CONFIG_ARCHIVE',
-                      icon: '↻',
-                      url: '/rebuild-archive-index',
-                      busyText: 'Rebuilding...',
-                      submitText: 'Rebuild',
-                      doneText: 'Rebuilt archive index'
-                  },
                   'active-runtime-delete': {
                       label: 'Delete active runtime state',
                       flow: 'Target: ' + (payload.name || payload.slug || 'Active tournament'),
@@ -69,7 +60,7 @@ export const TOOLS_BOOTSTRAP = `
                       icon: '!',
                       url: '/delete-archive',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ slug: payload.slug, name: payload.name }),
+                      body: JSON.stringify({ slug: payload.slug }),
                       busyText: 'Deleting...',
                       submitText: 'Delete',
                       doneText: 'Deleted archive snapshot'

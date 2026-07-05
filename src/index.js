@@ -31,18 +31,12 @@ export default {
       case "/rebuild-archive":
         return APIRouter.handleRebuildArchive(request, env);
 
-      case "/rebuild-archive-index":
-        return APIRouter.handleRebuildArchiveIndex(request, env);
-
       case "/delete-active":
         return APIRouter.handleDeleteActive(request, env);
       
       case "/delete-archive":
         return APIRouter.handleDeleteArchive(request, env);
       
-      case "/manual-archive":
-        return APIRouter.handleManualArchive(request, env);
-
       case "/logs":
         return LogsRouter.handleLogs(request, env);
       

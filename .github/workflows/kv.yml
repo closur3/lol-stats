@@ -2,22 +2,6 @@ name: "Config: Persist KV"
 
 on:
   workflow_dispatch:
-    inputs:
-      persist_config_active:
-        description: "Persist CONFIG_ACTIVE from config/active.json"
-        required: true
-        type: boolean
-        default: true
-      persist_config_teams:
-        description: "Persist CONFIG_TEAMS from config/teams.json"
-        required: true
-        type: boolean
-        default: true
-      persist_config_archive:
-        description: "Persist CONFIG_ARCHIVE from config/archive.json"
-        required: true
-        type: boolean
-        default: false
 
 jobs:
   persist:
@@ -30,9 +14,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PERSIST_CONFIG_ACTIVE: ${{ inputs.persist_config_active }}
-          PERSIST_CONFIG_TEAMS: ${{ inputs.persist_config_teams }}
-          PERSIST_CONFIG_ARCHIVE: ${{ inputs.persist_config_archive }}
         run: |
           set -euo pipefail
 
@@ -56,14 +37,6 @@ jobs:
             echo "${key} updated in Cloudflare KV."
           }
 
-          if [[ "${PERSIST_CONFIG_ACTIVE}" == "true" ]]; then
-            put_config "CONFIG_ACTIVE" "config/active.json"
-          fi
-
-          if [[ "${PERSIST_CONFIG_TEAMS}" == "true" ]]; then
-            put_config "CONFIG_TEAMS" "config/teams.json"
-          fi
-
-          if [[ "${PERSIST_CONFIG_ARCHIVE}" == "true" ]]; then
-            put_config "CONFIG_ARCHIVE" "config/archive.json"
-          fi
+          put_config "CONFIG_ARCHIVE" "config/archive.json"
+          put_config "CONFIG_ACTIVE" "config/active.json"
+          put_config "CONFIG_TEAMS" "config/teams.json"

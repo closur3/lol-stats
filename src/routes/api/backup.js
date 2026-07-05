@@ -1,4 +1,4 @@
-import { readArchiveIndex } from "../../core/updater/archiveIndex.js";
+import { readArchiveConfig } from "../../core/updater/archiveConfigReader.js";
 import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
@@ -50,7 +50,7 @@ export async function handleBackup(request, env) {
   const kv = env["lol-stats-kv"];
   const [tournaments, archiveTournaments] = await Promise.all([
     readActiveConfig(env),
-    readArchiveIndex(env)
+    readArchiveConfig(env)
   ]);
 
   const [home, archive] = await Promise.all([
@@ -58,7 +58,7 @@ export async function handleBackup(request, env) {
     readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot, assertArchiveFields)
   ]);
 
-  return new Response(JSON.stringify({ home, archive, configArchive: archiveTournaments }), {
+  return new Response(JSON.stringify({ home, archive }), {
     headers: { "content-type": "application/json" }
   });
 }

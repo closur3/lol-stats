@@ -1,0 +1,55 @@
+import { describe, expect, it, vi } from "vitest";
+import { readArchiveConfig } from "./archiveConfigReader.js";
+
+function createEnv(value) {
+  return {
+    "lol-stats-kv": {
+      get: vi.fn().mockResolvedValue(value)
+    }
+  };
+}
+
+describe("readArchiveConfig", () => {
+  it("reads CONFIG_ARCHIVE without changing GitHub-defined order", async () => {
+    const config = [
+      {
+        slug: "z-tournament",
+        name: "Z Tournament",
+        league: "Z",
+        overview_page: ["Z/2026"],
+        start_date: "2026-06-01",
+        end_date: "2026-06-30"
+      },
+      {
+        slug: "a-tournament",
+        name: "A Tournament",
+        league: "A",
+        overview_page: ["A/2026"],
+        start_date: "2026-01-01",
+        end_date: "2026-01-31"
+      }
+    ];
+
+    const result = await readArchiveConfig(createEnv(config));
+
+    expect(result.map(tournament => tournament.slug)).toEqual(["z-tournament", "a-tournament"]);
+  });
+
+  it("fails when CONFIG_ARCHIVE is missing", async () => {
+    await expect(readArchiveConfig(createEnv(null))).rejects.toThrow("CONFIG_ARCHIVE missing");
+  });
+
+  it("rejects duplicate slugs", async () => {
+    const tournament = {
+      slug: "duplicate",
+      name: "Duplicate",
+      league: "DUP",
+      overview_page: ["Duplicate/2026"],
+      start_date: "2026-01-01",
+      end_date: "2026-01-31"
+    };
+
+    await expect(readArchiveConfig(createEnv([tournament, tournament])))
+      .rejects.toThrow("Duplicate CONFIG_ARCHIVE slug: duplicate");
+  });
+});

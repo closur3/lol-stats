@@ -1,4 +1,4 @@
-name: "Meta: Sync Metadata"
+name: "Meta: Sync Mappings"
 
 on:
   workflow_dispatch:

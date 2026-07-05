@@ -1,4 +1,4 @@
-name: "Dump: Backup Stats"
+name: "Backup: Export Markdown"
 
 on:
   schedule:
@@ -39,7 +39,6 @@ jobs:
           if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Backup payload must be object");
           if (!data.home || typeof data.home !== "object" || Array.isArray(data.home)) throw new Error("Backup payload home must be object");
           if (!data.archive || typeof data.archive !== "object" || Array.isArray(data.archive)) throw new Error("Backup payload archive must be object");
-          if (!Array.isArray(data.configArchive)) throw new Error("Backup payload configArchive must be array");
 
           async function writeSnapshotMarkdown(slug, snapshot, written) {
             if (!snapshot?.tournament || snapshot.tournament.slug !== slug) throw new Error(`Invalid backup snapshot: ${slug}`);
@@ -54,7 +53,6 @@ jobs:
 
           await rm("markdown", { recursive: true, force: true });
           await mkdir("markdown", { recursive: true });
-          await mkdir("config", { recursive: true });
 
           const written = new Set();
           for (const [slug, snapshot] of Object.entries(data.home).sort()) {
@@ -64,9 +62,7 @@ jobs:
             await writeSnapshotMarkdown(slug, snapshot, written);
           }
 
-          await writeFile("config/archive.json", `${JSON.stringify(data.configArchive, null, 2)}\n`, "utf8");
-          console.log("📝 [写入] config/archive.json");
-          console.log(`\n✅ 处理完成。共写入 ${written.size + 1} 个文件。`);
+          console.log(`\n✅ 处理完成。共写入 ${written.size} 个文件。`);
           NODE
         shell: bash
 
@@ -74,7 +70,7 @@ jobs:
         id: commit_meta
         shell: bash
         run: |
-          commit_msg=$(git status --porcelain -- 'markdown' 'config/archive.json' | awk '
+          commit_msg=$(git status --porcelain -- 'markdown' | awk '
             {
               code=$1; f=$2;
               if (code=="R" || code=="RM" || code=="RD") f=$3;
@@ -112,4 +108,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.commit_meta.outputs.commit_msg }}"
-          file_pattern: "markdown/*.md config/archive.json"
+          file_pattern: "markdown/*.md"

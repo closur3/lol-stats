@@ -1,0 +1,36 @@
+import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+
+function normalizeArchiveTournament(tournament) {
+  if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
+    throw new Error("CONFIG_ARCHIVE tournament must be object");
+  }
+  const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
+  const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
+  const league = typeof tournament.league === "string" ? tournament.league.trim() : "";
+  const startDate = typeof tournament.start_date === "string" ? tournament.start_date.trim() : "";
+  const endDate = typeof tournament.end_date === "string" ? tournament.end_date.trim() : "";
+  const overviewPage = Array.isArray(tournament.overview_page)
+    ? tournament.overview_page.filter(page => typeof page === "string" && page.trim()).map(page => page.trim())
+    : [];
+  if (!slug || !name || !league || !startDate || !endDate || overviewPage.length === 0) {
+    throw new Error(`Invalid CONFIG_ARCHIVE tournament: ${slug || "(missing slug)"}`);
+  }
+  return { slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate };
+}
+
+function normalizeArchiveConfig(tournaments) {
+  if (!Array.isArray(tournaments)) throw new Error("CONFIG_ARCHIVE must be array");
+  const slugs = new Set();
+  return tournaments.map(tournament => {
+    const normalized = normalizeArchiveTournament(tournament);
+    if (slugs.has(normalized.slug)) throw new Error(`Duplicate CONFIG_ARCHIVE slug: ${normalized.slug}`);
+    slugs.add(normalized.slug);
+    return normalized;
+  });
+}
+
+export async function readArchiveConfig(env) {
+  const storedConfig = await env["lol-stats-kv"].get(kvKeys.configArchive(), { type: "json" });
+  if (storedConfig == null) throw new Error("CONFIG_ARCHIVE missing");
+  return normalizeArchiveConfig(storedConfig);
+}

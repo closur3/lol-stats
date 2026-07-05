@@ -50,7 +50,6 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .tool-info-title { font-weight: 600; color: #0f172a; margin-bottom: 4px; }
     .tool-info-desc { font-size: 13px; color: #64748b; }
     .tool-info-desc-spaced { margin-bottom: 20px; }
-    .actions-row-end { display: flex; justify-content: flex-end; }
 
     .ops-body .list { display: flex; flex-direction: column; gap: 4px; }
     .ops-body .item { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 6px; transition: 0.2s; border: 1px solid transparent; }
@@ -66,8 +65,6 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .ops-body .ops-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px; }
     .ops-body .icon-btn { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 8px; cursor: pointer; font-size: 14px; transition: 0.2s; }
     .ops-body .icon-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
-    .ops-body .icon-btn-fill { color: #2563eb; }
-    .ops-body .icon-btn-fill:hover { background: #eff6ff; border-color: #93c5fd; }
     .ops-body .icon-btn-del { color: #dc2626; }
     .ops-body .icon-btn-del:hover { background: #fef2f2; border-color: #fca5a5; }
 
@@ -84,9 +81,6 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .primary-btn { background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; transition: 0.2s; margin: 0; white-space: nowrap; }
     .primary-btn:hover { background: #1d4ed8; box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
 
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-    .form-group { display: flex; flex-direction: column; }
-    .tool-label { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; padding-left: 2px; }
     .form-input { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; color: #0f172a; box-sizing: border-box; transition: all 0.2s; background: #f8fafc; }
     .form-input:focus { background: #fff; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); outline: none; }
     .form-input::placeholder { color: #94a3b8; }
@@ -108,7 +102,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .view-select { width: auto; min-width: 80px; padding: 6px 28px 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #0f172a; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center; -webkit-appearance: none; appearance: none; cursor: pointer; flex-shrink: 0; }
     .view-select:focus { border-color: #2563eb; outline: none; }
 
-    @media (max-width: 650px) { .form-grid { grid-template-columns: 1fr; gap: 12px; } .flex-row { flex-direction: column; align-items: stretch; text-align: left; } .primary-btn, .secondary-btn { width: 100%; } .actions-row-end { flex-direction: column; } .index-confirm-dialog { grid-template-columns: 1fr; } .index-confirm-actions { flex-direction: column-reverse; } .qr-list-container { grid-template-columns: 1fr; } .ops-actions { flex-direction: column; } .ops-body .item { flex-wrap: wrap; } .ops-body .item-right { width: 100%; justify-content: flex-end; margin-top: 4px; } }
+    @media (max-width: 650px) { .flex-row { flex-direction: column; align-items: stretch; text-align: left; } .primary-btn, .secondary-btn { width: 100%; } .index-confirm-dialog { grid-template-columns: 1fr; } .index-confirm-actions { flex-direction: column-reverse; } .qr-list-container { grid-template-columns: 1fr; } .ops-actions { flex-direction: column; } .ops-body .item { flex-wrap: wrap; } .ops-body .item-right { width: 100%; justify-content: flex-end; margin-top: 4px; } }
 
     
     ${footerCSS}

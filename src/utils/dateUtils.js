@@ -74,26 +74,5 @@ export const dateUtils = {
       limited[date] = kept[date];
     });
     return limited;
-  },
-
-  /**
-   * 排序锦标赛日期
-   */
-  sortTournamentsByDate: (tournaments) => {
-    return [...tournaments].sort((leftTournament, rightTournament) => {
-      const leftStart = leftTournament.start_date || '';
-      const rightStart = rightTournament.start_date || '';
-      const startOrder = rightStart.localeCompare(leftStart);
-      if (startOrder !== 0) return startOrder;
-
-      const leftEnd = leftTournament.end_date || '';
-      const rightEnd = rightTournament.end_date || '';
-      const endOrder = rightEnd.localeCompare(leftEnd);
-      if (endOrder !== 0) return endOrder;
-
-      const leftSlug = leftTournament.slug || '';
-      const rightSlug = rightTournament.slug || '';
-      return rightSlug.localeCompare(leftSlug);
-    });
   }
 };

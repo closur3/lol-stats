@@ -1,4 +1,4 @@
-name: "Active: Discover Tournaments"
+name: "Tour: Sync Tournaments"
 
 on:
   workflow_dispatch:
@@ -39,6 +39,7 @@ jobs:
           now = datetime.now()
           today_dt = now.date()
           TARGET_FILE = "config/active.json"
+          ARCHIVE_FILE = "config/archive.json"
 
           # ==================== 配置区 ====================
           PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
@@ -84,6 +85,26 @@ jobs:
                   except Exception:
                       pass
                   return default
+
+          def load_required_json_array(path: str) -> list:
+              with open(path, "r", encoding="utf-8") as f:
+                  value = json.load(f)
+              if not isinstance(value, list):
+                  raise ValueError(f"{path} must contain a JSON array")
+              required = ("slug", "name", "league", "start_date", "end_date")
+              slugs = set()
+              for index, item in enumerate(value):
+                  if not isinstance(item, dict):
+                      raise ValueError(f"{path}[{index}] must be an object")
+                  if any(not isinstance(item.get(field), str) or not item[field].strip() for field in required):
+                      raise ValueError(f"{path}[{index}] fields missing")
+                  overview_pages = item.get("overview_page")
+                  if not isinstance(overview_pages, list) or not overview_pages or any(not isinstance(page, str) or not page.strip() for page in overview_pages):
+                      raise ValueError(f"{path}[{index}].overview_page must be a non-empty string array")
+                  if item["slug"] in slugs:
+                      raise ValueError(f"Duplicate slug in {path}: {item['slug']}")
+                  slugs.add(item["slug"])
+              return value
 
           def add_extra_ov(ev: dict, ov: str) -> None:
               if ov not in ev.setdefault("extra_ovs", []):
@@ -247,7 +268,8 @@ jobs:
 
           def run_sniff():
               start_time = time.time()
-              old_items = load_json(TARGET_FILE, []) or []
+              old_items = load_required_json_array(TARGET_FILE)
+              archive_items = load_required_json_array(ARCHIVE_FILE)
 
               LEAGUE_MAPPING = load_json("config/leagues.json", {})
 
@@ -441,32 +463,35 @@ jobs:
                   for name, league, start, end, ovs in admitted_events
               ]
 
-              if os.path.exists(TARGET_FILE):
-                  with open(TARGET_FILE, "r", encoding="utf-8") as f:
-                      for item in json.load(f):
-                          try:
-                              start_dt = parse_date(item["start_date"])
-                              end_dt = parse_date(item["end_date"])
-                              is_cross_year = start_dt.year != end_dt.year
-                              if is_cross_year and today_dt <= (end_dt + timedelta(days=EXPIRE_DAYS)):
-                                  final_output.append(item)
-                          except Exception:
-                              pass
+              for item in old_items:
+                  start_dt = parse_date(item["start_date"])
+                  end_dt = parse_date(item["end_date"])
+                  is_cross_year = start_dt.year != end_dt.year
+                  if is_cross_year and today_dt <= (end_dt + timedelta(days=EXPIRE_DAYS)):
+                      final_output.append(item)
 
               def sort_key(x):
                   return (x.get("start_date", ""), x.get("end_date", ""), x.get("slug", ""))
 
-              unique_res = sorted(final_output, key=sort_key, reverse=True)
+              active_map = {item["slug"]: item for item in final_output}
+              unique_res = sorted(active_map.values(), key=sort_key, reverse=True)
+
+              old_map = {item.get("slug"): item for item in old_items if item.get("slug")}
+              new_map = {item.get("slug"): item for item in unique_res if item.get("slug")}
+              removed = sorted(old_map.keys() - new_map.keys())
+              archive_map = {item["slug"]: item for item in archive_items}
+              for slug in removed:
+                  archive_map[slug] = old_map[slug]
+              archive_output = sorted(archive_map.values(), key=sort_key, reverse=True)
 
               with open(TARGET_FILE, "w", encoding="utf-8") as f:
                   json.dump(unique_res, f, indent=4, ensure_ascii=False)
 
-              # ── 摘要 ──
-              old_map = {item.get("slug"): item for item in old_items if item.get("slug")}
-              new_map = {item.get("slug"): item for item in unique_res if item.get("slug")}
+              with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
+                  json.dump(archive_output, f, indent=4, ensure_ascii=False)
 
+              # ── 摘要 ──
               added = sorted(new_map.keys() - old_map.keys())
-              removed = sorted(old_map.keys() - new_map.keys())
               updated = sorted(
                   slug for slug in (new_map.keys() & old_map.keys())
                   if new_map[slug] != old_map[slug]
@@ -505,7 +530,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
-          file_pattern: 'config/active.json'
+          file_pattern: 'config/active.json config/archive.json'
 
       - name: Trigger KV Persist
         if: steps.auto_commit.outputs.changes_detected == 'true'
