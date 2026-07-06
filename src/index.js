@@ -24,6 +24,9 @@ export default {
       
       case "/tools":
         return ToolsRouter.handleTools(request, env);
+
+      case "/tools/auth":
+        return ToolsRouter.handleToolsAuth(request, env);
       
       case "/backup":
         return handleBackup(request, env);

@@ -4,6 +4,67 @@ import { escapeHtml } from '../../utils/htmlEscape.js';
 import { renderPageShell } from './page.js';
 import { renderActiveTournamentList, renderArchivedTournamentList } from './toolsLists.js';
 
+const TOOLS_AUTH_SCRIPT = `
+<script>
+  const authForm = document.getElementById("tools-auth-form");
+  const authInput = document.getElementById("auth-pwd");
+  const authButton = document.getElementById("auth-submit");
+
+  function shakeAuthInput() {
+    authInput.classList.remove("auth-input-error");
+    void authInput.offsetWidth;
+    authInput.classList.add("auth-input-error");
+    authInput.focus();
+    authInput.select();
+  }
+
+  authForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+    const password = authInput.value;
+    if (!password) {
+      shakeAuthInput();
+      return;
+    }
+    authButton.disabled = true;
+    authButton.textContent = "Unlocking...";
+    try {
+      const response = await fetch("/tools/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      if (response.ok) {
+        window.location.href = "/tools";
+        return;
+      }
+      shakeAuthInput();
+    } catch (_error) {
+      shakeAuthInput();
+    } finally {
+      authButton.disabled = false;
+      authButton.textContent = "Unlock";
+    }
+  });
+</script>`;
+
+export function renderToolsAuthPage(time, sha) {
+  const preBody = `
+      <div id="auth-overlay">
+          <form id="tools-auth-form" class="auth-card" autocomplete="off">
+              <div class="auth-icon">🔐</div>
+              <input type="password" id="auth-pwd" class="form-input auth-input" placeholder="Password" autofocus>
+              <button id="auth-submit" class="primary-btn auth-btn" type="submit">Unlock</button>
+          </form>
+      </div>`;
+
+  return renderPageShell("Tools", "", "tools", time, sha, false, {
+    css: toolsCSS,
+    script: TOOLS_AUTH_SCRIPT,
+    preBody,
+    showModal: false
+  });
+}
+
 export function renderToolsPage(time, sha, activeTournaments = [], archivedTournaments = [], archiveError = null, hasActiveCron = false) {
   const activeListHtml = renderActiveTournamentList(activeTournaments);
   const archiveListHtml = renderArchivedTournamentList(archivedTournaments);
@@ -58,13 +119,7 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
               </div>
           </div>
       </div>
-      <div id="auth-overlay">
-          <div class="auth-card">
-              <div class="auth-icon">🔐</div>
-              <input type="password" id="auth-pwd" class="form-input auth-input" placeholder="Password" onkeypress="if(event.key==='Enter') unlockTools()">
-              <button class="primary-btn auth-btn" onclick="unlockTools()">Unlock</button>
-          </div>
-      </div>`;
+      `;
 
   return renderPageShell("Tools", bodyContent, "tools", time, sha, hasActiveCron, {
     css: toolsCSS,

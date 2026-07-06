@@ -1,6 +1,5 @@
 export const TOOLS_REBUILD = `
           function rebuildSelected() {
-              if (!requireAuth()) return;
               var checked = document.querySelectorAll('.qr-chk-archived:checked');
               if (checked.length === 0) { showToast("⚠️ No archive selected", "error"); return; }
               var selected = Array.from(checked).map(function(checkboxElement) { return { slug: (checkboxElement.value || '').trim(), name: (checkboxElement.dataset.name || '').trim() }; });

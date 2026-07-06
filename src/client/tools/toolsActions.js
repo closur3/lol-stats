@@ -4,7 +4,6 @@ export const TOOLS_ACTIONS = `
           }
 
           function forceSelected() {
-              if (!requireAuth()) return;
               var checked = document.querySelectorAll('#active-list .item-chk:checked');
               if (checked.length === 0) { showToast("⚠️ No active selected", "error"); return; }
               var slugs = Array.from(checked).map(function(checkboxElement) { return checkboxElement.value; });
@@ -19,7 +18,6 @@ export const TOOLS_ACTIONS = `
           }
 
           function forceOne(slug, btnEl) {
-              if (!requireAuth()) return;
               var restore = setButtonBusy(btnEl, '🔄');
               sendAuthorizedPost('/force', { 'Content-Type': 'application/json' }, JSON.stringify({ slugs: [slug] })).then(function(res) {
                   if (checkAuthError(res.status)) return;
@@ -30,7 +28,6 @@ export const TOOLS_ACTIONS = `
           }
 
           function deleteActive(slug, name, button) {
-              if (!requireAuth()) return;
               previewConfigAction('active-runtime-delete', button, { slug: slug, name: name });
           }
 `;

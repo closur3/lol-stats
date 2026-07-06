@@ -108,12 +108,20 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     ${footerCSS}
 
 
-    /* Clean Glass Auth Overlay */
-    #auth-overlay { position: fixed; inset: 0; background: rgba(241,245,249,0.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 999; }
+    #auth-overlay { position: fixed; top: 64px; right: 0; bottom: 0; left: 0; background: #f1f5f9; display: flex; justify-content: center; align-items: center; z-index: 90; }
     .auth-card { background: #fff; padding: 35px 30px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); width: 340px; text-align: center; box-sizing: border-box; border: 1px solid #e2e8f0; }
     .auth-icon { font-size: 32px; margin-bottom: 20px; }
     .auth-btn { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
     .auth-input { text-align: center; letter-spacing: 2px; margin-bottom: 20px; padding: 12px; }
+    .auth-input-error { border-color: #ef4444; background: #fff1f2; animation: authShake 0.32s ease-in-out; }
+    .auth-input-error:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.14); }
+    @keyframes authShake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-8px); }
+        40% { transform: translateX(7px); }
+        60% { transform: translateX(-5px); }
+        80% { transform: translateX(4px); }
+    }
 
     /* Toast 通知 */
     #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; width: auto; max-width: 92vw; }
