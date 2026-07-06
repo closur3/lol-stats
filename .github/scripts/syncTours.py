@@ -1,0 +1,524 @@
+import requests, json, re, time, os, sys, random
+from datetime import datetime, timedelta
+
+now = datetime.now()
+today_dt = now.date()
+TARGET_FILE = "config/ConfigActive.json"
+ARCHIVE_FILE = "config/ConfigArchive.json"
+
+# ==================== 配置区 ====================
+PREHEAT_DAYS, EXPIRE_DAYS = 7, 1
+DEFAULT_REGIONS = ["International", "China", "Korea"]
+FORCE_INCLUDE_KEYWORDS = []
+BLACKLIST = ["Opening"]
+
+NAME_MAPPING = {
+    "Rounds 1-4": ["Rounds 1-2", "Rounds 3-4"],
+}
+
+CARGO_FIELDS = [
+    "Name", "OverviewPage", "DateStart", "Date", "Region", "Year", "IsPlayoffs", "League"
+]
+CARGO_REQUIRED_WHERE = {
+    "Year": [now.year],
+}
+CARGO_DEFAULT_WHERE = {
+    "TournamentLevel": "Primary",
+    "IsQualifier": "0",
+}
+CARGO_WHERE_RAW = ["DateStart IS NOT NULL"]
+CARGO_ORDER_BY = "DateStart ASC"
+# ================================================
+
+# ==================== 工具函数 ====================
+
+def parse_date(s: str):
+    return datetime.strptime(s, "%Y-%m-%d").date()
+
+def load_required_json_array(path: str) -> list:
+    with open(path, "r", encoding="utf-8") as f:
+        value = json.load(f)
+    if not isinstance(value, list):
+        raise ValueError(f"{path} must contain a JSON array")
+    required = ("slug", "name", "league", "start_date", "end_date")
+    slugs = set()
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path}[{index}] must be an object")
+        if any(not isinstance(item.get(field), str) or not item[field].strip() for field in required):
+            raise ValueError(f"{path}[{index}] fields missing")
+        overview_pages = item.get("overview_page")
+        if not isinstance(overview_pages, list) or not overview_pages or any(not isinstance(page, str) or not page.strip() for page in overview_pages):
+            raise ValueError(f"{path}[{index}].overview_page must be a non-empty string array")
+        if item["slug"] in slugs:
+            raise ValueError(f"Duplicate slug in {path}: {item['slug']}")
+        slugs.add(item["slug"])
+    return value
+
+def load_required_json_object(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        value = json.load(f)
+    if not isinstance(value, dict) or isinstance(value, list):
+        raise ValueError(f"{path} must contain a JSON object")
+    for key, item in value.items():
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError(f"{path} key missing")
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError(f"{path}.{key} must be a non-empty string")
+    return value
+
+def add_extra_ov(ev: dict, ov: str) -> None:
+    if ov not in ev.setdefault("extra_ovs", []):
+        ev["extra_ovs"].append(ov)
+
+def log(msg: str) -> None:
+    print(msg, flush=True)
+
+def log_tree(lines: list) -> None:
+    for line in lines:
+        print(line, flush=True)
+
+def cargo_string_literal(value, label: str) -> str:
+    text = str(value)
+    if not text:
+        raise ValueError(f"Empty Cargo value: {label}")
+    if any(ch in text for ch in ("\0", "\r", "\n")):
+        raise ValueError(f"Invalid Cargo value: {label}")
+    return "'" + text.replace("'", "''") + "'"
+
+def build_field_condition(field: str, value) -> str:
+    if isinstance(value, list):
+        if len(value) == 0:
+            raise ValueError(f"Empty Cargo list: {field}")
+        if len(value) == 1:
+            return f"{field} = {cargo_string_literal(value[0], field)}"
+        values = ", ".join(cargo_string_literal(item, field) for item in value)
+        return f"{field} IN ({values})"
+    return f"{field} = {cargo_string_literal(value, field)}"
+
+def build_force_include_condition(keywords: list):
+    if not isinstance(keywords, list):
+        raise ValueError("FORCE_INCLUDE_KEYWORDS must be list")
+    clauses = []
+    for keyword in keywords:
+        if not isinstance(keyword, str) or not keyword.strip():
+            raise ValueError("FORCE_INCLUDE_KEYWORDS item must be non-empty string")
+        clean_keyword = keyword.strip()
+        if "%" in clean_keyword or "_" in clean_keyword:
+            raise ValueError("FORCE_INCLUDE_KEYWORDS item must not contain Cargo LIKE wildcard")
+        pattern = f"%{clean_keyword}%"
+        literal = cargo_string_literal(pattern, "FORCE_INCLUDE_KEYWORDS")
+        clauses.append(f"OverviewPage LIKE {literal}")
+        clauses.append(f"Name LIKE {literal}")
+    return f"({' OR '.join(clauses)})" if clauses else None
+
+def build_where_condition(where_dict: dict) -> str:
+    if not isinstance(where_dict, dict) or not where_dict:
+        raise ValueError("Cargo where dict must be non-empty")
+    return " AND ".join(build_field_condition(k, v) for k, v in where_dict.items())
+
+def build_default_discovery_condition(where_dict: dict, default_regions: list) -> str:
+    if not isinstance(default_regions, list) or not default_regions:
+        raise ValueError("DEFAULT_REGIONS must be non-empty list")
+    return f"{build_where_condition(where_dict)} AND {build_field_condition('Region', default_regions)}"
+
+def build_discovery_condition(where_dict: dict, default_regions: list, force_keywords: list) -> str:
+    default_condition = build_default_discovery_condition(where_dict, default_regions)
+    force_condition = build_force_include_condition(force_keywords)
+    return f"({default_condition} OR {force_condition})" if force_condition else default_condition
+
+def build_where(required_where: dict, default_where: dict, default_regions: list, force_keywords: list, raw=None) -> str:
+    parts = [
+        build_where_condition(required_where),
+        build_discovery_condition(default_where, default_regions, force_keywords)
+    ]
+    if raw:
+        parts.extend(raw)
+    return " AND ".join(parts)
+
+def is_force_included(name: str, overview_page: str) -> bool:
+    haystack = f"{name}\n{overview_page}".lower()
+    return any(keyword.strip().lower() in haystack for keyword in FORCE_INCLUDE_KEYWORDS)
+
+def apply_name_mapping(name: str):
+    for canonical, keywords in NAME_MAPPING.items():
+        for k in keywords:
+            if k.lower() in name.lower():
+                return re.compile(re.escape(k), re.IGNORECASE).sub(canonical, name)
+    return None
+
+def make_session(url: str, bot_user: str, bot_pass: str) -> requests.Session:
+    MAX_LOGIN_ATTEMPTS = 3
+    session = requests.Session()
+    session.headers.update({"User-Agent": "LoLStatsWorker/2026 (User:HsuX)"})
+
+    if not (bot_user and bot_pass):
+        log("🚀 未检测到凭证 (FANDOM_BOT_USERNAME/PASSWORD)")
+        print("::error::Missing Fandom API credentials", flush=True)
+        sys.exit(1)
+
+    for attempt in range(1, MAX_LOGIN_ATTEMPTS + 1):
+        try:
+            token_res = session.get(url, params={
+                "action": "query", "meta": "tokens", "type": "login", "format": "json"
+            }, timeout=15).json()
+            login_token = token_res.get("query", {}).get("tokens", {}).get("logintoken")
+
+            if login_token:
+                login_res = session.post(url, data={
+                    "action": "login", "lgname": bot_user, "lgpassword": bot_pass,
+                    "lgtoken": login_token, "format": "json"
+                }, timeout=15).json()
+
+                if login_res.get("login", {}).get("result") == "Success":
+                    log(f"🚀 认证成功 | 用户: {bot_user}")
+                    return session
+                else:
+                    log(f"⚠️ 认证失败 | 重试 {attempt}/{MAX_LOGIN_ATTEMPTS} | {json.dumps(login_res, ensure_ascii=False)}")
+            else:
+                log(f"⚠️ 获取 token 失败 | 重试 {attempt}/{MAX_LOGIN_ATTEMPTS}")
+        except Exception as e:
+            log(f"⚠️ 认证异常 | 重试 {attempt}/{MAX_LOGIN_ATTEMPTS} | {e}")
+
+        if attempt < MAX_LOGIN_ATTEMPTS:
+            time.sleep(5 * attempt + random.uniform(0, 3))
+
+    log("🚀 认证失败，已达最大重试次数")
+    print("::error::Fandom API login failed after max retries", flush=True)
+    sys.exit(1)
+
+def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> tuple:
+    all_data, offset, limit, MAX_ATTEMPTS = [], 0, 100, 5
+
+    while True:
+        params = {**base_params, "limit": str(limit), "offset": str(offset)}
+        page_data = []
+
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            try:
+                resp = session.get(url, params=params, timeout=30)
+                resp.raise_for_status()
+                resp_json = resp.json()
+                if "error" in resp_json:
+                    print(f"⚠️ API受限 | 重试 {attempt}/{MAX_ATTEMPTS} | {resp_json['error']}", flush=True)
+                    time.sleep(15 * attempt + random.uniform(0, 5))
+                    continue
+                page_data = resp_json.get("cargoquery", [])
+                break
+            except Exception as e:
+                print(f"⚠️ 网络异常 | 重试 {attempt}/{MAX_ATTEMPTS} | {e}", flush=True)
+                time.sleep(15 * attempt + random.uniform(0, 5))
+
+        if not page_data:
+            if offset == 0:
+                log("🚀 首屏未获取到任何数据，任务中止")
+                print("::error::No data from Cargo API", flush=True)
+                sys.exit(1)
+            break
+
+        all_data.extend(page_data)
+        if len(page_data) < limit:
+            break
+
+        offset += limit
+        time.sleep(1)
+
+    return all_data
+
+# ==================== 主流程 ====================
+
+def run_sniff():
+    start_time = time.time()
+    old_items = load_required_json_array(TARGET_FILE)
+    archive_items = load_required_json_array(ARCHIVE_FILE)
+
+    LEAGUE_MAPPING = load_required_json_object("config/leagues.json")
+
+    url = "https://lol.fandom.com/api.php"
+    session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
+
+    cargo_base = {
+        "action": "cargoquery", "format": "json", "tables": "Tournaments",
+        "fields": ", ".join(CARGO_FIELDS),
+        "where": build_where(CARGO_REQUIRED_WHERE, CARGO_DEFAULT_WHERE, DEFAULT_REGIONS, FORCE_INCLUDE_KEYWORDS, CARGO_WHERE_RAW),
+        "order_by": CARGO_ORDER_BY,
+    }
+    all_data = fetch_cargo(session, url, cargo_base)
+    fetch_elapsed = time.time() - start_time
+    log(f"📥 抓取完成 | 原始: {len(all_data)} 条 | 耗时: {fetch_elapsed:.1f}s")
+
+    # ── 处理阶段 ──
+    main_events, playoff_events = {}, []
+    blocked_count = 0
+    mapped_names = []
+
+    for item in all_data:
+        t = item["title"]
+        name = t.get("Name", "")
+        ov = t.get("OverviewPage", "")
+        region = t.get("Region", "")
+        y = t.get("Year", "")
+        league_full = t.get("League", "")
+
+        force_included = is_force_included(name, ov)
+        hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
+        if hit_black and not force_included:
+            blocked_count += 1
+            continue
+
+        try:
+            s_dt = parse_date(t["DateStart"])
+            e_dt = parse_date(t.get("Date") or t["DateStart"])
+        except Exception as e:
+            log(f"❌ 日期异常 | {name} | {e}")
+            continue
+
+        mapped_name = apply_name_mapping(name)
+        if mapped_name:
+            mapped_names.append(f"{name} → {mapped_name}")
+            name = mapped_name
+
+        ev = {"ov": ov, "year": y, "name": name, "region": region, "start": s_dt, "end": e_dt, "league_full": league_full}
+
+        if t.get("IsPlayoffs") == "1" and region != "International":
+            playoff_events.append(ev)
+        else:
+            key = f"INTL_{name}" if region == "International" else (f"{name}_{y}" if mapped_name else f"{ov}_{y}")
+            if key not in main_events:
+                main_events[key] = {**ev, "extra_ovs": [ov]}
+            else:
+                main_events[key]["start"] = min(main_events[key]["start"], s_dt)
+                main_events[key]["end"]   = max(main_events[key]["end"],   e_dt)
+                add_extra_ov(main_events[key], ov)
+
+    total_after = len(main_events) + len(playoff_events)
+    log("")
+    log(f"⚙️ 处理阶段 ({len(all_data)} 条 → {total_after} 条)")
+    lines = []
+    lines.append(f"└─ 🚫 拦截: {blocked_count} 条")
+    if mapped_names:
+        for i, m in enumerate(mapped_names):
+            prefix = "├─" if i < len(mapped_names) - 1 else "└─"
+            lines.append(f"{prefix} 🔗 聚合: {m}")
+    else:
+        lines.append(f"├─ 🔗 聚合: 无")
+    lines.append(f"└─ 🏟️ 季后赛: {len(playoff_events)} 条待匹配")
+    log_tree(lines)
+
+    # ── 赛程合并 ──
+    merged_playoffs = []
+    independent_playoffs = []
+
+    for p in playoff_events:
+        m_key = next((
+            k for k, m in main_events.items()
+            if m["region"] != "International"
+            and m["year"] == p["year"]
+            and (m["name"] in p["name"] or p["ov"].startswith(m["ov"]))
+        ), None)
+
+        if m_key:
+            old_end = main_events[m_key]["end"]
+            new_end = max(old_end, p["end"])
+            main_events[m_key]["end"] = new_end
+            add_extra_ov(main_events[m_key], p["ov"])
+            merged_playoffs.append((main_events[m_key]["name"], p["name"], str(new_end)))
+        else:
+            independent_playoffs.append(p["name"])
+            main_events[f"{p['ov']}_{p['year']}_PO"] = p
+
+    if playoff_events:
+        log("")
+        log(f"📋 赛程合并 ({len(playoff_events)} 条季后赛)")
+        lines = []
+        for i, (main_name, po_name, end_date) in enumerate(merged_playoffs):
+            prefix = "├─" if i < len(merged_playoffs) - 1 or independent_playoffs else "└─"
+            lines.append(f"{prefix} ✅ {main_name} + {po_name} → {end_date}")
+        for i, po_name in enumerate(independent_playoffs):
+            prefix = "├─" if i < len(independent_playoffs) - 1 else "└─"
+            lines.append(f"{prefix} 📌 {po_name} (独立保留)")
+        log_tree(lines)
+
+    # ── 周期终审 ──
+    def lifecycle_sort_key(v):
+        if today_dt > (v["end"] + timedelta(days=EXPIRE_DAYS)):
+            return (0, v["end"].toordinal())
+        elif v["start"] > (today_dt + timedelta(days=PREHEAT_DAYS)):
+            return (2, v["start"].toordinal())
+        else:
+            return (1, v["start"].toordinal())
+
+    sorted_events = sorted(main_events.values(), key=lifecycle_sort_key)
+
+    expired_events = []
+    upcoming_events = []
+    admitted_events = []
+
+    for v in sorted_events:
+        original_league = v.get("league_full", "")
+
+        if v["start"] > (today_dt + timedelta(days=PREHEAT_DAYS)):
+            diff_days = (v["start"] - today_dt).days
+            upcoming_events.append((v["name"], diff_days))
+            continue
+        if today_dt > (v["end"] + timedelta(days=EXPIRE_DAYS)):
+            diff_days = (today_dt - v["end"]).days
+            expired_events.append((v["name"], diff_days))
+            continue
+
+        league_short = next(
+            (str(map_val) for k, map_val in LEAGUE_MAPPING.items() if k in original_league),
+            original_league or v["name"]
+        )
+        admitted_events.append((v["name"], league_short, str(v["start"]), str(v["end"]), v.get("extra_ovs", [v["ov"]])))
+
+    log("")
+    log("📊 周期终审")
+
+    lines = []
+    if expired_events:
+        lines.append(f"├─ ⏰ 已过期 ({len(expired_events)} 条):")
+        for i, (name, days) in enumerate(expired_events):
+            prefix = "│  ├─" if i < len(expired_events) - 1 else "│  └─"
+            lines.append(f"{prefix} {name:<26} │ 已结束 {days:>3} 天")
+
+    if upcoming_events:
+        prefix = "├─" if admitted_events else "└─"
+        lines.append(f"{prefix} 📅 未开赛 ({len(upcoming_events)} 条):")
+        for i, (name, days) in enumerate(upcoming_events):
+            sub_prefix = "│  ├─" if i < len(upcoming_events) - 1 else "│  └─"
+            lines.append(f"{sub_prefix} {name:<26} │ 距离开赛 {days:>3} 天")
+
+    if admitted_events:
+        lines.append(f"└─ ✅ 准入 ({len(admitted_events)} 条):")
+        for i, (name, league, start, end, _) in enumerate(admitted_events):
+            sub_prefix = "   ├─" if i < len(admitted_events) - 1 else "   └─"
+            lines.append(f"{sub_prefix} {name:<26} │ {league}")
+
+    log_tree(lines)
+
+    # ── 最终结果表格 ──
+    log("")
+    log("✅ 最终结果")
+
+    if admitted_events:
+        log(f"┌────┬{'─'*28}┬────────┬────────────┬────────────┐")
+        log(f"│ #  │ {'Tournament':<26} │ {'League':<6} │ {'Start':<10} │ {'End':<10} │")
+        log(f"├────┼{'─'*28}┼────────┼────────────┼────────────┤")
+        for i, (name, league, start, end, _) in enumerate(admitted_events):
+            log(f"│ {i+1:<2} │ {name:<26} │ {league:<6} │ {start:<10} │ {end:<10} │")
+        log(f"└────┴{'─'*28}┴────────┴────────────┴────────────┘")
+    else:
+        log("  (无准入赛事)")
+
+    # ── 写入文件 ──
+    final_output = [
+        {
+            "slug": re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-'),
+            "name": name,
+            "league": league,
+            "overview_page": ovs,
+            "start_date": start,
+            "end_date": end,
+        }
+        for name, league, start, end, ovs in admitted_events
+    ]
+
+    for item in old_items:
+        start_dt = parse_date(item["start_date"])
+        end_dt = parse_date(item["end_date"])
+        is_cross_year = start_dt.year != end_dt.year
+        if is_cross_year and today_dt <= (end_dt + timedelta(days=EXPIRE_DAYS)):
+            final_output.append(item)
+
+    def sort_key(x):
+        return (x.get("start_date", ""), x.get("end_date", ""), x.get("slug", ""))
+
+    active_map = {item["slug"]: item for item in final_output}
+    unique_res = sorted(active_map.values(), key=sort_key, reverse=True)
+
+    old_map = {item.get("slug"): item for item in old_items if item.get("slug")}
+    new_map = {item.get("slug"): item for item in unique_res if item.get("slug")}
+    removed = sorted(old_map.keys() - new_map.keys())
+    archive_map = {item["slug"]: item for item in archive_items}
+    for slug in removed:
+        archive_map[slug] = old_map[slug]
+    archive_output = sorted(archive_map.values(), key=sort_key, reverse=True)
+    old_archive_map = {item.get("slug"): item for item in archive_items if item.get("slug")}
+    new_archive_map = {item.get("slug"): item for item in archive_output if item.get("slug")}
+
+    with open(TARGET_FILE, "w", encoding="utf-8") as f:
+        json.dump(unique_res, f, indent=4, ensure_ascii=False)
+
+    with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
+        json.dump(archive_output, f, indent=4, ensure_ascii=False)
+
+    # ── 摘要 ──
+    added = sorted(new_map.keys() - old_map.keys())
+    updated = sorted(
+        slug for slug in (new_map.keys() & old_map.keys())
+        if new_map[slug] != old_map[slug]
+    )
+    archive_added = sorted(new_archive_map.keys() - old_archive_map.keys())
+    archive_updated = sorted(
+        slug for slug in (new_archive_map.keys() & old_archive_map.keys())
+        if new_archive_map[slug] != old_archive_map[slug]
+    )
+    archive_removed = sorted(old_archive_map.keys() - new_archive_map.keys())
+    migrated = sorted(set(removed) & set(archive_added))
+    active_removed = sorted(set(removed) - set(migrated))
+    archive_created = sorted(set(archive_added) - set(migrated))
+
+    total_changes = (
+        len(added)
+        + len(updated)
+        + len(active_removed)
+        + len(archive_created)
+        + len(archive_updated)
+        + len(archive_removed)
+        + len(migrated)
+    )
+    elapsed = time.time() - start_time
+
+    log("")
+    log(f"📊 摘要 | {f'原始: {len(all_data)}':<10} | {f'最终: {len(unique_res)}':<10} | 耗时: {elapsed:.1f}s")
+    log(f"📝 Active | {f'新增: {len(added)}':<10} | {f'更新: {len(updated)}':<10} | {f'移除: {len(active_removed)}':<10}")
+    log(f"🗄️ Archive | {f'新增: {len(archive_created)}':<10} | {f'更新: {len(archive_updated)}':<10} | {f'移除: {len(archive_removed)}':<10}")
+    log(f"🚚 Migration | {f'迁移: {len(migrated)}':<10}")
+
+    def format_change_parts(add_slugs, update_slugs, remove_slugs):
+        parts = []
+        if add_slugs:
+            parts.append(f"+ {' / '.join(add_slugs)}")
+        if update_slugs:
+            parts.append(f"~ {' / '.join(update_slugs)}")
+        if remove_slugs:
+            parts.append(f"- {' / '.join(remove_slugs)}")
+        return " | ".join(parts)
+
+    if total_changes > 5:
+        commit_msg = (
+            f"🎯 Tour: active +{len(added)}, ~{len(updated)}, -{len(active_removed)}; "
+            f"archive +{len(archive_created)}, ~{len(archive_updated)}, -{len(archive_removed)}; "
+            f"migrate {len(migrated)}"
+        )
+    elif total_changes > 0:
+        sections = []
+        active_parts = format_change_parts(added, updated, active_removed)
+        archive_parts = format_change_parts(archive_created, archive_updated, archive_removed)
+        if active_parts:
+            sections.append(f"Active: {active_parts}")
+        if archive_parts:
+            sections.append(f"Archive: {archive_parts}")
+        if migrated:
+            sections.append(f"Migration: {' / '.join(migrated)}")
+        commit_msg = f"🎯 Tour: {'; '.join(sections)}"
+    else:
+        commit_msg = "🎯 Tour: no changes"
+
+    if "GITHUB_OUTPUT" in os.environ:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"commit_msg={commit_msg}\n")
+
+if __name__ == "__main__":
+    run_sniff()

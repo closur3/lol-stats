@@ -1,8 +1,8 @@
-import { pct, rate } from '../utils/data/stats.js';
-import { sortTeams } from '../utils/data/teamSort.js';
-import { TIME_GRID_COLUMN_COUNT } from '../constants/index.js';
-import { timePolicy } from '../utils/timePolicy.js';
-import { generateFullRateString as generateFullRateStringCore } from '../core/analysis/fullRateStats.js';
+import { pct, rate } from '../../src/utils/data/stats.js';
+import { sortTeams } from '../../src/utils/data/teamSort.js';
+import { TIME_GRID_COLUMN_COUNT } from '../../src/constants/index.js';
+import { timePolicy } from '../../src/utils/timePolicy.js';
+import { generateFullRateString as generateFullRateStringCore } from '../../src/core/analysis/fullRateStats.js';
 
 export function generateFullRateString(bo3FullMatches, bo3TotalMatches, bo5FullMatches, bo5TotalMatches) {
   const core = generateFullRateStringCore(bo3FullMatches, bo3TotalMatches, bo5FullMatches, bo5TotalMatches);

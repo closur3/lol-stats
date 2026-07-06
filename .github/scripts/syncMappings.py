@@ -1,0 +1,127 @@
+import requests, json, os, sys, time, random
+
+URL = "https://lol.fandom.com/api.php"
+UA  = "LoLStatsWorker/2026 (User:HsuX)"
+MAX_LOGIN_ATTEMPTS = 3
+
+def make_session(bot_user, bot_pass):
+    session = requests.Session()
+    session.headers.update({"User-Agent": UA})
+
+    if not (bot_user and bot_pass):
+        print("🚀 未检测到凭证 (FANDOM_BOT_USERNAME/PASSWORD)", flush=True)
+        print("::error::Missing Fandom API credentials", flush=True)
+        sys.exit(1)
+
+    for attempt in range(1, MAX_LOGIN_ATTEMPTS + 1):
+        try:
+            res = session.get(URL, params={
+                "action": "query", "meta": "tokens",
+                "type": "login", "format": "json"
+            }, timeout=15).json()
+            token = res.get("query", {}).get("tokens", {}).get("logintoken")
+
+            if token:
+                login = session.post(URL, data={
+                    "action": "login", "lgname": bot_user,
+                    "lgpassword": bot_pass, "lgtoken": token, "format": "json"
+                }, timeout=15).json()
+
+                if login.get("login", {}).get("result") == "Success":
+                    print(f"🚀 认证成功 | 用户: {bot_user}", flush=True)
+                    return session
+                else:
+                    print(f"⚠️ 认证失败 | 重试 {attempt}/{MAX_LOGIN_ATTEMPTS} | {json.dumps(login, ensure_ascii=False)}", flush=True)
+            else:
+                print(f"⚠️ 获取 token 失败 | 重试 {attempt}/{MAX_LOGIN_ATTEMPTS}", flush=True)
+        except Exception as e:
+            print(f"⚠️ 认证异常 | 重试 {attempt}/{MAX_LOGIN_ATTEMPTS} | {e}", flush=True)
+
+        if attempt < MAX_LOGIN_ATTEMPTS:
+            time.sleep(5 * attempt + random.uniform(0, 3))
+
+    print("🚀 认证失败，已达最大重试次数", flush=True)
+    print("::error::Fandom API login failed after max retries", flush=True)
+    sys.exit(1)
+
+def fetch_all(session, url, limit=500):
+    """分页拉取，返回所有 cargoquery 条目。"""
+    results, offset = [], 0
+    while True:
+        resp = session.get(f"{url}&limit={limit}&offset={offset}", timeout=30).json()
+        if "error" in resp:
+            print(f"❌ [ERROR] {resp['error']}")
+            break
+        page = resp.get("cargoquery", [])
+        results.extend(page)
+        print(f"  offset={offset} 获取 {len(page)} 条，累计 {len(results)} 条")
+        if len(page) < limit:
+            break
+        offset += limit
+    return results
+
+session = make_session(
+    os.environ.get("FANDOM_BOT_USERNAME"),
+    os.environ.get("FANDOM_BOT_PASSWORD")
+)
+
+old_teams = {}
+old_leagues = {}
+try:
+    with open("config/ConfigTeams.json", "r", encoding="utf-8") as f:
+        old_teams = json.load(f)
+except:
+    pass
+try:
+    with open("config/leagues.json", "r", encoding="utf-8") as f:
+        old_leagues = json.load(f)
+except:
+    pass
+
+# ── 1. Teams ──────────────────────────────────────────────────────────
+print("🚀 [TEAMS] 开始同步...")
+team_url = f"{URL}?action=cargoquery&format=json&tables=Teams&fields=Name,Short&where=IsDisbanded='0'"
+rows = fetch_all(session, team_url)
+team_map = {}
+for item in rows:
+    t = item.get("title", {})
+    n, s = t.get("Name"), t.get("Short")
+    if n and s:
+        team_map[n] = s
+with open("config/ConfigTeams.json", "w", encoding="utf-8") as f:
+    json.dump(team_map, f, indent=2, ensure_ascii=False)
+print(f"✨ [TEAMS] 完成，共 {len(team_map)} 条\n")
+
+# ── 2. Leagues ────────────────────────────────────────────────────────
+print("🚀 [LEAGUES] 开始同步...")
+league_url = f"{URL}?action=cargoquery&format=json&tables=Leagues&fields=League,League_Short"
+rows = fetch_all(session, league_url)
+league_map = {}
+for item in rows:
+    t = item.get("title", {})
+    lg, short = t.get("League"), t.get("League Short")
+    if lg and short:
+        league_map[lg] = short
+with open("config/leagues.json", "w", encoding="utf-8") as f:
+    json.dump(league_map, f, indent=2, ensure_ascii=False)
+print(f"✨ [LEAGUES] 完成，共 {len(league_map)} 条")
+
+new_teams = set(team_map.keys()) - set(old_teams.keys())
+removed_teams = set(old_teams.keys()) - set(team_map.keys())
+new_leagues = set(league_map.keys()) - set(old_leagues.keys())
+removed_leagues = set(old_leagues.keys()) - set(league_map.keys())
+
+diff = []
+if new_teams or removed_teams:
+    diff.append(f"teams +{len(new_teams)}/-{len(removed_teams)}")
+if new_leagues or removed_leagues:
+    diff.append(f"leagues +{len(new_leagues)}/-{len(removed_leagues)}")
+
+if diff:
+    commit_msg = f"📋 Mappings: {' | '.join(diff)}"
+else:
+    commit_msg = "📋 Mappings: no changes"
+
+if "GITHUB_OUTPUT" in os.environ:
+    with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+        f.write(f"commit_msg={commit_msg}\n")

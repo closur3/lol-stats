@@ -1,12 +1,12 @@
-name: "Tour: Sync Tournaments"
+name: "Mappings: Sync Aliases"
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 16 * * *'
+    - cron: '0 0 * * 0'
 
 jobs:
-  tour:
+  mappings:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,21 +24,20 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Discover Tournaments
+      - name: Sync Aliases
         id: process_data
         env:
           PYTHONUNBUFFERED: "1"
-          TZ: Asia/Shanghai
           FANDOM_BOT_USERNAME: ${{ secrets.FANDOM_BOT_USERNAME }}
           FANDOM_BOT_PASSWORD: ${{ secrets.FANDOM_BOT_PASSWORD }}
-        run: python .github/scripts/syncTours.py
+        run: python .github/scripts/syncMappings.py
 
       - name: Commit and Push
         id: auto_commit
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
-          file_pattern: 'config/ConfigActive.json config/ConfigArchive.json'
+          file_pattern: 'config/ConfigTeams.json config/leagues.json'
 
       - name: Trigger KV Persist
         if: steps.auto_commit.outputs.changes_detected == 'true'
