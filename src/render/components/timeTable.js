@@ -2,8 +2,6 @@ import { color } from '../../utils/data/stats.js';
 import { TIME_GRID_COLUMN_COUNT } from '../../constants/index.js';
 import { escapeHtml } from '../../utils/htmlEscape.js';
 
-const STYLE_SCORE_SEP = 'style="opacity:0.4; margin:0 1px;"';
-
 const TIME_TABLE_COLUMNS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total"];
 
 function requireTimeCell(regionGrid, hour, dayIndex) {
@@ -66,7 +64,7 @@ function renderEmptyCell(matchesJson) {
 function renderValueCell(label, dayIndex, cellData) {
   const fullRate = cellData.fullLengthMatchCount / cellData.totalMatchCount;
   const matchesJson = escapeHtml(JSON.stringify(cellData.matches));
-  return `<td class="time-table-cell" data-matches="${matchesJson}" data-day-index="${dayIndex}" data-title="${escapeHtml(label)}" style="background:${color(fullRate, true)};" onclick="showTimeCellPopup(this)"><div class="t-cell"><span class="t-val">${cellData.fullLengthMatchCount}<span ${STYLE_SCORE_SEP}>/</span>${cellData.totalMatchCount}</span><span class="t-pct">(${Math.round(fullRate * 100)}%)</span></div></td>`;
+  return `<td class="time-table-cell" data-matches="${matchesJson}" data-day-index="${dayIndex}" data-title="${escapeHtml(label)}" style="background:${color(fullRate, true)};" onclick="showTimeCellPopup(this)"><div class="t-cell"><span class="t-val">${cellData.fullLengthMatchCount}<span class="score-sep">/</span>${cellData.totalMatchCount}</span><span class="t-pct">(${Math.round(fullRate * 100)}%)</span></div></td>`;
 }
 
 export function buildTimeTable(regionGrid) {
@@ -77,14 +75,16 @@ export function buildTimeTable(regionGrid) {
   const tableHours = [...hours, "Total"];
   const boxFilters = collectBoxFilters(regionGrid, tableHours);
 
-  let html = `<div class="time-table-block" data-box-filter="all"><table style="font-variant-numeric:tabular-nums; border-top:none;"><thead><tr style="border-bottom:none;"><th class="team-col time-filter-cell" style="cursor:default;">${renderBoxFilter(boxFilters)}</th>`;
-  TIME_TABLE_COLUMNS.forEach(dayName => { html += `<th style="cursor:default; pointer-events:none;">${dayName}</th>`; });
+  let html = `<div class="time-table-block" data-box-filter="all"><table class="time-table"><thead><tr class="time-header-row"><th class="team-col time-filter-cell">${renderBoxFilter(boxFilters)}</th>`;
+  TIME_TABLE_COLUMNS.forEach(dayName => { html += `<th class="time-header-cell">${dayName}</th>`; });
   html += "</tr></thead><tbody>";
 
   tableHours.forEach(hour => {
     const isTotal = hour === "Total";
     const label = isTotal ? "Total" : `${String(hour).padStart(2,'0')}:00`;
-    html += `<tr style="${isTotal ? 'font-weight:bold; background:#f8fafc;' : ''}"><td class="team-col" style="${isTotal ? 'background:#f1f5f9;' : ''}">${label}</td>`;
+    const rowClass = isTotal ? ' class="time-total-row"' : "";
+    const labelClass = isTotal ? "team-col time-total-label" : "team-col";
+    html += `<tr${rowClass}><td class="${labelClass}">${label}</td>`;
 
     for (let dayIndex = 0; dayIndex < TIME_GRID_COLUMN_COUNT; dayIndex++) {
       const cellData = requireTimeCell(regionGrid, hour, dayIndex);

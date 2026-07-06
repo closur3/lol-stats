@@ -7,9 +7,6 @@ import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { buildTeamRow } from '../../components/teamRow.js';
 import { buildTimeTable } from '../../components/timeTable.js';
 
-const STYLE_EMOJI = 'style="font-size: 16px; line-height: 1; display: block; transform: translateY(-1px);"';
-const STYLE_TITLE_ROW = 'style="display:flex; align-items:center; gap: 6px;"';
-
 function buildLeagueSummary(stats) {
   let bo3Full = 0, bo3Total = 0;
   let bo5Full = 0, bo5Total = 0;
@@ -26,8 +23,8 @@ function buildLeagueSummary(stats) {
 
   const hasNoData = bo3Total === 0 && bo5Total === 0;
   const parts = [];
-  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span style="opacity:0.7;font-weight:400;">(${pct(rate(bo3Full, bo3Total))})</span>`);
-  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span style="opacity:0.7;font-weight:400;">(${pct(rate(bo5Full, bo5Total))})</span>`);
+  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span class="league-summary-rate">(${pct(rate(bo3Full, bo3Total))})</span>`);
+  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span class="league-summary-rate">(${pct(rate(bo5Full, bo5Total))})</span>`);
   const html = parts.length ? `<div class="league-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
   return { html, hasNoData };
 }
@@ -70,19 +67,19 @@ export function renderLeagueSection(tournament, globalStats, timeData, scheduleM
   let emojiStr = "";
   if (!isArchive) {
     const displayEmoji = resolveHomeEmojiFromScheduleMeta(meta);
-    emojiStr = `<span ${STYLE_EMOJI}>${displayEmoji}</span>`;
+    emojiStr = `<span class="league-phase-emoji">${displayEmoji}</span>`;
   }
   const mainPage = getFirstOverviewPage(tournament.overview_page);
   const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
   const titleText = `<span class="league-title-text">${escapeHtml(tournament.name)}</span>`;
   const jumpBtn = `<a class="league-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
-  const headerRight = `<div class="title-right-area" style="justify-content: flex-start;">${summary.html}</div>`;
+  const headerRight = `<div class="title-right-area">${summary.html}</div>`;
 
   if (isArchive) {
-    return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div ${STYLE_TITLE_ROW}><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
+    return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div class="league-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
   }
 
   const isSleepCollapsed = resolveScheduleMetaPhase(meta) === "offday";
   const openAttr = (isSleepCollapsed || summary.hasNoData) ? "" : " open";
-  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div ${STYLE_TITLE_ROW}><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
+  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="league-title-row"><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
 }

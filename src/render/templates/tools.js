@@ -69,7 +69,7 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
   const activeListHtml = renderActiveTournamentList(activeTournaments);
   const archiveListHtml = renderArchivedTournamentList(archivedTournaments);
   const archiveErrorHtml = archiveError
-    ? `<div style="box-sizing:border-box; width:calc(100% - 24px); margin:0 12px 12px; padding:12px 14px; border:1px solid #f97316; border-left:4px solid #f97316; border-radius:12px; color:#fff7ed; background:#431407; font-size:13px; line-height:1.55; box-shadow:0 10px 24px rgba(0,0,0,.18);"><strong style="display:block; color:#fed7aa; font-size:13px; margin-bottom:4px;">Archive index unavailable</strong><span style="color:#ffedd5;">${escapeHtml(archiveError)}</span></div>`
+    ? `<div class="tools-error-alert"><strong>Archive index unavailable</strong><span>${escapeHtml(archiveError)}</span></div>`
     : "";
 
   const bodyContent = `

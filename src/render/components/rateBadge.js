@@ -1,5 +1,3 @@
-const STYLE_RATE_HINT = 'style="font-weight:400;color:#94a3b8;font-size:11px;margin:0 2px"';
-
 export function getRateHtml(teamName, slug, bestOf, globalStats) {
   const teamStats = globalStats[slug];
   if (!teamStats || !teamStats[teamName]) return "";
@@ -17,5 +15,5 @@ export function getRateHtml(teamName, slug, bestOf, globalStats) {
 
   if (count == null || !total) return "";
   const winRate = count / total;
-  return `<span ${STYLE_RATE_HINT}>(${Math.round(winRate * 100)}%)</span>`;
+  return `<span class="rate-hint">(${Math.round(winRate * 100)}%)</span>`;
 }

@@ -29,7 +29,7 @@ function renderTrigger(entry, icon) {
   if (entry.isForce) return ` | ${icon} Force`;
   const trigger = entry.trigger;
   if (!trigger?.diffUrl || trigger.revid == null) return "";
-  return ` | ${icon} <a href="${escapeUrl(trigger.diffUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${escapeHtml(trigger.revid)}</a>`;
+  return ` | ${icon} <a class="log-trigger-link" href="${escapeUrl(trigger.diffUrl)}" target="_blank" rel="noopener">${escapeHtml(trigger.revid)}</a>`;
 }
 
 function renderLogMessage(entry) {
@@ -97,8 +97,8 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     const lastTime = lastEntry?.loggedAt || "";
     const bars = entries.slice(0, 10).reverse().map(entry => {
       const cls = isSyncEntry(entry) ? "bar-sync" : isErrorEntry(entry) ? "bar-err" : "bar-idle";
-      const barHeight = isSyncEntry(entry) ? "100%" : isErrorEntry(entry) ? "70%" : "30%";
-      return `<div class="bar ${cls}" style="height:${barHeight}"></div>`;
+      const heightCls = isSyncEntry(entry) ? "bar-tall" : isErrorEntry(entry) ? "bar-mid" : "bar-low";
+      return `<div class="bar ${cls} ${heightCls}"></div>`;
     }).join("");
 
     const rows = entries.slice(0, maxLogEntries).map(entry => {
