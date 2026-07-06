@@ -66,20 +66,6 @@ export function derivePhase(slugState, meta, nowUtc) {
   return hasUnfinished && isNowInPlayWindow(slugState, nowUtc) ? "play" : "idle";
 }
 
-export function syncPhaseByWindowAndMeta(state, metasBySlug, nowUtc) {
-  const changed = [];
-  for (const [slug, slugState] of Object.entries(state.slugStates)) {
-    assertSlugScheduleState(slug, slugState);
-    const meta = metasBySlug.get(slug);
-    if (!meta) throw new Error(`ScheduleMeta missing after load: ${slug}`);
-    const nextPhase = derivePhase(slugState, meta, nowUtc);
-    if (slugState.phase === nextPhase) continue;
-    changed.push(`${slug}:${slugState.phase}->${nextPhase}`);
-    slugState.phase = nextPhase;
-  }
-  return changed;
-}
-
 export function buildIdleState(today, tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const slugStates = {};

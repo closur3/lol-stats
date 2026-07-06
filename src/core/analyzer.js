@@ -1,22 +1,11 @@
 import { TIME_GRID_COLUMN_COUNT, DEFAULT_MAX_SCHEDULE_DAYS } from '../constants/index.js';
 import { timePolicy } from '../utils/timePolicy.js';
-import { computeScheduleMetaFromRawMatches } from './analysis/scheduleMeta.js';
-import { calculateFullRateStats, generateFullRateString } from './analysis/fullRateStats.js';
 import { buildResolveName } from './analysis/teamResolver.js';
 import { parseAllMatches } from './analysis/matchParser.js';
 import { buildTimeGridAndSchedule } from './analysis/gridBuilder.js';
 import { buildScheduleMap } from './analysis/futureMatchBuilder.js';
 
-/**
- * 统计分析核心模块
- */
-export class Analyzer {
-  static computeScheduleMetaFromRawMatches = computeScheduleMetaFromRawMatches;
-
-  /**
-   * 运行完整分析
-   */
-  static runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DEFAULT_MAX_SCHEDULE_DAYS) {
+export function runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DEFAULT_MAX_SCHEDULE_DAYS) {
     if (!Array.isArray(tournaments)) {
       throw new Error("tournaments must be an array");
     }
@@ -58,15 +47,4 @@ export class Analyzer {
       scheduleMap,
       scheduleMetaBySlug
     };
-  }
-
-  /**
-   * 计算队伍完整率统计
-   */
-  static calculateFullRateStats = calculateFullRateStats;
-
-  /**
-   * 生成完整率字符串
-   */
-  static generateFullRateString = generateFullRateString;
 }

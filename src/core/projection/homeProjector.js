@@ -32,7 +32,7 @@ export function buildWriteScopeSlugs(tournaments, syncItems, skipItems, force, f
   return scope;
 }
 
-export function buildScheduleBySlug(tournaments, scheduleMap) {
+function buildScheduleBySlug(tournaments, scheduleMap) {
   if (!Array.isArray(tournaments)) {
     throw new Error("tournaments must be an array");
   }
@@ -62,7 +62,7 @@ function buildTournamentScheduleSnapshot(slug, scheduleBySlug) {
   return schedule;
 }
 
-export function buildHomeSnapshot(tournament, analysis, scheduleBySlug) {
+function buildHomeSnapshot(tournament, analysis, scheduleBySlug) {
   const slug = tournament.slug;
   const { teamMap, ...tournamentStored } = tournament;
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) throw new Error("analysis must be a JSON object");

@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { dataUtils } from "../../utils/dataUtils.js";
+import { pickTeamMap } from "../../utils/data/teamMaps.js";
 import { readArchiveConfig } from "./archiveConfigReader.js";
 import { buildArchiveSnapshot } from "./archiveSnapshotBuilder.js";
 import { readTeamsConfig } from "./teamsConfigReader.js";
@@ -36,7 +36,7 @@ async function migrateArchiveTournament(env, tournament, teamsRaw) {
   const rawMatches = await readMigrationRawMatches(env, tournament.slug);
   if (rawMatches == null) return null;
 
-  const teamMap = dataUtils.pickTeamMap(teamsRaw, rawMatches);
+  const teamMap = pickTeamMap(teamsRaw, rawMatches);
   const archiveSnapshot = buildArchiveSnapshot(tournament, rawMatches, teamMap);
   await env["lol-stats-kv"].put(kvKeys.archive(tournament.slug), JSON.stringify(archiveSnapshot));
   await deleteActiveRuntimeFacts(env, tournament.slug);

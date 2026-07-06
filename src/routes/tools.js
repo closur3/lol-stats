@@ -1,4 +1,4 @@
-import { HTMLRenderer } from '../render/htmlRenderer.js';
+import { renderToolsPage } from '../render/templates/tools.js';
 import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
@@ -33,7 +33,7 @@ export class ToolsRouter {
 
       const time = env.GITHUB_TIME;
       const sha = env.GITHUB_SHA;
-      const html = HTMLRenderer.renderToolsPage(
+      const html = renderToolsPage(
         time,
         sha,
         activeTournaments,

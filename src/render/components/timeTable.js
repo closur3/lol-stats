@@ -1,4 +1,4 @@
-import { dataUtils } from '../../utils/dataUtils.js';
+import { color } from '../../utils/data/stats.js';
 import { TIME_GRID_COLUMN_COUNT } from '../../constants/index.js';
 import { escapeHtml } from '../../utils/htmlEscape.js';
 
@@ -66,7 +66,7 @@ function renderEmptyCell(matchesJson) {
 function renderValueCell(label, dayIndex, cellData) {
   const fullRate = cellData.fullLengthMatchCount / cellData.totalMatchCount;
   const matchesJson = escapeHtml(JSON.stringify(cellData.matches));
-  return `<td class="time-table-cell" data-matches="${matchesJson}" data-day-index="${dayIndex}" data-title="${escapeHtml(label)}" style="background:${dataUtils.color(fullRate, true)};" onclick="showTimeCellPopup(this)"><div class="t-cell"><span class="t-val">${cellData.fullLengthMatchCount}<span ${STYLE_SCORE_SEP}>/</span>${cellData.totalMatchCount}</span><span class="t-pct">(${Math.round(fullRate * 100)}%)</span></div></td>`;
+  return `<td class="time-table-cell" data-matches="${matchesJson}" data-day-index="${dayIndex}" data-title="${escapeHtml(label)}" style="background:${color(fullRate, true)};" onclick="showTimeCellPopup(this)"><div class="t-cell"><span class="t-val">${cellData.fullLengthMatchCount}<span ${STYLE_SCORE_SEP}>/</span>${cellData.totalMatchCount}</span><span class="t-pct">(${Math.round(fullRate * 100)}%)</span></div></td>`;
 }
 
 export function buildTimeTable(regionGrid) {

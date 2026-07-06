@@ -1,4 +1,6 @@
-﻿import { dataUtils } from '../../../utils/dataUtils.js';
+import { getFirstOverviewPage } from '../../../utils/data/overviewPages.js';
+import { pct, rate } from '../../../utils/data/stats.js';
+import { sortTeams } from '../../../utils/data/teamSort.js';
 import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
 import { resolveHomeEmojiFromScheduleMeta, resolveScheduleMetaPhase } from '../../../utils/scheduleMetaPhase.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
@@ -24,8 +26,8 @@ function buildLeagueSummary(stats) {
 
   const hasNoData = bo3Total === 0 && bo5Total === 0;
   const parts = [];
-  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span style="opacity:0.7;font-weight:400;">(${dataUtils.pct(dataUtils.rate(bo3Full, bo3Total))})</span>`);
-  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span style="opacity:0.7;font-weight:400;">(${dataUtils.pct(dataUtils.rate(bo5Full, bo5Total))})</span>`);
+  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span style="opacity:0.7;font-weight:400;">(${pct(rate(bo3Full, bo3Total))})</span>`);
+  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span style="opacity:0.7;font-weight:400;">(${pct(rate(bo5Full, bo5Total))})</span>`);
   const html = parts.length ? `<div class="league-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
   return { html, hasNoData };
 }
@@ -56,7 +58,7 @@ export function renderLeagueSection(tournament, globalStats, timeData, scheduleM
   if (!leagueTimeData || typeof leagueTimeData !== "object" || Array.isArray(leagueTimeData)) {
     throw new Error(`timeData missing: ${tournament.slug}`);
   }
-  const stats = dataUtils.sortTeams(rawStats);
+  const stats = sortTeams(rawStats);
   const sortMeta = {
     bo3PriorMean: sortPolicy.getBestOfPriorMean(stats, 3),
     bo5PriorMean: sortPolicy.getBestOfPriorMean(stats, 5)
@@ -70,7 +72,7 @@ export function renderLeagueSection(tournament, globalStats, timeData, scheduleM
     const displayEmoji = resolveHomeEmojiFromScheduleMeta(meta);
     emojiStr = `<span ${STYLE_EMOJI}>${displayEmoji}</span>`;
   }
-  const mainPage = dataUtils.getFirstOverviewPage(tournament.overview_page);
+  const mainPage = getFirstOverviewPage(tournament.overview_page);
   const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
   const titleText = `<span class="league-title-text">${escapeHtml(tournament.name)}</span>`;
   const jumpBtn = `<a class="league-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;

@@ -4,7 +4,7 @@ export function rpad2(n) {
   return n < 10 ? `${n}\u00A0` : `${n}`;
 }
 
-export function formatDeltaTag(item) {
+function formatDeltaTag(item) {
   if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("log item must be a JSON object");
   if (!Number.isInteger(item.added) || item.added < 0) throw new Error(`log item added invalid: ${item.slug}`);
   if (!Number.isInteger(item.updated) || item.updated < 0) throw new Error(`log item updated invalid: ${item.slug}`);

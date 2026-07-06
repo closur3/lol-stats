@@ -1,4 +1,5 @@
-import { dataUtils } from '../utils/dataUtils.js';
+import { pct, rate } from '../utils/data/stats.js';
+import { sortTeams } from '../utils/data/teamSort.js';
 import { TIME_GRID_COLUMN_COUNT } from '../constants/index.js';
 import { timePolicy } from '../utils/timePolicy.js';
 import { generateFullRateString as generateFullRateStringCore } from '../core/analysis/fullRateStats.js';
@@ -22,7 +23,7 @@ function readMarkdownRegionGrid(timeGrid, slug) {
 }
 
 export function generateMarkdown(tournament, stats, timeGrid) {
-  const sorted = dataUtils.sortTeams(stats);
+  const sorted = sortTeams(stats);
 
   let bo3FullMatches = 0, bo3TotalMatches = 0, bo5FullMatches = 0, bo5TotalMatches = 0;
   sorted.forEach(teamStats => {
@@ -40,13 +41,13 @@ export function generateMarkdown(tournament, stats, timeGrid) {
   } else {
     sorted.forEach(teamStats => {
       const bestOf3SummaryText = teamStats.bestOf3TotalMatchCount ? `${teamStats.bestOf3FullMatchCount}/${teamStats.bestOf3TotalMatchCount}` : "-";
-      const bestOf3PercentText = dataUtils.pct(dataUtils.rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount));
+      const bestOf3PercentText = pct(rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount));
       const bestOf5SummaryText = teamStats.bestOf5TotalMatchCount ? `${teamStats.bestOf5FullMatchCount}/${teamStats.bestOf5TotalMatchCount}` : "-";
-      const bestOf5PercentText = dataUtils.pct(dataUtils.rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount));
+      const bestOf5PercentText = pct(rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount));
       const seriesSummaryText = teamStats.seriesTotalMatchCount ? `${teamStats.seriesWinCount}-${teamStats.seriesTotalMatchCount - teamStats.seriesWinCount}` : "-";
-      const seriesWinRateText = dataUtils.pct(dataUtils.rate(teamStats.seriesWinCount, teamStats.seriesTotalMatchCount));
+      const seriesWinRateText = pct(rate(teamStats.seriesWinCount, teamStats.seriesTotalMatchCount));
       const gameSummaryText = teamStats.gameTotalCount ? `${teamStats.gameWinCount}-${teamStats.gameTotalCount - teamStats.gameWinCount}` : "-";
-      const gameWinRateText = dataUtils.pct(dataUtils.rate(teamStats.gameWinCount, teamStats.gameTotalCount));
+      const gameWinRateText = pct(rate(teamStats.gameWinCount, teamStats.gameTotalCount));
       const streakText = teamStats.winStreakCount > 0 ? `${teamStats.winStreakCount}W` : (teamStats.lossStreakCount > 0 ? `${teamStats.lossStreakCount}L` : "-");
       const lastMatchText = teamStats.last ? timePolicy.formatDateTime(teamStats.last) : "-";
       markdown += `| ${teamStats.name} | ${bestOf3SummaryText} | ${bestOf3PercentText} | ${bestOf5SummaryText} | ${bestOf5PercentText} | ${seriesSummaryText} | ${seriesWinRateText} | ${gameSummaryText} | ${gameWinRateText} | ${streakText} | ${lastMatchText} |\n`;

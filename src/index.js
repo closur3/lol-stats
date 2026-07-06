@@ -2,7 +2,10 @@ import { HomeRouter } from './routes/home.js';
 import { ArchiveRouter } from './routes/archive.js';
 import { ToolsRouter } from './routes/tools.js';
 import { LogsRouter } from './routes/logs.js';
-import { APIRouter } from './routes/api.js';
+import { handleBackup } from './routes/api/backup.js';
+import { handleForceUpdate } from './routes/api/force.js';
+import { handleDeleteActive } from './routes/api/activeActions.js';
+import { handleDeleteArchive, handleRebuildArchive } from './routes/api/archiveActions.js';
 import { runCron } from './core/cron/orchestrator.js';
 
 /**
@@ -23,19 +26,19 @@ export default {
         return ToolsRouter.handleTools(request, env);
       
       case "/backup":
-        return APIRouter.handleBackup(request, env);
+        return handleBackup(request, env);
       
       case "/force":
-        return APIRouter.handleForceUpdate(request, env);
+        return handleForceUpdate(request, env);
       
       case "/rebuild-archive":
-        return APIRouter.handleRebuildArchive(request, env);
+        return handleRebuildArchive(request, env);
 
       case "/delete-active":
-        return APIRouter.handleDeleteActive(request, env);
+        return handleDeleteActive(request, env);
       
       case "/delete-archive":
-        return APIRouter.handleDeleteArchive(request, env);
+        return handleDeleteArchive(request, env);
       
       case "/logs":
         return LogsRouter.handleLogs(request, env);

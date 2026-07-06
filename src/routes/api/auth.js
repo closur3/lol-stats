@@ -1,4 +1,4 @@
-﻿export function isUnauthorized(request, env) {
+function isUnauthorized(request, env) {
   const expectedSecret = env.ADMIN_SECRET;
   if (!expectedSecret) return true;
   const authHeader = request.headers.get("Authorization");

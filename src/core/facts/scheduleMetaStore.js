@@ -22,7 +22,7 @@ export function assertScheduleMetaFields(label, meta) {
   };
 }
 
-export function normalizeScheduleMeta(slug, meta) {
+function normalizeScheduleMeta(slug, meta) {
   if (!slug) throw new Error("schedule meta slug missing");
   const fields = assertScheduleMetaFields(`ScheduleMeta.${slug}`, meta);
   return {

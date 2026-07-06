@@ -13,7 +13,7 @@ export function assertTeamAliasMap(teamAliasMap) {
   return teamAliasMap;
 }
 
-export function filterTeamMapForMatches(teamAliasMap, rawMatches) {
+export function pickTeamMap(teamAliasMap, rawMatches) {
   const baseMap = assertTeamAliasMap(teamAliasMap);
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
   const rawNames = new Set();
@@ -45,8 +45,4 @@ export function filterTeamMapForMatches(teamAliasMap, rawMatches) {
   });
 
   return needed;
-}
-
-export function pickTeamMap(teamAliasMap, rawMatches) {
-  return filterTeamMapForMatches(teamAliasMap, rawMatches);
 }

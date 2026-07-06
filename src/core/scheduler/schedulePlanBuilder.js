@@ -13,7 +13,7 @@ export function requireScheduleMeta(metasBySlug, slug) {
   return meta;
 }
 
-export function hasUnfinishedMatches(meta) {
+function hasUnfinishedMatches(meta) {
   return meta.hasHistoryUnfinished || meta.todayUnfinished > 0;
 }
 
@@ -26,7 +26,7 @@ function buildWindowFromMeta(meta) {
   };
 }
 
-export function requirePlayWindow(slug, meta) {
+function requirePlayWindow(slug, meta) {
   const window = buildWindowFromMeta(meta);
   if (!window) throw new Error(`Cannot restore play window for ${slug}`);
   return window;

@@ -5,11 +5,11 @@ import { MODAL_SCRIPT } from '../../client/modal.js';
 import { TIME_TABLE_SCRIPT } from '../../client/timeTable.js';
 import { PAGE_ACTIONS_SCRIPT } from '../../client/pageActions.js';
 
-export function renderFontLinks() {
+function renderFontLinks() {
   return `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">`;
 }
 
-export function renderNavBar(activeMode = "home") {
+function renderNavBar(activeMode = "home") {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/archive", label: "Archive" },
@@ -39,13 +39,13 @@ export function renderNavBar(activeMode = "home") {
 <div class="nav-mobile-menu" id="mobileMenu"><nav class="nav-mobile-links">${mobileNav}</nav></div>`;
 }
 
-export function renderBuildFooter(time, sha, hasActiveCron = false) {
+function renderBuildFooter(time, sha, hasActiveCron = false) {
   const shortSha = (sha || "").slice(0, 7) || "unknown";
   const dotClass = hasActiveCron ? "active" : "idle";
   return `<div class="build-footer"><span class="cron-dot ${dotClass}"></span><span class="footer-label">deployed:</span> <span class="footer-time">${time || "N/A"}</span> <a href="${GITHUB_COMMIT_BASE}${sha}" target="_blank"><span class="footer-sha">@${shortSha}</span></a></div>`;
 }
 
-export function renderClientJS() {
+function renderClientJS() {
   return `<script>${SORT_SCRIPT}${MODAL_SCRIPT}${TIME_TABLE_SCRIPT}${PAGE_ACTIONS_SCRIPT}</script>`;
 }
 

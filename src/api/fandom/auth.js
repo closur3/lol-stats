@@ -1,5 +1,5 @@
 ﻿import { BOT_UA, FANDOM_API } from '../../constants/index.js';
-import { dataUtils } from '../../utils/dataUtils.js';
+import { extractCookies } from '../../utils/data/cookies.js';
 
 const MAX_LOGIN_RETRIES = 3;
 
@@ -44,7 +44,7 @@ export async function login(user, pass) {
       const tokenData = await tokenResp.json();
       const loginToken = readLoginToken(tokenData);
 
-      const step1Cookie = dataUtils.extractCookies(tokenResp.headers);
+      const step1Cookie = extractCookies(tokenResp.headers);
       const loginParams = new URLSearchParams();
       loginParams.append("action", "login");
       loginParams.append("format", "json");
@@ -60,7 +60,7 @@ export async function login(user, pass) {
       const loginData = await loginResp.json();
       const loginResult = readLoginResult(loginData);
 
-      const step2Cookie = dataUtils.extractCookies(loginResp.headers);
+      const step2Cookie = extractCookies(loginResp.headers);
       return { cookie: `${step1Cookie}; ${step2Cookie}`, username: loginResult.lgusername };
     } catch (error) {
       console.error(`[FANDOM:AUTH] attempt=${attempt}/${MAX_LOGIN_RETRIES} error=${error.message}`);

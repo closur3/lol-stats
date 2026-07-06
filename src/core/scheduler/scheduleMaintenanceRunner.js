@@ -91,6 +91,16 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
   await writeScheduleState(env, state);
 }
 
+export async function reconcileCurrentScheduleState(env, tournaments, scheduledTimeMs, options = {}) {
+  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
+  const now = new Date(scheduledTimeMs);
+  const today = timePolicy.getBusinessDateKey(now);
+  const state = await readScheduleState(env);
+  if (!state || state.date !== today) return false;
+  await reconcileCurrentScheduleDay(env, tournaments, state, now, options);
+  return true;
+}
+
 export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, options = {}) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(scheduledTimeMs);

@@ -1,5 +1,6 @@
 import { FandomClient } from '../../api/fandomClient.js';
-import { Analyzer } from '../analyzer.js';
+import { login } from '../../api/fandom/auth.js';
+import { runFullAnalysis } from '../analyzer.js';
 import { determineCandidates } from './candidates.js';
 import { fetchMatchesForCandidates } from './matchDataFetcher.js';
 import { assignTournamentTeamMaps } from './tournamentTeamMapAssigner.js';
@@ -46,7 +47,7 @@ function buildFandomOptions(force, options) {
 }
 
 async function createFandomClient(env) {
-  const authContext = await FandomClient.login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
+  const authContext = await login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
   return {
     authContext,
     fandomClient: new FandomClient(authContext)
@@ -84,7 +85,7 @@ function buildActiveUpdateLogs(tournaments, processed, authContext, logger) {
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
   const scopedRawMatches = buildScopedRawMatches(rawMatchesBySlug, writeScopeSlugs);
-  return Analyzer.runFullAnalysis(scopedRawMatches, scopedTournaments, UPDATE_CONFIG.MAX_SCHEDULE_DAYS);
+  return runFullAnalysis(scopedRawMatches, scopedTournaments, UPDATE_CONFIG.MAX_SCHEDULE_DAYS);
 }
 
 async function writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs) {
@@ -105,7 +106,7 @@ export async function runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySl
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
   let analysis = null;
   if (writeScopeSlugs.size > 0) {
-    await assignTournamentTeamMaps(scopedTournaments, rawMatchesBySlug, teamsRaw);
+    assignTournamentTeamMaps(scopedTournaments, rawMatchesBySlug, teamsRaw);
     analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
     await writeActiveTournamentFacts(env, scopedTournaments, rawMatchesBySlug, analysis, writeScopeSlugs);
   }

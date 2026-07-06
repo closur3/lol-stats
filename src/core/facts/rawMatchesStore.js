@@ -14,7 +14,7 @@ export async function readRawMatches(env, slug) {
   return rawMatches;
 }
 
-export async function readPreviousRawMatches(env, slug) {
+async function readPreviousRawMatches(env, slug) {
   if (!slug) throw new Error("previous rawMatches slug missing");
   const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(slug), { type: "json" });
   if (rawMatches == null) return [];

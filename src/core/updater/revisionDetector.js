@@ -1,8 +1,9 @@
-﻿import { FandomClient } from '../../api/fandomClient.js';
+import { fetchLatestRevision } from '../../api/fandom/revisions.js';
+import { fetchAllSubpages } from '../../api/fandom/subpages.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
-import { dataUtils } from '../../utils/dataUtils.js';
+import { normalizeOverviewPages, toDataPage } from '../../utils/data/overviewPages.js';
 
-export function hasRevisionRecordChanged(previousRecord, nextRecord) {
+function hasRevisionRecordChanged(previousRecord, nextRecord) {
   const prev = previousRecord || {};
   const next = nextRecord || {};
   if ((prev.slug || "") !== (next.slug || "")) return true;
@@ -40,11 +41,11 @@ async function prepareRevisionCheck(env, tournament) {
   const slug = tournament?.slug;
   if (!slug) throw new Error("Tournament slug missing");
 
-  const pages = dataUtils.normalizeOverviewPages(tournament.overview_page);
+  const pages = normalizeOverviewPages(tournament.overview_page);
   if (pages.length === 0) throw new Error(`Tournament overview_page missing: ${slug}`);
 
-  const dataPages = Array.from(new Set(pages.map(dataUtils.toDataPage)));
-  const subpageResults = await Promise.all(dataPages.map(page => FandomClient.fetchAllSubpages(page)));
+  const dataPages = Array.from(new Set(pages.map(toDataPage)));
+  const subpageResults = await Promise.all(dataPages.map(page => fetchAllSubpages(page)));
   const expandedDataPages = Array.from(new Set(subpageResults.flat()));
 
   const previousRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(slug), { type: "json" });
@@ -60,7 +61,7 @@ async function prepareRevisionCheck(env, tournament) {
 async function fetchLatestRevisionPages(dataPages) {
   const pageResults = await Promise.all(
     dataPages.map(async (page) => {
-      const latest = await FandomClient.fetchLatestRevision(page);
+      const latest = await fetchLatestRevision(page);
       return { page, latest };
     })
   );
@@ -136,8 +137,7 @@ export async function detectRevisionChanges(env, tournaments) {
   const state = {
     changedSlugs: new Set(),
     revidChanges: {},
-    pendingRevisionWrites: {},
-    hasErrors: false
+    pendingRevisionWrites: {}
   };
 
   const revChecks = await Promise.all(checks.map(check => evaluateRevisionCheck(check)));
@@ -149,7 +149,6 @@ export async function detectRevisionChanges(env, tournaments) {
     changedSlugs: state.changedSlugs,
     revidChanges: state.revidChanges,
     pendingRevisionWrites: state.pendingRevisionWrites,
-    hasErrors: state.hasErrors,
     checkedSlugs: checks.length
   };
 }

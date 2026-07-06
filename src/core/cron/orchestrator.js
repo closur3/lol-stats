@@ -4,9 +4,8 @@ import { readPreviousRawMatchesMap } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
-import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
-import { reconcileScheduleSlugStates } from "../scheduler/scheduleStateReconciler.js";
-import { resolveScheduledExecutionSlugs } from "../scheduler/scheduleReconciler.js";
+import { reconcileCurrentScheduleState, runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
+import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { migrateArchiveSnapshotsFromActiveFacts } from "../updater/archiveMigration.js";
 import { Logger } from "../../infrastructure/logger.js";
@@ -16,9 +15,9 @@ function filterTournaments(tournaments, slugs) {
 }
 
 async function resolveCronTarget(env, event, tournaments, scheduleOptions) {
-  const target = await resolveScheduledExecutionSlugs(env, event.scheduledTime, event.cron);
+  const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
   if (target.type === 'none') {
-    await reconcileScheduleSlugStates(env, tournaments, event.scheduledTime, scheduleOptions);
+    await reconcileCurrentScheduleState(env, tournaments, event.scheduledTime, scheduleOptions);
   }
   return target;
 }
@@ -27,8 +26,8 @@ async function detectRevisionChangesForTarget(env, tournaments, target) {
   const scopedTournaments = target.type === 'scoped'
     ? filterTournaments(tournaments, target.slugs)
     : tournaments;
-  const { changedSlugs, revidChanges, pendingRevisionWrites, hasErrors, checkedSlugs } = await detectRevisionChanges(env, scopedTournaments);
-  console.log(`[REV:SUMMARY] checked=${checkedSlugs} changed=${changedSlugs.size} errors=${hasErrors ? 1 : 0}`);
+  const { changedSlugs, revidChanges, pendingRevisionWrites, checkedSlugs } = await detectRevisionChanges(env, scopedTournaments);
+  console.log(`[REV:SUMMARY] checked=${checkedSlugs} changed=${changedSlugs.size}`);
 
   return { changedSlugs, revidChanges, pendingRevisionWrites };
 }

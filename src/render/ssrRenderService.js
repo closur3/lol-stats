@@ -1,4 +1,5 @@
-import { HTMLRenderer } from './htmlRenderer.js';
+import { renderArchiveContentOnly, renderContentOnly } from './templates/content.js';
+import { renderPageShell } from './templates/page.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
 import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
@@ -19,7 +20,7 @@ export async function renderHomeFromFacts(env) {
 
   if (homeEntries.length === 0) {
     const activeCron = await hasActiveCron(env);
-    return HTMLRenderer.renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No active data available</div>`, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
+    return renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No active data available</div>`, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
   const orderedTournaments = homeEntries.map(home => home.tournament);
@@ -27,7 +28,7 @@ export async function renderHomeFromFacts(env) {
   const renderInput = buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
   const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.scheduleMetaBySlug);
 
-  const homeFragment = HTMLRenderer.renderContentOnly(
+  const homeFragment = renderContentOnly(
     renderInput.globalStats,
     renderInput.timeGrid,
     limitedScheduleMap,
@@ -37,7 +38,7 @@ export async function renderHomeFromFacts(env) {
   );
 
   const activeCron = await hasActiveCron(env);
-  return HTMLRenderer.renderPageShell("LoL Stats", homeFragment, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
+  return renderPageShell("LoL Stats", homeFragment, "home", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
 }
 
 export async function renderArchiveFromFacts(env) {
@@ -46,7 +47,7 @@ export async function renderArchiveFromFacts(env) {
 
   if (!tournaments.length) {
     const activeCron = await hasActiveCron(env);
-    return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
+    return renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
   }
 
   const slugs = tournaments.map(t => t.slug);
@@ -82,7 +83,7 @@ export async function renderArchiveFromFacts(env) {
   const combined = validSnapshots.map(snap => {
     const snapshotTournament = snap.tournament;
     const miniTournaments = [{ ...snapshotTournament, teamMap: snap.teamMap }];
-    const content = HTMLRenderer.renderArchiveContentOnly(
+    const content = renderArchiveContentOnly(
       { [snapshotTournament.slug]: snap.stats },
       { [snapshotTournament.slug]: snap.timeGrid },
       miniTournaments
@@ -91,5 +92,5 @@ export async function renderArchiveFromFacts(env) {
   }).join("");
 
   const activeCron = await hasActiveCron(env);
-  return HTMLRenderer.renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
+  return renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, activeCron);
 }
