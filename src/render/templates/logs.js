@@ -32,24 +32,24 @@ function renderTrigger(entry, icon) {
   return ` | ${icon} <a class="log-trigger-link" href="${escapeUrl(trigger.diffUrl)}" target="_blank" rel="noopener">${escapeHtml(trigger.revid)}</a>`;
 }
 
-function renderStatusIcon(icon, label) {
-  return `&nbsp;${icon}&nbsp;${label}`;
+function renderStatusLabel(icon, label) {
+  return `${icon} ${label}`;
 }
 
 function renderLogMessage(entry) {
   const suffix = entry.isAnon ? " 👻" : "";
   const displayName = escapeHtml(entry.displayName || "");
   if (entry.action === "SYNC") {
-    return `${renderStatusIcon("🟢", "[SYNC]")} | 🔄 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "➕")}${suffix}`;
+    return `${renderStatusLabel("🟢", "[SYNC]")} | 🔄 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "➕")}${suffix}`;
   }
   if (entry.action === "SKIP") {
-    return `${renderStatusIcon("⚪", "[SKIP]")} | 🔍 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "🟰")}${suffix}`;
+    return `${renderStatusLabel("⚪", "[SKIP]")} | 🔍 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "🟰")}${suffix}`;
   }
   if (entry.action === "BREAKER") {
-    return `${renderStatusIcon("🔴", "[ERR!]")} | 🚧 ${displayName} ${escapeHtml(entry.dropInfo || "(Drop)")}${suffix}`;
+    return `${renderStatusLabel("🔴", "[ERR!]")} | 🚧 ${displayName} ${escapeHtml(entry.dropInfo || "(Drop)")}${suffix}`;
   }
   if (entry.action === "API_ERROR") {
-    return `${renderStatusIcon("🔴", "[ERR!]")} | ❌ ${displayName} (Fail)${suffix}`;
+    return `${renderStatusLabel("🔴", "[ERR!]")} | ❌ ${displayName} (Fail)${suffix}`;
   }
   throw new Error(`Invalid log entry action: ${entry.action}`);
 }
@@ -108,7 +108,7 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     const rows = entries.slice(0, maxLogEntries).map(entry => {
       const rowTime = entry.loggedAt || "";
       const formattedMessage = renderLogMessage(entry).replace(/(\+\d+(?:~\d+)?|~\d+|±0)/g, '<span class="hl">$1</span>');
-      return `<div class="log-mini-row"><span class="log-mini-time">${escapeHtml(rowTime)}</span><span class="log-mini-msg">${formattedMessage}</span></div>`;
+      return `<div class="log-mini-row"><span class="log-mini-time">${escapeHtml(rowTime)}</span><span class="log-mini-time-separator"> </span><span class="log-mini-msg">${formattedMessage}</span></div>`;
     }).join("");
 
     return `<div class="league-card">

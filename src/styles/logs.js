@@ -31,7 +31,8 @@ export default `${baseCSS}
     .log-mini-row { display: flex; align-items: baseline; gap: 0; padding: 6px var(--card-x-pad); border-bottom: 1px solid #f8fafc; font-size: 13px; }
     .log-mini-row:last-child { border-bottom: none; }
     .log-mini-time { color: #94a3b8; font-size: 12px; white-space: nowrap; flex: 0 0 auto; min-width: 0; font-weight: 500; }
-    .log-mini-msg { color: #64748b; word-break: break-all; line-height: 1.4; font-size: 13px; font-weight: 500; }
+    .log-mini-time-separator { white-space: pre; flex: 0 0 auto; }
+    .log-mini-msg { color: #64748b; word-break: break-all; line-height: 1.4; font-size: 13px; font-weight: 500; white-space: pre-wrap; }
     .log-mini-msg .hl { color: #0f172a; font-weight: 600; }
     .log-trigger-link { color: inherit; text-decoration: none; }
     .log-trigger-link:hover { color: #1d4ed8; text-decoration: underline; }
@@ -42,6 +43,7 @@ export default `${baseCSS}
         .league-card-header { padding: 10px 16px; }
         .log-mini-row { flex-direction: column; align-items: flex-start; gap: 2px; }
         .log-mini-time { width: auto; min-width: 0; font-size: 11px; line-height: 1.2; }
+        .log-mini-time-separator { display: none; }
         .log-mini-msg { width: 100%; word-break: break-word; line-height: 1.35; text-align: left; }
     }
 `;
