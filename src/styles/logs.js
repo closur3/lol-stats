@@ -28,9 +28,9 @@ export default `${baseCSS}
     .bar-err { background: #ef4444; }
     .league-card-logs { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
     .league-card-logs::-webkit-scrollbar { display: none; }
-    .log-mini-row { display: flex; align-items: baseline; gap: 16px; padding: 6px var(--card-x-pad); border-bottom: 1px solid #f8fafc; font-size: 13px; }
+    .log-mini-row { display: flex; align-items: baseline; gap: 0; padding: 6px var(--card-x-pad); border-bottom: 1px solid #f8fafc; font-size: 13px; }
     .log-mini-row:last-child { border-bottom: none; }
-    .log-mini-time { color: #94a3b8; font-size: 12px; white-space: nowrap; flex-shrink: 0; min-width: 135px; font-weight: 500; }
+    .log-mini-time { color: #94a3b8; font-size: 12px; white-space: nowrap; flex: 0 0 auto; min-width: 0; font-weight: 500; }
     .log-mini-msg { color: #64748b; word-break: break-all; line-height: 1.4; font-size: 13px; font-weight: 500; }
     .log-mini-msg .hl { color: #0f172a; font-weight: 600; }
     .log-trigger-link { color: inherit; text-decoration: none; }
@@ -41,7 +41,7 @@ export default `${baseCSS}
         .league-card { --card-x-pad: 16px; }
         .league-card-header { padding: 10px 16px; }
         .log-mini-row { flex-direction: column; align-items: flex-start; gap: 2px; }
-        .log-mini-time { min-width: auto; font-size: 11px; line-height: 1.2; }
+        .log-mini-time { width: auto; min-width: 0; font-size: 11px; line-height: 1.2; }
         .log-mini-msg { width: 100%; word-break: break-word; line-height: 1.35; text-align: left; }
     }
 `;

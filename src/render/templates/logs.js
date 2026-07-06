@@ -32,20 +32,24 @@ function renderTrigger(entry, icon) {
   return ` | ${icon} <a class="log-trigger-link" href="${escapeUrl(trigger.diffUrl)}" target="_blank" rel="noopener">${escapeHtml(trigger.revid)}</a>`;
 }
 
+function renderStatusIcon(icon, label) {
+  return `&nbsp;${icon}&nbsp;${label}`;
+}
+
 function renderLogMessage(entry) {
   const suffix = entry.isAnon ? " 👻" : "";
   const displayName = escapeHtml(entry.displayName || "");
   if (entry.action === "SYNC") {
-    return `🟢 [SYNC] | 🔄 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "➕")}${suffix}`;
+    return `${renderStatusIcon("🟢", "[SYNC]")} | 🔄 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "➕")}${suffix}`;
   }
   if (entry.action === "SKIP") {
-    return `⚪ [SKIP] | 🔍 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "🟰")}${suffix}`;
+    return `${renderStatusIcon("⚪", "[SKIP]")} | 🔍 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "🟰")}${suffix}`;
   }
   if (entry.action === "BREAKER") {
-    return `🔴 [ERR!] | 🚧 ${displayName} ${escapeHtml(entry.dropInfo || "(Drop)")}${suffix}`;
+    return `${renderStatusIcon("🔴", "[ERR!]")} | 🚧 ${displayName} ${escapeHtml(entry.dropInfo || "(Drop)")}${suffix}`;
   }
   if (entry.action === "API_ERROR") {
-    return `🔴 [ERR!] | ❌ ${displayName} (Fail)${suffix}`;
+    return `${renderStatusIcon("🔴", "[ERR!]")} | ❌ ${displayName} (Fail)${suffix}`;
   }
   throw new Error(`Invalid log entry action: ${entry.action}`);
 }
