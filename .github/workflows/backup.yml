@@ -17,7 +17,7 @@ jobs:
 
       - name: Export Markdown
         env:
-          WORKER_URL: "https://lol.hsux.de/backup"
+          WORKER_URL: "https://lol-stats.closur3.workers.dev/backup"
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
         run: node .github/scripts/exportMarkdownBackup.js
           NODE

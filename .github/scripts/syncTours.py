@@ -307,9 +307,9 @@ def run_sniff():
         region = t.get("Region", "")
         y = t.get("Year", "")
         league_full = t.get("League", "")
-        league_short = league_map.get(league_full, "")
-        if not league_short:
-            raise ValueError(f"Missing league short: {league_full or name}")
+        if not league_full:
+            raise ValueError(f"Missing tournament league: {name}")
+        league = league_map.get(league_full, league_full)
 
         force_included = is_force_included(name, ov)
         hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
@@ -329,7 +329,7 @@ def run_sniff():
             mapped_names.append(f"{name} → {mapped_name}")
             name = mapped_name
 
-        ev = {"ov": ov, "year": y, "name": name, "region": region, "start": s_dt, "end": e_dt, "league": league_short}
+        ev = {"ov": ov, "year": y, "name": name, "region": region, "start": s_dt, "end": e_dt, "league": league}
 
         if t.get("IsPlayoffs") == "1" and region != "International":
             playoff_events.append(ev)
