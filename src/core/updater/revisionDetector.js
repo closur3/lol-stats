@@ -46,14 +46,14 @@ async function prepareRevisionCheck(env, tournament) {
 
   const dataPages = Array.from(new Set(pages.map(toDataPage)));
   const subpageResults = await Promise.all(dataPages.map(page => fetchAllSubpages(page)));
-  const expandedDataPages = Array.from(new Set(subpageResults.flat()));
+  const revisionDataPages = Array.from(new Set(subpageResults.flat()));
 
   const previousRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(slug), { type: "json" });
   console.log(`[REV:CHECK] ${slug}`);
 
   return {
     slug,
-    dataPages: expandedDataPages,
+    dataPages: revisionDataPages,
     previousRevisionState
   };
 }

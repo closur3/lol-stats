@@ -6,6 +6,10 @@ function readAllPages(data) {
   return pages;
 }
 
+function isDataPageNumberedPagination(basePage, title) {
+  return title === basePage || new RegExp(`^${basePage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/\\d+$`).test(title);
+}
+
 export async function fetchAllSubpages(basePage) {
   const allPages = [basePage];
   let continueToken = null;
@@ -32,7 +36,7 @@ export async function fetchAllSubpages(basePage) {
 
     for (const page of pages) {
       const title = page.title;
-      if (title.startsWith(basePage + "/")) {
+      if (isDataPageNumberedPagination(basePage, title)) {
         allPages.push(title);
       }
     }
