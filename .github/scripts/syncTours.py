@@ -52,12 +52,6 @@ def load_required_json_array(path: str) -> list:
         overview_pages = item.get("overview_page")
         if not isinstance(overview_pages, list) or not overview_pages or any(not isinstance(page, str) or not page.strip() for page in overview_pages):
             raise ValueError(f"{path}[{index}].overview_page must be a non-empty string array")
-        team_map = item.get("teamMap")
-        if not isinstance(team_map, dict) or not team_map or any(
-            not isinstance(team, str) or not team.strip() or not isinstance(short, str) or not short.strip()
-            for team, short in team_map.items()
-        ):
-            raise ValueError(f"{path}[{index}].teamMap must be a non-empty string map")
         if item["slug"] in slugs:
             raise ValueError(f"Duplicate slug in {path}: {item['slug']}")
         slugs.add(item["slug"])
@@ -270,6 +264,23 @@ def run_sniff():
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
 
+    league_rows = fetch_cargo(session, url, {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "Leagues",
+        "fields": "League,League_Short",
+        "where": "League IS NOT NULL AND League_Short IS NOT NULL",
+        "order_by": "League ASC",
+    })
+    league_map = {}
+    for item in league_rows:
+        row = item.get("title", {})
+        league = row.get("League", "")
+        league_short = row.get("League Short", "")
+        if not league or not league_short:
+            raise ValueError(f"Invalid league row: {row}")
+        league_map[league] = league_short
+
     cargo_base = {
         "action": "cargoquery", "format": "json", "tables": "Tournaments",
         "fields": ", ".join(CARGO_FIELDS),
@@ -291,9 +302,12 @@ def run_sniff():
         ov = t.get("OverviewPage", "")
         region = t.get("Region", "")
         y = t.get("Year", "")
-        league = t.get("League", "")
-        if not isinstance(league, str):
+        league_full = t.get("League", "")
+        if not isinstance(league_full, str):
             raise ValueError(f"Invalid tournament league: {name}")
+        if league_full and league_full not in league_map:
+            raise ValueError(f"Unknown tournament league: {league_full}")
+        league = league_map[league_full] if league_full else ""
 
         force_included = is_force_included(name, ov)
         hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
