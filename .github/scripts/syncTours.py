@@ -40,13 +40,15 @@ def load_required_json_array(path: str) -> list:
         value = json.load(f)
     if not isinstance(value, list):
         raise ValueError(f"{path} must contain a JSON array")
-    required = ("slug", "name", "league", "start_date", "end_date")
+    required = ("slug", "name", "start_date", "end_date")
     slugs = set()
     for index, item in enumerate(value):
         if not isinstance(item, dict):
             raise ValueError(f"{path}[{index}] must be an object")
         if any(not isinstance(item.get(field), str) or not item[field].strip() for field in required):
             raise ValueError(f"{path}[{index}] fields missing")
+        if not isinstance(item.get("league"), str):
+            raise ValueError(f"{path}[{index}].league must be a string")
         overview_pages = item.get("overview_page")
         if not isinstance(overview_pages, list) or not overview_pages or any(not isinstance(page, str) or not page.strip() for page in overview_pages):
             raise ValueError(f"{path}[{index}].overview_page must be a non-empty string array")
@@ -268,23 +270,6 @@ def run_sniff():
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
 
-    league_rows = fetch_cargo(session, url, {
-        "action": "cargoquery",
-        "format": "json",
-        "tables": "Leagues",
-        "fields": "League,League_Short",
-        "where": "League IS NOT NULL AND League_Short IS NOT NULL",
-        "order_by": "League ASC",
-    })
-    league_map = {}
-    for item in league_rows:
-        row = item.get("title", {})
-        league = row.get("League", "")
-        league_short = row.get("League Short", "")
-        if not league or not league_short:
-            raise ValueError(f"Invalid league row: {row}")
-        league_map[league] = league_short
-
     cargo_base = {
         "action": "cargoquery", "format": "json", "tables": "Tournaments",
         "fields": ", ".join(CARGO_FIELDS),
@@ -306,10 +291,9 @@ def run_sniff():
         ov = t.get("OverviewPage", "")
         region = t.get("Region", "")
         y = t.get("Year", "")
-        league_full = t.get("League", "")
-        if not league_full:
-            raise ValueError(f"Missing tournament league: {name}")
-        league = league_map.get(league_full, league_full)
+        league = t.get("League", "")
+        if not isinstance(league, str):
+            raise ValueError(f"Invalid tournament league: {name}")
 
         force_included = is_force_included(name, ov)
         hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)

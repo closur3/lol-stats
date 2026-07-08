@@ -7,13 +7,13 @@ function normalizeActiveTournamentConfig(tournament) {
   }
   const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
   const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
-  const league = typeof tournament.league === "string" ? tournament.league.trim() : "";
+  const league = typeof tournament.league === "string" ? tournament.league.trim() : null;
   const startDate = typeof tournament.start_date === "string" ? tournament.start_date.trim() : "";
   const endDate = typeof tournament.end_date === "string" ? tournament.end_date.trim() : "";
   const overviewPage = Array.isArray(tournament.overview_page)
     ? tournament.overview_page.filter(page => typeof page === "string" && page.trim()).map(page => page.trim())
     : [];
-  if (!slug || !name || !league || !startDate || !endDate || overviewPage.length === 0) {
+  if (!slug || !name || league === null || !startDate || !endDate || overviewPage.length === 0) {
     throw new Error(`Invalid tournament config: ${slug || "(missing slug)"}`);
   }
   const teamMap = assertTeamMap(tournament.teamMap, `ConfigActive.${slug}.teamMap`);

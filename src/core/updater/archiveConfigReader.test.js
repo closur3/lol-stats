@@ -24,7 +24,7 @@ describe("readArchiveConfig", () => {
       {
         slug: "a-tournament",
         name: "A Tournament",
-        league: "A",
+        league: "",
         overview_page: ["A/2026"],
         teamMap: { "A Team": "A" },
         start_date: "2026-01-01",
