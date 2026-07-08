@@ -301,12 +301,8 @@ def run_sniff():
             blocked_count += 1
             continue
 
-        try:
-            s_dt = parse_date(t["DateStart"])
-            e_dt = parse_date(t.get("Date") or t["DateStart"])
-        except Exception as e:
-            log(f"❌ 日期异常 | {name} | {e}")
-            continue
+        s_dt = parse_date(t["DateStart"])
+        e_dt = parse_date(t["Date"])
 
         mapped_name = apply_name_mapping(name)
         if mapped_name:

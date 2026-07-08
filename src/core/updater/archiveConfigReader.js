@@ -10,9 +10,13 @@ function normalizeArchiveTournament(tournament) {
   const league = typeof tournament.league === "string" ? tournament.league.trim() : null;
   const startDate = typeof tournament.start_date === "string" ? tournament.start_date.trim() : "";
   const endDate = typeof tournament.end_date === "string" ? tournament.end_date.trim() : "";
-  const overviewPage = Array.isArray(tournament.overview_page)
-    ? tournament.overview_page.filter(page => typeof page === "string" && page.trim()).map(page => page.trim())
-    : [];
+  if (!Array.isArray(tournament.overview_page) || tournament.overview_page.length === 0) {
+    throw new Error(`Invalid ConfigArchive overview_page: ${slug || "(missing slug)"}`);
+  }
+  if (tournament.overview_page.some(page => typeof page !== "string" || !page.trim())) {
+    throw new Error(`Invalid ConfigArchive overview_page: ${slug || "(missing slug)"}`);
+  }
+  const overviewPage = tournament.overview_page.map(page => page.trim());
   if (!slug || !name || league === null || !startDate || !endDate || overviewPage.length === 0) {
     throw new Error(`Invalid ConfigArchive tournament: ${slug || "(missing slug)"}`);
   }

@@ -55,4 +55,19 @@ describe("readArchiveConfig", () => {
     await expect(readArchiveConfig(createEnv([tournament, tournament])))
       .rejects.toThrow("Duplicate ConfigArchive slug: duplicate");
   });
+
+  it("rejects an invalid overview page instead of filtering it", async () => {
+    const tournament = {
+      slug: "invalid-overview",
+      name: "Invalid Overview",
+      league: "",
+      overview_page: ["Valid/2026", ""],
+      teamMap: { "Test Team": "TEST" },
+      start_date: "2026-01-01",
+      end_date: "2026-01-31"
+    };
+
+    await expect(readArchiveConfig(createEnv([tournament])))
+      .rejects.toThrow("Invalid ConfigArchive overview_page: invalid-overview");
+  });
 });

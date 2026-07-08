@@ -69,7 +69,8 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
 
   const getDisplayName = (slug) => {
     const displayName = displayNameMap.get(slug);
-    return displayName === undefined ? slug : displayName;
+    if (!displayName) throw new Error(`Tournament display name missing: ${slug}`);
+    return displayName;
   };
 
   const pushEntry = (slug, entry) => {
