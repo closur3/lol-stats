@@ -305,7 +305,7 @@ def run_sniff():
         league_full = t.get("League", "")
         if not isinstance(league_full, str):
             raise ValueError(f"Invalid tournament league: {name}")
-        league = league_map.get(league_full, "")
+        league = league_map.get(league_full, league_full)
 
         force_included = is_force_included(name, ov)
         hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
