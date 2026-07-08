@@ -26,7 +26,7 @@ CARGO_DEFAULT_WHERE = {
     "TournamentLevel": "Primary",
     "IsQualifier": "0",
 }
-CARGO_WHERE_RAW = ["DateStart IS NOT NULL"]
+CARGO_WHERE_RAW = ["DateStart IS NOT NULL", "Date IS NOT NULL"]
 CARGO_ORDER_BY = "DateStart ASC"
 # ================================================
 
