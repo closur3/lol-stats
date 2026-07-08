@@ -2,6 +2,15 @@ name: "Config: Persist KV"
 
 on:
   workflow_dispatch:
+    inputs:
+      clear:
+        description: "Delete all KV keys before writing configs"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   persist:
@@ -25,6 +34,32 @@ jobs:
           CLOUDFLARE_KV_NAMESPACE_ID="$(awk '/binding = "lol-stats-kv"/ { getline; gsub(/"/, "", $3); print $3 }' wrangler.toml)"
           [[ -n "${CLOUDFLARE_KV_NAMESPACE_ID}" ]] || { echo "Missing lol-stats-kv namespace id in wrangler.toml."; exit 1; }
 
+          clear_all_keys() {
+            while true; do
+              local keys
+              keys="$(
+                curl -fsSL \
+                  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/keys?limit=10000" \
+                  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                | jq -c '[.result[].name]'
+              )"
+
+              local count
+              count="$(echo "${keys}" | jq 'length')"
+              if [[ "${count}" -eq 0 ]]; then
+                echo "KV namespace is empty."
+                break
+              fi
+
+              echo "Deleting ${count} KV keys..."
+              curl -fsSL -X POST \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/bulk/delete" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "${keys}" > /dev/null
+            done
+          }
+
           put_config() {
             local key="$1"
             local file="$2"
@@ -36,6 +71,10 @@ jobs:
               --data-binary @"${file}" > /dev/null
             echo "${key} updated in Cloudflare KV."
           }
+
+          if [[ "${{ github.event.inputs.clear }}" == "true" ]]; then
+            clear_all_keys
+          fi
 
           put_config "ConfigArchive" "config/ConfigArchive.json"
           put_config "ConfigActive" "config/ConfigActive.json"
