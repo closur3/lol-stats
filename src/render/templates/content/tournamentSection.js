@@ -1,32 +1,17 @@
 import { getFirstOverviewPage } from '../../../utils/data/overviewPages.js';
-import { pct, rate } from '../../../utils/data/stats.js';
 import { sortTeams } from '../../../utils/data/teamSort.js';
 import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
 import { resolveHomeEmojiFromScheduleMeta, resolveScheduleMetaPhase } from '../../../utils/scheduleMetaPhase.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
+import { summarizeFullRate } from '../../../core/analysis/fullRateSummary.js';
 import { buildTeamRow } from '../../components/teamRow.js';
 import { buildTimeTable } from '../../components/timeTable.js';
 
 function buildTournamentSummary(stats) {
-  let bo3Full = 0, bo3Total = 0;
-  let bo5Full = 0, bo5Total = 0;
-  stats.forEach(teamStats => {
-    bo3Full += teamStats.bestOf3FullMatchCount || 0;
-    bo3Total += teamStats.bestOf3TotalMatchCount || 0;
-    bo5Full += teamStats.bestOf5FullMatchCount || 0;
-    bo5Total += teamStats.bestOf5TotalMatchCount || 0;
-  });
-  bo3Full /= 2;
-  bo3Total /= 2;
-  bo5Full /= 2;
-  bo5Total /= 2;
-
-  const hasNoData = bo3Total === 0 && bo5Total === 0;
-  const parts = [];
-  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span class="tournament-summary-rate">(${pct(rate(bo3Full, bo3Total))})</span>`);
-  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span class="tournament-summary-rate">(${pct(rate(bo5Full, bo5Total))})</span>`);
+  const summary = summarizeFullRate(stats);
+  const parts = summary.parts.map(part => `${part.label}: ${part.fullMatchCount}/${part.totalMatchCount} <span class="tournament-summary-rate">(${part.percentText})</span>`);
   const html = parts.length ? `<div class="tournament-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
-  return { html, hasNoData };
+  return { html, hasNoData: summary.hasNoData };
 }
 
 function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {

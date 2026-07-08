@@ -2,12 +2,13 @@ import { pct, rate } from '../../src/utils/data/stats.js';
 import { sortTeams } from '../../src/utils/data/teamSort.js';
 import { TIME_GRID_COLUMN_COUNT } from '../../src/constants/index.js';
 import { timePolicy } from '../../src/utils/timePolicy.js';
-import { generateFullRateString as generateFullRateStringCore } from '../../src/core/analysis/fullRateStats.js';
+import { summarizeFullRate } from '../../src/core/analysis/fullRateSummary.js';
 
-export function generateFullRateString(bo3FullMatches, bo3TotalMatches, bo5FullMatches, bo5TotalMatches) {
-  const core = generateFullRateStringCore(bo3FullMatches, bo3TotalMatches, bo5FullMatches, bo5TotalMatches);
-  if (!core) return "";
-  return `📊 **Fullrate**: ${core}\n\n`;
+export function renderFullRateSummary(stats) {
+  const summary = summarizeFullRate(stats);
+  if (summary.hasNoData) return "";
+  const parts = summary.parts.map(part => `${part.label}: **${part.fullMatchCount}/${part.totalMatchCount}** (${part.percentText})`);
+  return `📊 **Fullrate**: ${parts.join(" | ")}\n\n`;
 }
 
 function readMarkdownRegionGrid(timeGrid, slug) {
@@ -24,15 +25,7 @@ function readMarkdownRegionGrid(timeGrid, slug) {
 
 export function generateMarkdown(tournament, stats, timeGrid) {
   const sorted = sortTeams(stats);
-
-  let bo3FullMatches = 0, bo3TotalMatches = 0, bo5FullMatches = 0, bo5TotalMatches = 0;
-  sorted.forEach(teamStats => {
-    bo3FullMatches += teamStats.bestOf3FullMatchCount || 0; bo3TotalMatches += teamStats.bestOf3TotalMatchCount || 0;
-    bo5FullMatches += teamStats.bestOf5FullMatchCount || 0; bo5TotalMatches += teamStats.bestOf5TotalMatchCount || 0;
-  });
-  bo3FullMatches /= 2; bo3TotalMatches /= 2; bo5FullMatches /= 2; bo5TotalMatches /= 2;
-
-  let fullRateStr = generateFullRateString(bo3FullMatches, bo3TotalMatches, bo5FullMatches, bo5TotalMatches);
+  const fullRateStr = renderFullRateSummary(sorted);
 
   let markdown = `# ${tournament.name}\n\n${fullRateStr}| TEAM | BO3 FULL | BO3% | BO5 FULL | BO5% | SERIES | SERIES WR | GAMES | GAME WR | STREAK | LAST DATE |\n| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n`;
 
