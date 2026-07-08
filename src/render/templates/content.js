@@ -20,7 +20,7 @@ export function renderContentOnly(globalStats, timeData, scheduleMap, tournament
   assertTournaments(tournaments);
   if (!isArchive) assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
 
-  const injectedData = `<script>window.g_stats = Object.assign(window.g_stats ?? {}, ${JSON.stringify(globalStats)});</script>`;
+  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${JSON.stringify(globalStats)});</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
     .map(tournament => renderTournamentSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive))

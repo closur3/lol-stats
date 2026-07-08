@@ -1,7 +1,7 @@
 export const MODAL_HISTORY = `
 function openTeam(slug, teamName) {
-    if (!window.g_stats || !window.g_stats[slug] || !window.g_stats[slug][teamName]) return;
-    const data = window.g_stats[slug][teamName];
+    if (!window.gStats || !window.gStats[slug] || !window.gStats[slug][teamName]) return;
+    const data = window.gStats[slug][teamName];
     document.getElementById('modalTitle').innerText = teamName + " - Schedule";
     
     const history = data.history || [];
@@ -35,8 +35,8 @@ function openTeam(slug, teamName) {
 }
 
 function openStats(slug, teamName, type) {
-    if (!window.g_stats || !window.g_stats[slug] || !window.g_stats[slug][teamName]) return;
-    const data = window.g_stats[slug][teamName];
+    if (!window.gStats || !window.gStats[slug] || !window.gStats[slug][teamName]) return;
+    const data = window.gStats[slug][teamName];
     let history = data.history || [];
     let titleSuffix = "";
     if (type === 'bo3') { history = history.filter(match => match.bestOf === 3); titleSuffix = " - BO3"; }
@@ -73,8 +73,8 @@ function openStats(slug, teamName, type) {
 }
 
 function openH2H(slug, team1Name, team2Name) {
-    if (!window.g_stats || !window.g_stats[slug] || !window.g_stats[slug][team1Name]) return;
-    const data = window.g_stats[slug][team1Name];
+    if (!window.gStats || !window.gStats[slug] || !window.gStats[slug][team1Name]) return;
+    const data = window.gStats[slug][team1Name];
     const h2hHistory = (data.history || []).filter(match => match.opponentName === team2Name);
     let team1Wins = 0, team2Wins = 0;
     h2hHistory.forEach(match => { if(match.matchResultCode === 'WIN') team1Wins++; else if(match.matchResultCode === 'LOSS') team2Wins++; });

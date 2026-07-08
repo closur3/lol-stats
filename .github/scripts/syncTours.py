@@ -58,8 +58,8 @@ def load_required_json_array(path: str) -> list:
     return value
 
 def add_extra_ov(ev: dict, ov: str) -> None:
-    if ov not in ev.setdefault("extra_ovs", []):
-        ev["extra_ovs"].append(ov)
+    if ov not in ev.setdefault("extraOvs", []):
+        ev["extraOvs"].append(ov)
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -328,7 +328,7 @@ def run_sniff():
         else:
             key = f"INTL_{name}" if region == "International" else (f"{name}_{y}" if mapped_name else f"{ov}_{y}")
             if key not in main_events:
-                main_events[key] = {**ev, "extra_ovs": [ov]}
+                main_events[key] = {**ev, "extraOvs": [ov]}
             else:
                 main_events[key]["start"] = min(main_events[key]["start"], s_dt)
                 main_events[key]["end"]   = max(main_events[key]["end"],   e_dt)
@@ -407,7 +407,7 @@ def run_sniff():
             expired_events.append((v["name"], diff_days))
             continue
 
-        admitted_events.append((v["name"], v["leagueShort"], str(v["start"]), str(v["end"]), v.get("extra_ovs", [v["ov"]])))
+        admitted_events.append((v["name"], v["leagueShort"], str(v["start"]), str(v["end"]), v.get("extraOvs", [v["ov"]])))
 
     log("")
     log("📊 周期终审")
