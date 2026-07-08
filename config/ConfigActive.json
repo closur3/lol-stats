@@ -2,12 +2,12 @@
     {
         "slug": "esports-world-cup-2026",
         "name": "Esports World Cup 2026",
-        "league": "EWC",
-        "overview_page": [
+        "leagueShort": "EWC",
+        "overviewPage": [
             "Esports World Cup 2026"
         ],
-        "start_date": "2026-07-15",
-        "end_date": "2026-07-19",
+        "startDate": "2026-07-15",
+        "endDate": "2026-07-19",
         "teamMap": {
             "AG.AL": "AGAL",
             "Bilibili Gaming": "BLG",
@@ -30,12 +30,12 @@
     {
         "slug": "msi-2026",
         "name": "MSI 2026",
-        "league": "MSI",
-        "overview_page": [
+        "leagueShort": "MSI",
+        "overviewPage": [
             "2026 Mid-Season Invitational"
         ],
-        "start_date": "2026-06-28",
-        "end_date": "2026-07-12",
+        "startDate": "2026-06-28",
+        "endDate": "2026-07-12",
         "teamMap": {
             "Bilibili Gaming": "BLG",
             "Deep Cross Gaming": "DCG",
@@ -53,13 +53,13 @@
     {
         "slug": "lck-2026-rounds-1-4",
         "name": "LCK 2026 Rounds 1-4",
-        "league": "LCK",
-        "overview_page": [
+        "leagueShort": "LCK",
+        "overviewPage": [
             "LCK/2026 Season/Rounds 1-2",
             "LCK/2026 Season/Rounds 3-4"
         ],
-        "start_date": "2026-04-01",
-        "end_date": "2026-08-23",
+        "startDate": "2026-04-01",
+        "endDate": "2026-08-23",
         "teamMap": {
             "BNK FEARX": "BFX",
             "DN SOOPers": "DNS",

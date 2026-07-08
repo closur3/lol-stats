@@ -5,11 +5,11 @@ function tournament(slug = "archive-tournament") {
   return {
     slug,
     name: "Archive Tournament",
-    league: "TEST",
-    overview_page: ["Test/2026"],
+    leagueShort: "TEST",
+    overviewPage: ["Test/2026"],
     teamMap: { "Test Team": "TEST" },
-    start_date: "2026-01-01",
-    end_date: "2026-01-31"
+    startDate: "2026-01-01",
+    endDate: "2026-01-31"
   };
 }
 
@@ -49,10 +49,10 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
     expect(snapshot.tournament).toEqual({
       slug: archiveTournament.slug,
       name: archiveTournament.name,
-      league: archiveTournament.league,
-      overview_page: archiveTournament.overview_page,
-      start_date: archiveTournament.start_date,
-      end_date: archiveTournament.end_date
+      leagueShort: archiveTournament.leagueShort,
+      overviewPage: archiveTournament.overviewPage,
+      startDate: archiveTournament.startDate,
+      endDate: archiveTournament.endDate
     });
     expect(snapshot).not.toHaveProperty("teamMap");
     expect(snapshot).not.toHaveProperty("rawMatches");

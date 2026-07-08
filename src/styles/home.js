@@ -15,12 +15,12 @@ export default `${baseCSS}
     .team-clickable:hover { color: #2563eb; background-color: #eff6ff !important; }
     .table-title { font-weight: 600; display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 12px 12px 0 0; border: 1px solid #e2e8f0; border-bottom: none; box-sizing: border-box; min-height: 72px; padding: 12px 16px; }
     .table-title + .wrapper { border-top: none; border-radius: 0 0 12px 12px; }
-    .league-title-text { color: #0f172a; font-weight: 600; line-height: 1.3; }
-    .league-title-row { display: flex; align-items: center; gap: 6px; }
-    .league-phase-emoji { font-size: 16px; line-height: 1; display: block; transform: translateY(-1px); }
-    .table-title .league-jump-btn { display: inline-flex; align-items: center; justify-content: center; color: #0f172a; text-decoration: none; flex-shrink: 0; line-height: 1; }
-    .table-title .league-jump-btn svg { width: 13px; height: 13px; stroke-width: 2.6; }
-    .table-title .league-jump-btn:hover { color: #2563eb; }
+    .tournament-title-text { color: #0f172a; font-weight: 600; line-height: 1.3; }
+    .tournament-title-row { display: flex; align-items: center; gap: 6px; }
+    .tournament-phase-emoji { font-size: 16px; line-height: 1; display: block; transform: translateY(-1px); }
+    .table-title .tournament-jump-btn { display: inline-flex; align-items: center; justify-content: center; color: #0f172a; text-decoration: none; flex-shrink: 0; line-height: 1; }
+    .table-title .tournament-jump-btn svg { width: 13px; height: 13px; stroke-width: 2.6; }
+    .table-title .tournament-jump-btn:hover { color: #2563eb; }
     details.home-sec { margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
     details.home-sec > summary.table-title { cursor: pointer; user-select: none; list-style: none; transition: background 0.2s; background: var(--gradient-header); box-shadow: inset 1px 0 2px rgba(0, 0, 0, 0.04), inset -1px 0 2px rgba(0, 0, 0, 0.04); }
     details.home-sec > summary.table-title::-webkit-details-marker { display: none; }
@@ -117,8 +117,8 @@ export default `${baseCSS}
     .arch-empty-msg { text-align: center; padding: 40px; color: #94a3b8; }
     .arch-error-msg { padding: 20px; color: #dc2626; text-align: center; font-weight: 600; }
 
-    .league-summary { font-size:12px; color:#64748b; font-weight: 600; background:#f8fafc; padding:4px 10px; border-radius:8px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; white-space:nowrap; }
-    .league-summary-rate { opacity: 0.7; font-weight: 400; }
+    .tournament-summary { font-size:12px; color:#64748b; font-weight: 600; background:#f8fafc; padding:4px 10px; border-radius:8px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; white-space:nowrap; }
+    .tournament-summary-rate { opacity: 0.7; font-weight: 400; }
     .summary-sep { opacity:0.3; margin:0 8px; font-weight:400; }
     .title-right-area { display:flex; align-items:center; gap:12px; justify-content: flex-start; }
 
@@ -129,14 +129,14 @@ export default `${baseCSS}
         summary.arch-sum { display: flex; flex-direction: column; align-items: flex-start; padding: 0; }
         .table-title { display: flex; flex-direction: column; align-items: flex-start; padding: 0; background: #fff; border-bottom: none; width: 100%; border-radius: 12px 12px 0 0; }
         .table-title > div:first-child { width: 100%; padding: 8px 15px; display: flex; align-items: flex-start; flex: 1 1 0; gap: 6px; min-width: 0; }
-        .table-title > div:first-child .league-title-text { white-space: normal; line-height: 1.4; word-break: break-word; }
+        .table-title > div:first-child .tournament-title-text { white-space: normal; line-height: 1.4; word-break: break-word; }
         .table-title .title-right-area { margin-top: 0 !important; padding: 8px 15px !important; align-items: center; display: flex; flex: 1 1 0; justify-content: flex-end !important; }
         .arch-title-wrapper { width: 100%; padding: 8px 15px; display: flex; align-items: center; column-gap: 10px; flex: 1 1 0; }
         summary.arch-sum .title-right-area { margin-top: 0 !important; padding: 8px 15px !important; align-items: center; flex: 1 1 0; }
         .arch-indicator { margin-right: 0; }
         .arch-title-wrapper a { white-space: normal; line-height: 1.3; }
         .title-right-area { width: 100%; justify-content: flex-end !important; padding: 10px 15px 12px 15px; border-top: 1px dashed #e2e8f0; margin-top: 8px; display: flex; }
-        .league-summary { font-size: 11px; padding: 3px 8px; }
+        .tournament-summary { font-size: 11px; padding: 3px 8px; }
         .time-box-select { width: 66px; }
         .floating-actions { position: fixed; top: auto; right: auto; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); flex-direction: row; gap: 6px; padding: 5px; border-radius: 12px; }
         .floating-actions-anchor { display: block; height: 50px; margin: 0 auto 16px auto; pointer-events: none; }
@@ -144,7 +144,7 @@ export default `${baseCSS}
         .floating-action-btn { width: 38px; height: 38px; border-radius: 8px; }
         .floating-action-icon { width: 18px; height: 18px; }
         details.home-sec > summary.table-title { min-height: 72px; }
-        .table-title .league-jump-btn svg { width: 13px; height: 13px; }
+        .table-title .tournament-jump-btn svg { width: 13px; height: 13px; }
     }
     @media (max-width: 650px) { .sch-container { grid-template-columns: 1fr; } }
 

@@ -15,20 +15,20 @@ describe("readArchiveConfig", () => {
       {
         slug: "z-tournament",
         name: "Z Tournament",
-        league: "Z",
-        overview_page: ["Z/2026"],
+        leagueShort: "Z",
+        overviewPage: ["Z/2026"],
         teamMap: { "Z Team": "Z" },
-        start_date: "2026-06-01",
-        end_date: "2026-06-30"
+        startDate: "2026-06-01",
+        endDate: "2026-06-30"
       },
       {
         slug: "a-tournament",
         name: "A Tournament",
-        league: "",
-        overview_page: ["A/2026"],
+        leagueShort: "",
+        overviewPage: ["A/2026"],
         teamMap: { "A Team": "A" },
-        start_date: "2026-01-01",
-        end_date: "2026-01-31"
+        startDate: "2026-01-01",
+        endDate: "2026-01-31"
       }
     ];
 
@@ -45,11 +45,11 @@ describe("readArchiveConfig", () => {
     const tournament = {
       slug: "duplicate",
       name: "Duplicate",
-      league: "DUP",
-      overview_page: ["Duplicate/2026"],
+      leagueShort: "DUP",
+      overviewPage: ["Duplicate/2026"],
       teamMap: { "Duplicate Team": "DUP" },
-      start_date: "2026-01-01",
-      end_date: "2026-01-31"
+      startDate: "2026-01-01",
+      endDate: "2026-01-31"
     };
 
     await expect(readArchiveConfig(createEnv([tournament, tournament])))
@@ -60,14 +60,28 @@ describe("readArchiveConfig", () => {
     const tournament = {
       slug: "invalid-overview",
       name: "Invalid Overview",
-      league: "",
-      overview_page: ["Valid/2026", ""],
+      leagueShort: "TEST",
+      overviewPage: ["Valid/2026", ""],
       teamMap: { "Test Team": "TEST" },
-      start_date: "2026-01-01",
-      end_date: "2026-01-31"
+      startDate: "2026-01-01",
+      endDate: "2026-01-31"
     };
 
     await expect(readArchiveConfig(createEnv([tournament])))
-      .rejects.toThrow("Invalid ConfigArchive overview_page: invalid-overview");
+      .rejects.toThrow("Invalid ConfigArchive overviewPage: invalid-overview");
+  });
+
+  it("rejects a missing leagueShort", async () => {
+    const tournament = {
+      slug: "missing-league-short",
+      name: "Missing League Short",
+      overviewPage: ["Missing/2026"],
+      teamMap: { "Test Team": "TEST" },
+      startDate: "2026-01-01",
+      endDate: "2026-01-31"
+    };
+
+    await expect(readArchiveConfig(createEnv([tournament])))
+      .rejects.toThrow("Invalid ConfigArchive tournament: missing-league-short");
   });
 });

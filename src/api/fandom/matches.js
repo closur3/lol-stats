@@ -1,10 +1,10 @@
-﻿import { FETCH_DELAY_MS, FANDOM_API } from '../../constants/index.js';
+import { FETCH_DELAY_MS, FANDOM_API } from '../../constants/index.js';
 import { assertCargoDate, cargoStringLiteral } from './cargoQuery.js';
 
 export async function fetchAllMatches(fandomClient, slug, sourceInput, dateFilter = null) {
   const pages = Array.isArray(sourceInput) ? sourceInput : [sourceInput];
   if (pages.length === 0) throw new Error(`No source pages for ${slug}`);
-  const inClause = pages.map((page, index) => cargoStringLiteral(page, `${slug}.overview_page[${index}]`)).join(", ");
+  const inClause = pages.map((page, index) => cargoStringLiteral(page, `${slug}.overviewPage[${index}]`)).join(", ");
   let all = [];
   let offset = 0;
   const limit = 200;
@@ -17,7 +17,7 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput, dateFilte
 
   while (true) {
     let whereClause = pages.length === 1
-      ? `OverviewPage = ${cargoStringLiteral(pages[0], `${slug}.overview_page[0]`)}`
+      ? `OverviewPage = ${cargoStringLiteral(pages[0], `${slug}.overviewPage[0]`)}`
       : `OverviewPage IN (${inClause})`;
 
     if (dateFilter) {

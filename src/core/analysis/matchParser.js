@@ -1,7 +1,7 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchBestOf, parseMatchScore } from './matchFields.js';
 
-export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeague, tournamentIndex, allFutureMatches) {
+export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   const parsedMatches = [];
   const scheduleMeta = {
     todayEarliestTimestamp: 0,
@@ -65,7 +65,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
         team1Score, team2Score,
         bestOf,
         isFinished, isLive,
-        league: tournamentLeague,
+        leagueShort: tournamentLeagueShort,
         slug: tournamentSlug,
         tournamentIndex,
         tabName: tabName || "",

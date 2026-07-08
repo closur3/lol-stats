@@ -6,7 +6,7 @@ import { buildArchiveSnapshot } from "./archiveSnapshotBuilder.js";
 export async function rebuildArchiveSnapshot(env, tournament) {
   const authContext = await login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
   const fandomClient = new FandomClient(authContext);
-  const matches = await fandomClient.fetchAllMatches(tournament.slug, tournament.overview_page, null);
+  const matches = await fandomClient.fetchAllMatches(tournament.slug, tournament.overviewPage, null);
   if (!matches || matches.length === 0) throw new Error("No matches found from Fandom API");
 
   await env["lol-stats-kv"].put(kvKeys.archive(tournament.slug), JSON.stringify(buildArchiveSnapshot(tournament, matches)));

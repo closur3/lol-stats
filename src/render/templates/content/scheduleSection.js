@@ -15,10 +15,10 @@ export function renderScheduleSection(scheduleMap, globalStats) {
 
     matches.forEach(match => {
       const tabName = match.tabName || "";
-      const groupKey = `${match.league}_${tabName}`;
+      const groupKey = `${match.leagueShort}_${tabName}`;
       if (groupKey !== lastGroupKey) {
         const blockHtml = tabName ? `<span class="spine-sep">/</span><span class="spine-r sch-group-block">${escapeHtml(tabName)}</span>` : "";
-        cardHtml += `<div class="sch-group-header"><div class="spine-row sch-group-row"><span class="spine-l sch-group-name">${escapeHtml(match.league)}</span>${blockHtml}</div></div>`;
+        cardHtml += `<div class="sch-group-header"><div class="spine-row sch-group-row"><span class="spine-l sch-group-name">${escapeHtml(match.leagueShort)}</span>${blockHtml}</div></div>`;
         lastGroupKey = groupKey;
       }
       cardHtml += buildScheduleRow(match, globalStats);

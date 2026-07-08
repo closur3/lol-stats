@@ -41,8 +41,8 @@ async function prepareRevisionCheck(env, tournament) {
   const slug = tournament?.slug;
   if (!slug) throw new Error("Tournament slug missing");
 
-  const pages = normalizeOverviewPages(tournament.overview_page);
-  if (pages.length === 0) throw new Error(`Tournament overview_page missing: ${slug}`);
+  const pages = normalizeOverviewPages(tournament.overviewPage);
+  if (pages.length === 0) throw new Error(`Tournament overviewPage missing: ${slug}`);
 
   const dataPages = Array.from(new Set(pages.map(toDataPage)));
   const subpageResults = await Promise.all(dataPages.map(page => fetchAllSubpages(page)));

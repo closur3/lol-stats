@@ -7,21 +7,21 @@ function normalizeActiveTournamentConfig(tournament) {
   }
   const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
   const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
-  const league = typeof tournament.league === "string" ? tournament.league.trim() : null;
-  const startDate = typeof tournament.start_date === "string" ? tournament.start_date.trim() : "";
-  const endDate = typeof tournament.end_date === "string" ? tournament.end_date.trim() : "";
-  if (!Array.isArray(tournament.overview_page) || tournament.overview_page.length === 0) {
-    throw new Error(`Invalid tournament overview_page: ${slug || "(missing slug)"}`);
+  const leagueShort = typeof tournament.leagueShort === "string" ? tournament.leagueShort.trim() : null;
+  const startDate = typeof tournament.startDate === "string" ? tournament.startDate.trim() : "";
+  const endDate = typeof tournament.endDate === "string" ? tournament.endDate.trim() : "";
+  if (!Array.isArray(tournament.overviewPage) || tournament.overviewPage.length === 0) {
+    throw new Error(`Invalid tournament overviewPage: ${slug || "(missing slug)"}`);
   }
-  if (tournament.overview_page.some(page => typeof page !== "string" || !page.trim())) {
-    throw new Error(`Invalid tournament overview_page: ${slug || "(missing slug)"}`);
+  if (tournament.overviewPage.some(page => typeof page !== "string" || !page.trim())) {
+    throw new Error(`Invalid tournament overviewPage: ${slug || "(missing slug)"}`);
   }
-  const overviewPage = tournament.overview_page.map(page => page.trim());
-  if (!slug || !name || league === null || !startDate || !endDate || overviewPage.length === 0) {
+  const overviewPage = tournament.overviewPage.map(page => page.trim());
+  if (!slug || !name || leagueShort === null || !startDate || !endDate || overviewPage.length === 0) {
     throw new Error(`Invalid tournament config: ${slug || "(missing slug)"}`);
   }
   const teamMap = assertTeamMap(tournament.teamMap, `ConfigActive.${slug}.teamMap`);
-  return { ...tournament, slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate, teamMap };
+  return { slug, name, leagueShort, overviewPage, startDate, endDate, teamMap };
 }
 
 function normalizeActiveConfig(tournaments) {

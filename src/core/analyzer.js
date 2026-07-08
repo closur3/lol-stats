@@ -30,7 +30,7 @@ export function runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DE
       if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in analyzer input: ${tournament.slug}`);
 
       const resolveName = buildResolveName(tournament.teamMap);
-      const { stats, parsedMatches, scheduleMeta } = parseAllMatches(rawMatches, resolveName, todayStr, tournament.slug, tournament.league, tournamentIndex, allFutureMatches);
+      const { stats, parsedMatches, scheduleMeta } = parseAllMatches(rawMatches, resolveName, todayStr, tournament.slug, tournament.leagueShort, tournamentIndex, allFutureMatches);
 
       globalStats[tournament.slug] = stats;
 

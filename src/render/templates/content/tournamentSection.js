@@ -7,7 +7,7 @@ import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { buildTeamRow } from '../../components/teamRow.js';
 import { buildTimeTable } from '../../components/timeTable.js';
 
-function buildLeagueSummary(stats) {
+function buildTournamentSummary(stats) {
   let bo3Full = 0, bo3Total = 0;
   let bo5Full = 0, bo5Total = 0;
   stats.forEach(teamStats => {
@@ -23,9 +23,9 @@ function buildLeagueSummary(stats) {
 
   const hasNoData = bo3Total === 0 && bo5Total === 0;
   const parts = [];
-  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span class="league-summary-rate">(${pct(rate(bo3Full, bo3Total))})</span>`);
-  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span class="league-summary-rate">(${pct(rate(bo5Full, bo5Total))})</span>`);
-  const html = parts.length ? `<div class="league-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
+  if (bo3Total > 0) parts.push(`BO3: ${bo3Full}/${bo3Total} <span class="tournament-summary-rate">(${pct(rate(bo3Full, bo3Total))})</span>`);
+  if (bo5Total > 0) parts.push(`BO5: ${bo5Full}/${bo5Total} <span class="tournament-summary-rate">(${pct(rate(bo5Full, bo5Total))})</span>`);
+  const html = parts.length ? `<div class="tournament-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
   return { html, hasNoData };
 }
 
@@ -38,21 +38,21 @@ function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {
   return meta;
 }
 
-function buildLeagueTable(tournament, stats, sortMeta) {
+function buildTournamentTable(tournament, stats, sortMeta) {
   const tableId = `t_${String(tournament.slug).replace(/[^A-Za-z0-9_-]/g, '_')}`;
   const rows = stats.map(teamStats => buildTeamRow(teamStats, tournament.slug, sortMeta)).join("");
   const tableBody = `<table id="${tableId}" data-sort-col="2" data-sort-dir-2="asc"><thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th class="col-streak" onclick="doSort(9, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(10, '${tableId}')">LAST DATE</th></tr></thead><tbody>${rows}</tbody></table>`;
   return tableBody;
 }
 
-export function renderLeagueSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive) {
+export function renderTournamentSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive) {
   const meta = readScheduleMeta(scheduleMetaBySlug, tournament.slug, isArchive);
   const rawStats = globalStats[tournament.slug];
   if (!rawStats || typeof rawStats !== "object" || Array.isArray(rawStats)) {
     throw new Error(`globalStats missing: ${tournament.slug}`);
   }
-  const leagueTimeData = timeData[tournament.slug];
-  if (!leagueTimeData || typeof leagueTimeData !== "object" || Array.isArray(leagueTimeData)) {
+  const tournamentTimeData = timeData[tournament.slug];
+  if (!tournamentTimeData || typeof tournamentTimeData !== "object" || Array.isArray(tournamentTimeData)) {
     throw new Error(`timeData missing: ${tournament.slug}`);
   }
   const stats = sortTeams(rawStats);
@@ -60,26 +60,26 @@ export function renderLeagueSection(tournament, globalStats, timeData, scheduleM
     bo3PriorMean: sortPolicy.getBestOfPriorMean(stats, 3),
     bo5PriorMean: sortPolicy.getBestOfPriorMean(stats, 5)
   };
-  const summary = buildLeagueSummary(stats);
-  const tableBody = buildLeagueTable(tournament, stats, sortMeta);
-  const timeTableHtml = buildTimeTable(leagueTimeData);
+  const summary = buildTournamentSummary(stats);
+  const tableBody = buildTournamentTable(tournament, stats, sortMeta);
+  const timeTableHtml = buildTimeTable(tournamentTimeData);
 
   let emojiStr = "";
   if (!isArchive) {
     const displayEmoji = resolveHomeEmojiFromScheduleMeta(meta);
-    emojiStr = `<span class="league-phase-emoji">${displayEmoji}</span>`;
+    emojiStr = `<span class="tournament-phase-emoji">${displayEmoji}</span>`;
   }
-  const mainPage = getFirstOverviewPage(tournament.overview_page);
+  const mainPage = getFirstOverviewPage(tournament.overviewPage);
   const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
-  const titleText = `<span class="league-title-text">${escapeHtml(tournament.name)}</span>`;
-  const jumpBtn = `<a class="league-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
+  const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
+  const jumpBtn = `<a class="tournament-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
   const headerRight = `<div class="title-right-area">${summary.html}</div>`;
 
   if (isArchive) {
-    return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div class="league-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
+    return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
   }
 
   const isSleepCollapsed = resolveScheduleMetaPhase(meta) === "offday";
   const openAttr = (isSleepCollapsed || summary.hasNoData) ? "" : " open";
-  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="league-title-row"><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
+  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
 }

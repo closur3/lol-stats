@@ -21,7 +21,7 @@ function createKv(initialValues) {
 
 describe("deleteActiveRuntimeState", () => {
   it("persists slug removal when the desired cron list is unchanged", async () => {
-    const slug = "league-2026";
+    const slug = "tournament-2026";
     const kv = createKv({
       ConfigActive: [{ slug }],
       ConfigArchive: [{ slug: "archive-2026" }],

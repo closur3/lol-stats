@@ -13,7 +13,7 @@ export function determineCandidates(tournaments, forceSlugs = null) {
 
     candidates.push({
       slug,
-      overview_page: tournament.overview_page
+      overviewPage: tournament.overviewPage
     });
   });
 

@@ -5,11 +5,11 @@ function tournament(slug) {
   return {
     slug,
     name: slug,
-    league: "TEST",
-    overview_page: [`${slug}/Overview`],
+    leagueShort: "TEST",
+    overviewPage: [`${slug}/Overview`],
     teamMap: { [`${slug} Team`]: "TEST" },
-    start_date: "2026-01-01",
-    end_date: "2026-01-31"
+    startDate: "2026-01-01",
+    endDate: "2026-01-31"
   };
 }
 

@@ -68,9 +68,8 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
   if (!(displayNameMap instanceof Map)) throw new Error("displayNameMap must be a Map");
 
   const getDisplayName = (slug) => {
-    const displayName = displayNameMap.get(slug);
-    if (!displayName) throw new Error(`Tournament display name missing: ${slug}`);
-    return displayName;
+    if (!displayNameMap.has(slug)) throw new Error(`Tournament display name missing: ${slug}`);
+    return displayNameMap.get(slug);
   };
 
   const pushEntry = (slug, entry) => {

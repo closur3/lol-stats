@@ -2,12 +2,12 @@
     {
         "slug": "lck-2026-road-to-msi",
         "name": "LCK 2026 Road to MSI",
-        "league": "LCK",
-        "overview_page": [
+        "leagueShort": "LCK",
+        "overviewPage": [
             "LCK/2026 Season/Road to MSI"
         ],
-        "start_date": "2026-06-06",
-        "end_date": "2026-06-14",
+        "startDate": "2026-06-06",
+        "endDate": "2026-06-14",
         "teamMap": {
             "Dplus Kia": "DK",
             "Gen.G": "GEN",
@@ -20,13 +20,13 @@
     {
         "slug": "lpl-2026-split-2",
         "name": "LPL 2026 Split 2",
-        "league": "LPL",
-        "overview_page": [
+        "leagueShort": "LPL",
+        "overviewPage": [
             "LPL/2026 Season/Split 2",
             "LPL/2026 Season/Split 2 Playoffs"
         ],
-        "start_date": "2026-04-04",
-        "end_date": "2026-06-14",
+        "startDate": "2026-04-04",
+        "endDate": "2026-06-14",
         "teamMap": {
             "Anyone's Legend": "AL",
             "Bilibili Gaming": "BLG",
@@ -47,12 +47,12 @@
     {
         "slug": "first-stand-2026",
         "name": "First Stand 2026",
-        "league": "FST",
-        "overview_page": [
+        "leagueShort": "FST",
+        "overviewPage": [
             "2026 First Stand"
         ],
-        "start_date": "2026-03-16",
-        "end_date": "2026-03-22",
+        "startDate": "2026-03-16",
+        "endDate": "2026-03-22",
         "teamMap": {
             "BNK FEARX": "BFX",
             "Bilibili Gaming": "BLG",
@@ -67,13 +67,13 @@
     {
         "slug": "lpl-2026-split-1",
         "name": "LPL 2026 Split 1",
-        "league": "LPL",
-        "overview_page": [
+        "leagueShort": "LPL",
+        "overviewPage": [
             "LPL/2026 Season/Split 1",
             "LPL/2026 Season/Split 1 Playoffs"
         ],
-        "start_date": "2026-01-14",
-        "end_date": "2026-03-08",
+        "startDate": "2026-01-14",
+        "endDate": "2026-03-08",
         "teamMap": {
             "Anyone's Legend": "AL",
             "Bilibili Gaming": "BLG",
@@ -94,12 +94,12 @@
     {
         "slug": "lck-cup-2026",
         "name": "LCK Cup 2026",
-        "league": "LCK",
-        "overview_page": [
+        "leagueShort": "LCK",
+        "overviewPage": [
             "LCK/2026 Season/Cup"
         ],
-        "start_date": "2026-01-14",
-        "end_date": "2026-03-01",
+        "startDate": "2026-01-14",
+        "endDate": "2026-03-01",
         "teamMap": {
             "BNK FEARX": "BFX",
             "BRION": "BRO",

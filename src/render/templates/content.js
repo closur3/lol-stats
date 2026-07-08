@@ -1,4 +1,4 @@
-﻿import { renderLeagueSection } from './content/leagueSection.js';
+import { renderTournamentSection } from './content/tournamentSection.js';
 import { renderScheduleSection } from './content/scheduleSection.js';
 
 function assertObject(value, label) {
@@ -23,7 +23,7 @@ export function renderContentOnly(globalStats, timeData, scheduleMap, tournament
   const injectedData = `<script>window.g_stats = Object.assign(window.g_stats ?? {}, ${JSON.stringify(globalStats)});</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
-    .map(tournament => renderLeagueSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive))
+    .map(tournament => renderTournamentSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, globalStats);
 

@@ -111,11 +111,11 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
       return `<div class="log-mini-row"><span class="log-mini-time">${escapeHtml(rowTime)}</span><span class="log-mini-time-separator"> </span><span class="log-mini-msg">${formattedMessage}</span></div>`;
     }).join("");
 
-    return `<div class="league-card">
-      <div class="league-card-header"><div class="league-card-title"><span class="league-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="league-total-pill">${totalCount}</span>`}</div><div class="league-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseDisplay.emoji}</span><span>${phaseDisplay.text}</span></span></div></div>
+    return `<div class="tournament-card">
+      <div class="tournament-card-header"><div class="tournament-card-title"><span class="tournament-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="tournament-total-pill">${totalCount}</span>`}</div><div class="tournament-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseDisplay.emoji}</span><span>${phaseDisplay.text}</span></span></div></div>
       <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val">${escapeHtml(lastTime)}</span></span></div>
       <div class="timeline">${bars}</div>
-      <div class="league-card-logs">${rows}</div>
+      <div class="tournament-card-logs">${rows}</div>
     </div>`;
   }).join("");
 
