@@ -6,11 +6,8 @@ on:
       clear:
         description: "Delete all KV keys before writing configs"
         required: true
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
+        default: false
+        type: boolean
 
 jobs:
   persist:
@@ -36,14 +33,16 @@ jobs:
 
           clear_all_keys() {
             while true; do
-              local keys
-              keys="$(
+              local list_response
+              list_response="$(
                 curl -fsSL \
-                  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/keys?limit=10000" \
+                  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/keys?limit=1000" \
                   -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-                | jq -c '[.result[].name]'
               )"
+              [[ "$(echo "${list_response}" | jq -r '.success')" == "true" ]] || { echo "${list_response}" | jq -c '.errors'; exit 1; }
 
+              local keys
+              keys="$(echo "${list_response}" | jq -c '[.result[].name]')"
               local count
               count="$(echo "${keys}" | jq 'length')"
               if [[ "${count}" -eq 0 ]]; then
@@ -52,11 +51,15 @@ jobs:
               fi
 
               echo "Deleting ${count} KV keys..."
-              curl -fsSL -X POST \
-                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/bulk/delete" \
-                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-                -H "Content-Type: application/json" \
-                -d "${keys}" > /dev/null
+              local delete_response
+              delete_response="$(
+                curl -fsSL -X POST \
+                  "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/bulk/delete" \
+                  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -d "${keys}"
+              )"
+              [[ "$(echo "${delete_response}" | jq -r '.success')" == "true" ]] || { echo "${delete_response}" | jq -c '.errors'; exit 1; }
             done
           }
 
@@ -72,7 +75,7 @@ jobs:
             echo "${key} updated in Cloudflare KV."
           }
 
-          if [[ "${{ github.event.inputs.clear }}" == "true" ]]; then
+          if [[ "${{ inputs.clear }}" == "true" ]]; then
             clear_all_keys
           fi
 
