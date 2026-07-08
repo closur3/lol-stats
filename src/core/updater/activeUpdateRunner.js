@@ -3,7 +3,6 @@ import { login } from '../../api/fandom/auth.js';
 import { runFullAnalysis } from '../analyzer.js';
 import { determineCandidates } from './candidates.js';
 import { fetchMatchesForCandidates } from './matchDataFetcher.js';
-import { assignTournamentTeamMaps } from './tournamentTeamMapAssigner.js';
 import { applyRawMatchFetchResults } from './rawMatchFetchResultApplier.js';
 import { generateLog, buildActiveLogEntries } from './logWriter.js';
 import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homeProjector.js';
@@ -93,7 +92,7 @@ async function writeActiveProjections(env, scopedTournaments, analysis, writeSco
   await writeHomeProjections(env, scopedTournaments, analysis, writeScopeSlugs);
 }
 
-export async function runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySlug, force = false, forceSlugs = null, options = {}, logger) {
+export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force = false, forceSlugs = null, options = {}, logger) {
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
   const processed = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
   if (!processed) return;
@@ -106,7 +105,6 @@ export async function runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySl
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
   let analysis = null;
   if (writeScopeSlugs.size > 0) {
-    assignTournamentTeamMaps(scopedTournaments, rawMatchesBySlug, teamsRaw);
     analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
     await writeActiveTournamentFacts(env, scopedTournaments, rawMatchesBySlug, analysis, writeScopeSlugs);
   }

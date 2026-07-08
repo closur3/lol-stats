@@ -1,5 +1,4 @@
 import { readActiveConfig } from "../updater/activeConfigReader.js";
-import { readTeamsConfig } from "../updater/teamsConfigReader.js";
 import { readPreviousRawMatchesMap } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
@@ -32,13 +31,13 @@ async function detectRevisionChangesForTarget(env, tournaments, target) {
   return { changedSlugs, revidChanges, pendingRevisionWrites };
 }
 
-async function runRevisionPath(env, tournaments, teamsRaw, revisionResult, logger) {
+async function runRevisionPath(env, tournaments, revisionResult, logger) {
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
     const rawMatchesBySlug = await readPreviousRawMatchesMap(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySlug, false, changedSlugs, {
+    await runActiveUpdate(env, tournaments, rawMatchesBySlug, false, changedSlugs, {
       forceWrite: false,
       revidChanges,
       pendingRevisionWrites
@@ -51,10 +50,7 @@ async function runRevisionPath(env, tournaments, teamsRaw, revisionResult, logge
 export async function runCron(env, event) {
   const logger = new Logger();
   const scheduleOptions = resolveScheduleOptions(env);
-  const [tournaments, teamsRaw] = await Promise.all([
-    readActiveConfig(env),
-    readTeamsConfig(env)
-  ]);
+  const tournaments = await readActiveConfig(env);
   if (!Array.isArray(tournaments)) {
     throw new Error("tournaments must be an array");
   }
@@ -64,6 +60,6 @@ export async function runCron(env, event) {
   if (target.type === 'none') return;
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
-  await runRevisionPath(env, tournaments, teamsRaw, revisionResult, logger);
+  await runRevisionPath(env, tournaments, revisionResult, logger);
   await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
 }

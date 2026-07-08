@@ -39,4 +39,3 @@ jobs:
 
           put_config "ConfigArchive" "config/ConfigArchive.json"
           put_config "ConfigActive" "config/ConfigActive.json"
-          put_config "ConfigTeams" "config/ConfigTeams.json"

@@ -1,38 +1,8 @@
-export function buildResolveName(teamMap = {}) {
-  const normalizedTeamMap = teamMap && typeof teamMap === "object" && !Array.isArray(teamMap) ? teamMap : {};
-  const teamMapEntries = Object.entries(normalizedTeamMap).map(([key, value]) => {
-    const upperKey = String(key || "").toUpperCase();
-    return {
-      key: upperKey,
-      value,
-      keyTokens: upperKey.split(/\s+/).filter(Boolean)
-    };
-  });
-  const exactTeamMap = new Map(teamMapEntries.map(teamEntry => [teamEntry.key, teamEntry.value]));
-  const nameCache = new Map();
-
+export function buildResolveName(teamMap) {
   return (rawName) => {
-    if (!rawName) return "Unknown";
-    if (nameCache.has(rawName)) return nameCache.get(rawName);
-
-    let resolvedName = rawName;
-    const upperName = rawName.toUpperCase();
-
-    if (upperName.includes("TBD") || upperName.includes("TBA") || upperName.includes("TO BE DETERMINED")) {
-      resolvedName = "TBD";
-    } else {
-      const exactName = exactTeamMap.get(upperName);
-      let match = exactName ? { value: exactName } : null;
-      if (!match) match = teamMapEntries.find(teamEntry => upperName.includes(teamEntry.key));
-      if (!match) {
-        const inputTokens = upperName.split(/\s+/);
-        match = teamMapEntries.find(teamEntry => {
-          return inputTokens.every(token => teamEntry.keyTokens.includes(token));
-        });
-      }
-      if (match) resolvedName = match.value;
-    }
-    nameCache.set(rawName, resolvedName);
+    if (typeof rawName !== "string" || !rawName) throw new Error("Raw team name missing");
+    const resolvedName = teamMap[rawName];
+    if (typeof resolvedName !== "string" || !resolvedName) throw new Error(`Team mapping missing: ${rawName}`);
     return resolvedName;
   };
 }

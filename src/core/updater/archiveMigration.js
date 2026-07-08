@@ -1,8 +1,6 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { pickTeamMap } from "../../utils/data/teamMaps.js";
 import { readArchiveConfig } from "./archiveConfigReader.js";
 import { buildArchiveSnapshot } from "./archiveSnapshotBuilder.js";
-import { readTeamsConfig } from "./teamsConfigReader.js";
 
 function assertActiveArchiveDisjoint(activeTournaments, archiveTournaments) {
   const activeSlugs = new Set(activeTournaments.map(tournament => tournament.slug));
@@ -32,12 +30,11 @@ async function deleteActiveRuntimeFacts(env, slug) {
   ]);
 }
 
-async function migrateArchiveTournament(env, tournament, teamsRaw) {
+async function migrateArchiveTournament(env, tournament) {
   const rawMatches = await readMigrationRawMatches(env, tournament.slug);
   if (rawMatches == null) return null;
 
-  const teamMap = pickTeamMap(teamsRaw, rawMatches);
-  const archiveSnapshot = buildArchiveSnapshot(tournament, rawMatches, teamMap);
+  const archiveSnapshot = buildArchiveSnapshot(tournament, rawMatches);
   await env["lol-stats-kv"].put(kvKeys.archive(tournament.slug), JSON.stringify(archiveSnapshot));
   await deleteActiveRuntimeFacts(env, tournament.slug);
   return tournament.slug;
@@ -48,10 +45,9 @@ export async function migrateArchiveSnapshotsFromActiveFacts(env, activeTourname
   const archiveTournaments = await readArchiveConfig(env);
   assertActiveArchiveDisjoint(activeTournaments, archiveTournaments);
 
-  const teamsRaw = await readTeamsConfig(env);
   const migrated = [];
   for (const tournament of archiveTournaments) {
-    const slug = await migrateArchiveTournament(env, tournament, teamsRaw);
+    const slug = await migrateArchiveTournament(env, tournament);
     if (slug) migrated.push(slug);
   }
 

@@ -1,4 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+import { assertTeamMap } from "../../utils/data/teamMaps.js";
 
 function normalizeActiveTournamentConfig(tournament) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
@@ -15,7 +16,8 @@ function normalizeActiveTournamentConfig(tournament) {
   if (!slug || !name || !league || !startDate || !endDate || overviewPage.length === 0) {
     throw new Error(`Invalid tournament config: ${slug || "(missing slug)"}`);
   }
-  return { ...tournament, slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate };
+  const teamMap = assertTeamMap(tournament.teamMap, `ConfigActive.${slug}.teamMap`);
+  return { ...tournament, slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate, teamMap };
 }
 
 function normalizeActiveConfig(tournaments) {

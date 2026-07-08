@@ -7,6 +7,9 @@ function assertHomeSnapshot(keyName, home) {
   if (!home.tournament || typeof home.tournament !== "object" || !home.tournament.slug) {
     throw new Error(`Invalid HOME tournament: ${keyName}`);
   }
+  if (Object.hasOwn(home, "teamMap") || Object.hasOwn(home.tournament, "teamMap")) {
+    throw new Error(`Legacy HOME teamMap: ${keyName}`);
+  }
   if (!home.stats || typeof home.stats !== "object" || Array.isArray(home.stats)) {
     throw new Error(`Invalid HOME stats: ${keyName}`);
   }

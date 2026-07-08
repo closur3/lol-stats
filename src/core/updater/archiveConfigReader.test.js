@@ -17,6 +17,7 @@ describe("readArchiveConfig", () => {
         name: "Z Tournament",
         league: "Z",
         overview_page: ["Z/2026"],
+        teamMap: { "Z Team": "Z" },
         start_date: "2026-06-01",
         end_date: "2026-06-30"
       },
@@ -25,6 +26,7 @@ describe("readArchiveConfig", () => {
         name: "A Tournament",
         league: "A",
         overview_page: ["A/2026"],
+        teamMap: { "A Team": "A" },
         start_date: "2026-01-01",
         end_date: "2026-01-31"
       }
@@ -45,6 +47,7 @@ describe("readArchiveConfig", () => {
       name: "Duplicate",
       league: "DUP",
       overview_page: ["Duplicate/2026"],
+      teamMap: { "Duplicate Team": "DUP" },
       start_date: "2026-01-01",
       end_date: "2026-01-31"
     };

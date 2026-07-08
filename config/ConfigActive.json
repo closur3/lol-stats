@@ -7,7 +7,25 @@
             "Esports World Cup 2026"
         ],
         "start_date": "2026-07-15",
-        "end_date": "2026-07-19"
+        "end_date": "2026-07-19",
+        "teamMap": {
+            "AG.AL": "AGAL",
+            "Bilibili Gaming": "BLG",
+            "Dplus Kia": "DK",
+            "FURIA": "FUR",
+            "G2 Esports": "G2",
+            "GAM Esports": "GAM",
+            "Gen.G": "GEN",
+            "Hanwha Life Esports": "HLE",
+            "JD Gaming": "JDG",
+            "Karmine Corp": "KC",
+            "LYON (2024 American Team)": "LYON",
+            "MIBR.LOS": "ML",
+            "Movistar KOI": "MKOI",
+            "Sentinels": "SEN",
+            "T1": "T1",
+            "Team Secret (Vietnamese Team)": "TS"
+        }
     },
     {
         "slug": "msi-2026",
@@ -17,7 +35,10 @@
             "2026 Mid-Season Invitational"
         ],
         "start_date": "2026-06-28",
-        "end_date": "2026-07-12"
+        "end_date": "2026-07-12",
+        "teamMap": {
+            "Bilibili Gaming": "BLG", "Deep Cross Gaming": "DCG", "FURIA": "FUR", "G2 Esports": "G2", "Hanwha Life Esports": "HLE", "Karmine Corp": "KC", "LYON (2024 American Team)": "LYON", "T1": "T1", "Team Liquid": "TL", "Team Secret Whales": "TSW", "Top Esports": "TES"
+        }
     },
     {
         "slug": "lck-2026-rounds-1-4",
@@ -28,6 +49,9 @@
             "LCK/2026 Season/Rounds 3-4"
         ],
         "start_date": "2026-04-01",
-        "end_date": "2026-08-23"
+        "end_date": "2026-08-23",
+        "teamMap": {
+            "BNK FEARX": "BFX", "DN SOOPers": "DNS", "Dplus Kia": "DK", "Gen.G": "GEN", "HANJIN BRION": "BRO", "Hanwha Life Esports": "HLE", "Kiwoom DRX": "KRX", "KT Rolster": "KT", "Nongshim RedForce": "NS", "T1": "T1"
+        }
     }
 ]

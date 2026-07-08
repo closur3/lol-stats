@@ -60,16 +60,16 @@ export async function renderArchiveFromFacts(env) {
       snapshotErrors.push({ slug, reason: "Missing snapshot" });
       return null;
     }
+    if (Object.hasOwn(snapshot, "teamMap") || Object.hasOwn(snapshotTournament, "teamMap")) {
+      snapshotErrors.push({ slug, reason: "Legacy team map" });
+      return null;
+    }
     if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) {
       snapshotErrors.push({ slug, reason: "Invalid stats" });
       return null;
     }
     if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) {
       snapshotErrors.push({ slug, reason: "Invalid time grid" });
-      return null;
-    }
-    if (!snapshot.teamMap || typeof snapshot.teamMap !== "object" || Array.isArray(snapshot.teamMap)) {
-      snapshotErrors.push({ slug, reason: "Invalid team map" });
       return null;
     }
     return snapshot;
@@ -82,7 +82,7 @@ export async function renderArchiveFromFacts(env) {
 
   const combined = validSnapshots.map(snap => {
     const snapshotTournament = snap.tournament;
-    const miniTournaments = [{ ...snapshotTournament, teamMap: snap.teamMap }];
+    const miniTournaments = [snapshotTournament];
     const content = renderArchiveContentOnly(
       { [snapshotTournament.slug]: snap.stats },
       { [snapshotTournament.slug]: snap.timeGrid },

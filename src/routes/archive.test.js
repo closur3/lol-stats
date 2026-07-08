@@ -7,6 +7,7 @@ function tournament(slug) {
     name: slug,
     league: "TEST",
     overview_page: [`${slug}/Overview`],
+    teamMap: { [`${slug} Team`]: "TEST" },
     start_date: "2026-01-01",
     end_date: "2026-01-31"
   };

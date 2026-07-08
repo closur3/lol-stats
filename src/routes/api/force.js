@@ -2,7 +2,6 @@ import { runScheduleMaintenance } from "../../core/scheduler/scheduleMaintenance
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { Logger } from "../../infrastructure/logger.js";
 import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
-import { readTeamsConfig } from "../../core/updater/teamsConfigReader.js";
 import { readPreviousRawMatchesMap } from "../../core/facts/rawMatchesStore.js";
 import { runActiveUpdate } from "../../core/updater/activeUpdateRunner.js";
 import { detectRevisionChanges } from "../../core/updater/revisionDetector.js";
@@ -31,12 +30,9 @@ export async function handleForceUpdate(request, env) {
     }
 
     const logger = new Logger();
-    let tournaments, teamsRaw;
+    let tournaments;
     try {
-      [tournaments, teamsRaw] = await Promise.all([
-        readActiveConfig(env),
-        readTeamsConfig(env)
-      ]);
+      tournaments = await readActiveConfig(env);
     } catch (error) {
       return new Response(`Config load failed: ${error.message}`, { status: 500 });
     }
@@ -47,7 +43,7 @@ export async function handleForceUpdate(request, env) {
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
     const rawMatchesBySlug = await readPreviousRawMatchesMap(env, forcedTournaments);
     const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, forcedTournaments);
-    await runActiveUpdate(env, tournaments, teamsRaw, rawMatchesBySlug, true, forceSlugs, {
+    await runActiveUpdate(env, tournaments, rawMatchesBySlug, true, forceSlugs, {
       forceWrite: true,
       revidChanges,
       pendingRevisionWrites

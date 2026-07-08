@@ -64,7 +64,8 @@ function buildTournamentScheduleSnapshot(slug, scheduleBySlug) {
 
 function buildHomeSnapshot(tournament, analysis, scheduleBySlug) {
   const slug = tournament.slug;
-  const { teamMap, ...tournamentStored } = tournament;
+  const tournamentStored = { ...tournament };
+  delete tournamentStored.teamMap;
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) throw new Error("analysis must be a JSON object");
   if (!analysis.globalStats || typeof analysis.globalStats !== "object" || Array.isArray(analysis.globalStats)) {
     throw new Error("analysis.globalStats must be a JSON object");
@@ -80,8 +81,7 @@ function buildHomeSnapshot(tournament, analysis, scheduleBySlug) {
     tournament: tournamentStored,
     stats,
     timeGrid,
-    scheduleMap: buildTournamentScheduleSnapshot(slug, scheduleBySlug),
-    teamMap
+    scheduleMap: buildTournamentScheduleSnapshot(slug, scheduleBySlug)
   };
 }
 

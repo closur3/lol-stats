@@ -50,21 +50,15 @@ def load_required_json_array(path: str) -> list:
         overview_pages = item.get("overview_page")
         if not isinstance(overview_pages, list) or not overview_pages or any(not isinstance(page, str) or not page.strip() for page in overview_pages):
             raise ValueError(f"{path}[{index}].overview_page must be a non-empty string array")
+        team_map = item.get("teamMap")
+        if not isinstance(team_map, dict) or not team_map or any(
+            not isinstance(team, str) or not team.strip() or not isinstance(short, str) or not short.strip()
+            for team, short in team_map.items()
+        ):
+            raise ValueError(f"{path}[{index}].teamMap must be a non-empty string map")
         if item["slug"] in slugs:
             raise ValueError(f"Duplicate slug in {path}: {item['slug']}")
         slugs.add(item["slug"])
-    return value
-
-def load_required_json_object(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        value = json.load(f)
-    if not isinstance(value, dict) or isinstance(value, list):
-        raise ValueError(f"{path} must contain a JSON object")
-    for key, item in value.items():
-        if not isinstance(key, str) or not key.strip():
-            raise ValueError(f"{path} key missing")
-        if not isinstance(item, str) or not item.strip():
-            raise ValueError(f"{path}.{key} must be a non-empty string")
     return value
 
 def add_extra_ov(ev: dict, ov: str) -> None:
@@ -225,6 +219,45 @@ def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> tuple
 
     return all_data
 
+def attach_team_maps(session, url: str, tournaments: list) -> None:
+    overview_pages = sorted({page for tournament in tournaments for page in tournament["overview_page"]})
+    if not overview_pages:
+        return
+    roster_rows = fetch_cargo(session, url, {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "TournamentRosters=TR,Teamnames=TN",
+        "fields": "TR.OverviewPage=OverviewPage,TR.Team=Team,TN.Short=Short",
+        "join_on": "TR.Team=TN.Link",
+        "where": f"TR.OverviewPage IN ({', '.join(cargo_string_literal(page, 'OverviewPage') for page in overview_pages)})",
+        "order_by": "TR.OverviewPage ASC,TR.Team ASC",
+    })
+    maps_by_page = {page: {} for page in overview_pages}
+    for item in roster_rows:
+        row = item.get("title", {})
+        overview_page = row.get("OverviewPage", "")
+        team = row.get("Team", "")
+        short = row.get("Short", "")
+        if overview_page not in maps_by_page or not team or not short:
+            raise ValueError(f"Invalid tournament team row: {row}")
+        existing = maps_by_page[overview_page].get(team)
+        if existing is not None and existing != short:
+            raise ValueError(f"Conflicting team short: {overview_page}:{team}")
+        maps_by_page[overview_page][team] = short
+
+    for tournament in tournaments:
+        team_map = {}
+        for overview_page in tournament["overview_page"]:
+            page_map = maps_by_page[overview_page]
+            if not page_map:
+                raise ValueError(f"Tournament team map missing: {overview_page}")
+            for team, short in page_map.items():
+                existing = team_map.get(team)
+                if existing is not None and existing != short:
+                    raise ValueError(f"Conflicting tournament team short: {tournament['slug']}:{team}")
+                team_map[team] = short
+        tournament["teamMap"] = dict(sorted(team_map.items()))
+
 # ==================== 主流程 ====================
 
 def run_sniff():
@@ -232,10 +265,25 @@ def run_sniff():
     old_items = load_required_json_array(TARGET_FILE)
     archive_items = load_required_json_array(ARCHIVE_FILE)
 
-    LEAGUE_MAPPING = load_required_json_object("config/leagues.json")
-
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
+
+    league_rows = fetch_cargo(session, url, {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "Leagues",
+        "fields": "League,League_Short",
+        "where": "League IS NOT NULL AND League_Short IS NOT NULL",
+        "order_by": "League ASC",
+    })
+    league_map = {}
+    for item in league_rows:
+        row = item.get("title", {})
+        league = row.get("League", "")
+        league_short = row.get("League Short", "")
+        if not league or not league_short:
+            raise ValueError(f"Invalid league row: {row}")
+        league_map[league] = league_short
 
     cargo_base = {
         "action": "cargoquery", "format": "json", "tables": "Tournaments",
@@ -259,6 +307,9 @@ def run_sniff():
         region = t.get("Region", "")
         y = t.get("Year", "")
         league_full = t.get("League", "")
+        league_short = league_map.get(league_full, "")
+        if not league_short:
+            raise ValueError(f"Missing league short: {league_full or name}")
 
         force_included = is_force_included(name, ov)
         hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
@@ -278,7 +329,7 @@ def run_sniff():
             mapped_names.append(f"{name} → {mapped_name}")
             name = mapped_name
 
-        ev = {"ov": ov, "year": y, "name": name, "region": region, "start": s_dt, "end": e_dt, "league_full": league_full}
+        ev = {"ov": ov, "year": y, "name": name, "region": region, "start": s_dt, "end": e_dt, "league": league_short}
 
         if t.get("IsPlayoffs") == "1" and region != "International":
             playoff_events.append(ev)
@@ -355,8 +406,6 @@ def run_sniff():
     admitted_events = []
 
     for v in sorted_events:
-        original_league = v.get("league_full", "")
-
         if v["start"] > (today_dt + timedelta(days=PREHEAT_DAYS)):
             diff_days = (v["start"] - today_dt).days
             upcoming_events.append((v["name"], diff_days))
@@ -366,11 +415,7 @@ def run_sniff():
             expired_events.append((v["name"], diff_days))
             continue
 
-        league_short = next(
-            (str(map_val) for k, map_val in LEAGUE_MAPPING.items() if k in original_league),
-            original_league or v["name"]
-        )
-        admitted_events.append((v["name"], league_short, str(v["start"]), str(v["end"]), v.get("extra_ovs", [v["ov"]])))
+        admitted_events.append((v["name"], v["league"], str(v["start"]), str(v["end"]), v.get("extra_ovs", [v["ov"]])))
 
     log("")
     log("📊 周期终审")
@@ -444,6 +489,7 @@ def run_sniff():
     for slug in removed:
         archive_map[slug] = old_map[slug]
     archive_output = sorted(archive_map.values(), key=sort_key, reverse=True)
+    attach_team_maps(session, url, unique_res + archive_output)
     old_archive_map = {item.get("slug"): item for item in archive_items if item.get("slug")}
     new_archive_map = {item.get("slug"): item for item in archive_output if item.get("slug")}
 

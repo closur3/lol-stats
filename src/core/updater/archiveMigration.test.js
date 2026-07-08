@@ -7,6 +7,7 @@ function tournament(slug = "archive-tournament") {
     name: "Archive Tournament",
     league: "TEST",
     overview_page: ["Test/2026"],
+    teamMap: { "Test Team": "TEST" },
     start_date: "2026-01-01",
     end_date: "2026-01-31"
   };
@@ -34,7 +35,6 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
     const archiveTournament = tournament();
     const kv = createKv({
       ConfigArchive: [archiveTournament],
-      ConfigTeams: {},
       "ActiveHome_archive-tournament": { tournament: archiveTournament },
       "ActiveLog_archive-tournament": [],
       "FandomRevision_archive-tournament": 123,
@@ -46,7 +46,15 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
 
     expect(result).toEqual({ migrated: ["archive-tournament"] });
     const snapshot = kv.values.get("ArchiveSnapshot_archive-tournament");
-    expect(snapshot.tournament).toEqual(archiveTournament);
+    expect(snapshot.tournament).toEqual({
+      slug: archiveTournament.slug,
+      name: archiveTournament.name,
+      league: archiveTournament.league,
+      overview_page: archiveTournament.overview_page,
+      start_date: archiveTournament.start_date,
+      end_date: archiveTournament.end_date
+    });
+    expect(snapshot).not.toHaveProperty("teamMap");
     expect(snapshot).not.toHaveProperty("rawMatches");
     expect(kv.values.has("ActiveHome_archive-tournament")).toBe(false);
     expect(kv.values.has("ActiveLog_archive-tournament")).toBe(false);
@@ -58,8 +66,7 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
 
   it("skips ConfigArchive entries without active RawMatches", async () => {
     const kv = createKv({
-      ConfigArchive: [tournament()],
-      ConfigTeams: {}
+      ConfigArchive: [tournament()]
     });
 
     await expect(migrateArchiveSnapshotsFromActiveFacts({ "lol-stats-kv": kv }, []))
@@ -72,7 +79,6 @@ describe("migrateArchiveSnapshotsFromActiveFacts", () => {
     const archiveTournament = tournament();
     const kv = createKv({
       ConfigArchive: [archiveTournament],
-      ConfigTeams: {},
       "RawMatches_archive-tournament": []
     });
 

@@ -10,14 +10,14 @@ function assertSnapshot(slug, snapshot) {
   if (!snapshot.tournament || snapshot.tournament.slug !== slug) {
     throw new Error(`Invalid snapshot tournament: ${slug}`);
   }
+  if (Object.hasOwn(snapshot, "teamMap") || Object.hasOwn(snapshot.tournament, "teamMap")) {
+    throw new Error(`Legacy snapshot teamMap: ${slug}`);
+  }
   if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) {
     throw new Error(`Invalid snapshot stats: ${slug}`);
   }
   if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) {
     throw new Error(`Invalid snapshot timeGrid: ${slug}`);
-  }
-  if (!snapshot.teamMap || typeof snapshot.teamMap !== "object" || Array.isArray(snapshot.teamMap)) {
-    throw new Error(`Invalid snapshot teamMap: ${slug}`);
   }
 }
 

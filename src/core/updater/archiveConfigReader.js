@@ -1,4 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+import { assertTeamMap } from "../../utils/data/teamMaps.js";
 
 function normalizeArchiveTournament(tournament) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
@@ -15,7 +16,8 @@ function normalizeArchiveTournament(tournament) {
   if (!slug || !name || !league || !startDate || !endDate || overviewPage.length === 0) {
     throw new Error(`Invalid ConfigArchive tournament: ${slug || "(missing slug)"}`);
   }
-  return { slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate };
+  const teamMap = assertTeamMap(tournament.teamMap, `ConfigArchive.${slug}.teamMap`);
+  return { slug, name, league, overview_page: overviewPage, start_date: startDate, end_date: endDate, teamMap };
 }
 
 function normalizeArchiveConfig(tournaments) {
