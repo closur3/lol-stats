@@ -9,7 +9,12 @@
         "start_date": "2026-06-06",
         "end_date": "2026-06-14",
         "teamMap": {
-            "Dplus Kia": "DK", "Gen.G": "GEN", "HANJIN BRION": "BRO", "Hanwha Life Esports": "HLE", "KT Rolster": "KT", "T1": "T1"
+            "Dplus Kia": "DK",
+            "Gen.G": "GEN",
+            "HANJIN BRION": "BRO",
+            "Hanwha Life Esports": "HLE",
+            "KT Rolster": "KT",
+            "T1": "T1"
         }
     },
     {
@@ -23,7 +28,20 @@
         "start_date": "2026-04-04",
         "end_date": "2026-06-14",
         "teamMap": {
-            "Anyone's Legend": "AL", "Bilibili Gaming": "BLG", "EDward Gaming": "EDG", "Invictus Gaming": "iG", "JD Gaming": "JDG", "LGD Gaming": "LGD", "LNG Esports": "LNG", "Ninjas in Pyjamas.CN": "NIP", "Oh My God": "OMG", "Team WE": "WE", "ThunderTalk Gaming": "TT", "Top Esports": "TES", "Ultra Prime": "UP", "Weibo Gaming": "WBG"
+            "Anyone's Legend": "AL",
+            "Bilibili Gaming": "BLG",
+            "EDward Gaming": "EDG",
+            "Invictus Gaming": "iG",
+            "JD Gaming": "JDG",
+            "LGD Gaming": "LGD",
+            "LNG Esports": "LNG",
+            "Ninjas in Pyjamas.CN": "NIP",
+            "Oh My God": "OMG",
+            "Team WE": "WE",
+            "ThunderTalk Gaming": "TT",
+            "Top Esports": "TES",
+            "Ultra Prime": "UP",
+            "Weibo Gaming": "WBG"
         }
     },
     {
@@ -36,7 +54,14 @@
         "start_date": "2026-03-16",
         "end_date": "2026-03-22",
         "teamMap": {
-            "Bilibili Gaming": "BLG", "BNK FEARX": "BFX", "G2 Esports": "G2", "Gen.G": "GEN", "JD Gaming": "JDG", "LOUD": "LOUD", "LYON (2024 American Team)": "LYON", "Team Secret Whales": "TSW"
+            "BNK FEARX": "BFX",
+            "Bilibili Gaming": "BLG",
+            "G2 Esports": "G2",
+            "Gen.G": "GEN",
+            "JD Gaming": "JDG",
+            "LOUD": "LOUD",
+            "LYON (2024 American Team)": "LYON",
+            "Team Secret Whales": "TSW"
         }
     },
     {
@@ -50,7 +75,20 @@
         "start_date": "2026-01-14",
         "end_date": "2026-03-08",
         "teamMap": {
-            "Anyone's Legend": "AL", "Bilibili Gaming": "BLG", "EDward Gaming": "EDG", "Invictus Gaming": "iG", "JD Gaming": "JDG", "LGD Gaming": "LGD", "LNG Esports": "LNG", "Ninjas in Pyjamas.CN": "NIP", "Oh My God": "OMG", "Team WE": "WE", "ThunderTalk Gaming": "TT", "Top Esports": "TES", "Ultra Prime": "UP", "Weibo Gaming": "WBG"
+            "Anyone's Legend": "AL",
+            "Bilibili Gaming": "BLG",
+            "EDward Gaming": "EDG",
+            "Invictus Gaming": "iG",
+            "JD Gaming": "JDG",
+            "LGD Gaming": "LGD",
+            "LNG Esports": "LNG",
+            "Ninjas in Pyjamas.CN": "NIP",
+            "Oh My God": "OMG",
+            "Team WE": "WE",
+            "ThunderTalk Gaming": "TT",
+            "Top Esports": "TES",
+            "Ultra Prime": "UP",
+            "Weibo Gaming": "WBG"
         }
     },
     {
@@ -63,7 +101,16 @@
         "start_date": "2026-01-14",
         "end_date": "2026-03-01",
         "teamMap": {
-            "BNK FEARX": "BFX", "BRION": "BRO", "DN SOOPers": "DNS", "Dplus Kia": "DK", "DRX": "DRX", "Gen.G": "GEN", "Hanwha Life Esports": "HLE", "KT Rolster": "KT", "Nongshim RedForce": "NS", "T1": "T1"
+            "BNK FEARX": "BFX",
+            "BRION": "BRO",
+            "DN SOOPers": "DNS",
+            "DRX": "DRX",
+            "Dplus Kia": "DK",
+            "Gen.G": "GEN",
+            "Hanwha Life Esports": "HLE",
+            "KT Rolster": "KT",
+            "Nongshim RedForce": "NS",
+            "T1": "T1"
         }
     }
 ]
