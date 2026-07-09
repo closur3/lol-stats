@@ -9,7 +9,7 @@ ARCHIVE_FILE = "config/ConfigArchive.json"
 # ==================== 配置区 ====================
 PREHEAT_DAYS, EXPIRE_DAYS = 7, 1
 DEFAULT_REGIONS = ["International", "China", "Korea"]
-FORCE_INCLUDE_KEYWORDS = []
+WHITELIST = []
 BLACKLIST = ["Opening"]
 
 NAME_MAPPING = {
@@ -86,18 +86,18 @@ def build_field_condition(field: str, value) -> str:
         return f"{field} IN ({values})"
     return f"{field} = {cargo_string_literal(value, field)}"
 
-def build_force_include_condition(keywords: list):
-    if not isinstance(keywords, list):
-        raise ValueError("FORCE_INCLUDE_KEYWORDS must be list")
+def build_whitelist_condition(whitelist: list):
+    if not isinstance(whitelist, list):
+        raise ValueError("WHITELIST must be list")
     clauses = []
-    for keyword in keywords:
+    for keyword in whitelist:
         if not isinstance(keyword, str) or not keyword.strip():
-            raise ValueError("FORCE_INCLUDE_KEYWORDS item must be non-empty string")
+            raise ValueError("WHITELIST item must be non-empty string")
         clean_keyword = keyword.strip()
         if "%" in clean_keyword or "_" in clean_keyword:
-            raise ValueError("FORCE_INCLUDE_KEYWORDS item must not contain Cargo LIKE wildcard")
+            raise ValueError("WHITELIST item must not contain Cargo LIKE wildcard")
         pattern = f"%{clean_keyword}%"
-        literal = cargo_string_literal(pattern, "FORCE_INCLUDE_KEYWORDS")
+        literal = cargo_string_literal(pattern, "WHITELIST")
         clauses.append(f"OverviewPage LIKE {literal}")
         clauses.append(f"Name LIKE {literal}")
     return f"({' OR '.join(clauses)})" if clauses else None
@@ -112,23 +112,23 @@ def build_default_discovery_condition(where_dict: dict, default_regions: list) -
         raise ValueError("DEFAULT_REGIONS must be non-empty list")
     return f"{build_where_condition(where_dict)} AND {build_field_condition('Region', default_regions)}"
 
-def build_discovery_condition(where_dict: dict, default_regions: list, force_keywords: list) -> str:
+def build_discovery_condition(where_dict: dict, default_regions: list, whitelist: list) -> str:
     default_condition = build_default_discovery_condition(where_dict, default_regions)
-    force_condition = build_force_include_condition(force_keywords)
-    return f"({default_condition} OR {force_condition})" if force_condition else default_condition
+    whitelist_condition = build_whitelist_condition(whitelist)
+    return f"({default_condition} OR {whitelist_condition})" if whitelist_condition else default_condition
 
-def build_where(required_where: dict, default_where: dict, default_regions: list, force_keywords: list, raw=None) -> str:
+def build_where(required_where: dict, default_where: dict, default_regions: list, whitelist: list, raw=None) -> str:
     parts = [
         build_where_condition(required_where),
-        build_discovery_condition(default_where, default_regions, force_keywords)
+        build_discovery_condition(default_where, default_regions, whitelist)
     ]
     if raw:
         parts.extend(raw)
     return " AND ".join(parts)
 
-def is_force_included(name: str, overviewPage: str) -> bool:
+def is_whitelisted(name: str, overviewPage: str) -> bool:
     haystack = f"{name}\n{overviewPage}".lower()
-    return any(keyword.strip().lower() in haystack for keyword in FORCE_INCLUDE_KEYWORDS)
+    return any(keyword.strip().lower() in haystack for keyword in WHITELIST)
 
 def apply_name_mapping(name: str):
     for canonical, keywords in NAME_MAPPING.items():
@@ -284,7 +284,7 @@ def run_sniff():
     cargo_base = {
         "action": "cargoquery", "format": "json", "tables": "Tournaments",
         "fields": ", ".join(CARGO_FIELDS),
-        "where": build_where(CARGO_REQUIRED_WHERE, CARGO_DEFAULT_WHERE, DEFAULT_REGIONS, FORCE_INCLUDE_KEYWORDS, CARGO_WHERE_RAW),
+        "where": build_where(CARGO_REQUIRED_WHERE, CARGO_DEFAULT_WHERE, DEFAULT_REGIONS, WHITELIST, CARGO_WHERE_RAW),
         "order_by": CARGO_ORDER_BY,
     }
     all_data = fetch_cargo(session, url, cargo_base)
@@ -307,9 +307,9 @@ def run_sniff():
             raise ValueError(f"Invalid tournament League: {name}")
         league_short = league_short_by_fandom_league.get(fandom_league, fandom_league)
 
-        force_included = is_force_included(name, ov)
+        whitelisted = is_whitelisted(name, ov)
         hit_black = next((k for k in BLACKLIST if k.lower() in name.lower()), None)
-        if hit_black and not force_included:
+        if hit_black and not whitelisted:
             blocked_count += 1
             continue
 
