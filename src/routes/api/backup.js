@@ -37,22 +37,34 @@ async function readSnapshotsBySlug(kv, slugs, buildKey, ...assertFns) {
   return Object.fromEntries(entries.filter(Boolean));
 }
 
+function readIncludeArchive(request) {
+  const value = new URL(request.url).searchParams.get("includeArchive");
+  if (value === null || value === "false") return false;
+  if (value === "true") return true;
+  throw new Error("includeArchive must be true or false");
+}
+
+async function readHomeBackup(kv, env) {
+  const tournaments = await readActiveConfig(env);
+  return readSnapshotsBySlug(kv, tournaments.map(t => t.slug), kvKeys.home, assertSnapshot, assertHomeFields);
+}
+
+async function readArchiveBackup(kv, env) {
+  const archiveTournaments = await readArchiveConfig(env);
+  return readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot);
+}
+
 export async function handleBackup(request, env) {
   const unauthorized = requireAdmin(request, env);
   if (unauthorized) return unauthorized;
 
   const kv = env["lol-stats-kv"];
-  const [tournaments, archiveTournaments] = await Promise.all([
-    readActiveConfig(env),
-    readArchiveConfig(env)
-  ]);
+  const includeArchive = readIncludeArchive(request);
+  const home = await readHomeBackup(kv, env);
+  const payload = { home };
+  if (includeArchive) payload.archive = await readArchiveBackup(kv, env);
 
-  const [home, archive] = await Promise.all([
-    readSnapshotsBySlug(kv, tournaments.map(t => t.slug), kvKeys.home, assertSnapshot, assertHomeFields),
-    readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot)
-  ]);
-
-  return new Response(JSON.stringify({ home, archive }), {
+  return new Response(JSON.stringify(payload), {
     headers: { "content-type": "application/json" }
   });
 }

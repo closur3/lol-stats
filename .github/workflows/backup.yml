@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
+    inputs:
+      include_archive:
+        description: "Include archive snapshots"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   backup:
@@ -19,8 +25,8 @@ jobs:
         env:
           WORKER_URL: "https://lol-stats.closur3.workers.dev/backup"
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          INCLUDE_ARCHIVE: ${{ inputs.include_archive || false }}
         run: node .github/scripts/exportMarkdownBackup.js
-          NODE
         shell: bash
 
       - name: Build Commit Message
