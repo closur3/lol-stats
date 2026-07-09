@@ -17,7 +17,7 @@ export default `${baseCSS}
     .table-title + .wrapper { border-top: none; border-radius: 0 0 12px 12px; }
     .tournament-title-text { color: #0f172a; font-weight: 600; line-height: 1.3; }
     .tournament-title-row { display: flex; align-items: center; gap: 6px; }
-    .tournament-phase-emoji { font-size: 16px; line-height: 1; display: block; transform: translateY(-1px); }
+    .tournament-phase-emoji { font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
     .table-title .tournament-jump-btn { display: inline-flex; align-items: center; justify-content: center; color: #0f172a; text-decoration: none; flex-shrink: 0; line-height: 1; }
     .table-title .tournament-jump-btn svg { width: 13px; height: 13px; stroke-width: 2.6; }
     .table-title .tournament-jump-btn:hover { color: #2563eb; }
@@ -128,7 +128,7 @@ export default `${baseCSS}
         .container { padding-bottom: 31px; }
         summary.arch-sum { display: flex; flex-direction: column; align-items: flex-start; padding: 0; }
         .table-title { display: flex; flex-direction: column; align-items: flex-start; padding: 0; background: #fff; border-bottom: none; width: 100%; border-radius: 12px 12px 0 0; }
-        .table-title > div:first-child { width: 100%; padding: 8px 15px; display: flex; align-items: flex-start; flex: 1 1 0; gap: 6px; min-width: 0; }
+        .table-title > div:first-child { width: 100%; padding: 8px 15px; display: flex; align-items: center; flex: 1 1 0; gap: 6px; min-width: 0; }
         .table-title > div:first-child .tournament-title-text { white-space: normal; line-height: 1.4; word-break: break-word; }
         .table-title .title-right-area { margin-top: 0 !important; padding: 8px 15px !important; align-items: center; display: flex; flex: 1 1 0; justify-content: flex-end !important; }
         .arch-title-wrapper { width: 100%; padding: 8px 15px; display: flex; align-items: center; column-gap: 10px; flex: 1 1 0; }
