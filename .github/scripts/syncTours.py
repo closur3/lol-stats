@@ -17,7 +17,7 @@ NAME_MAPPING = {
 }
 
 CARGO_FIELDS = [
-    "Name", "OverviewPage", "DateStart", "Date", "Region", "Year", "IsPlayoffs", "League"
+    "Name", "OverviewPage", "DateStart", "Date", "League", "Region", "IsPlayoffs", "Year"
 ]
 CARGO_REQUIRED_WHERE = {
     "Year": [now.year],

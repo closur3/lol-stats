@@ -28,7 +28,7 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput, dateFilte
       action: "cargoquery",
       format: "json",
       tables: "MatchSchedule",
-      fields: "MatchId,Team1,Team2,Team1Score,Team2Score,DateTime_UTC=DateTimeUTC,OverviewPage,BestOf,Tab",
+      fields: "Team1,Team2,Winner,Team1Score,Team2Score,FF,IsNullified,DateTime_UTC=DateTimeUTC,OverviewPage,BestOf,Tab,MatchId",
       where: whereClause,
       limit: limit.toString(),
       offset: offset.toString(),

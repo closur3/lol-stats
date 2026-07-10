@@ -36,6 +36,7 @@ export function buildTimeGridAndSchedule(tournamentSlug, parsedMatches, timeGrid
       team1Name: m.team1Name,
       team2Name: m.team2Name,
       scoreDisplay: `${m.team1Score}-${m.team2Score}`,
+      winner: m.winner,
       isFullLength: m.isFullLength,
       bestOf: m.bestOf
     };

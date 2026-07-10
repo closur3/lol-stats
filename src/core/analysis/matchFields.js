@@ -10,3 +10,11 @@ export function parseMatchBestOf(value, label) {
   if (![1, 2, 3, 5].includes(bestOf)) throw new Error(`Unsupported BestOf: ${label}`);
   return bestOf;
 }
+
+export function parseMatchWinner(value, label) {
+  if (value === "" || value === null) return null;
+  if (value === undefined) throw new Error(`Missing Winner: ${label}`);
+  const winner = Number.parseInt(value, 10);
+  if (![0, 1, 2].includes(winner)) throw new Error(`Invalid Winner: ${label}`);
+  return winner;
+}

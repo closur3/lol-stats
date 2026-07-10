@@ -1,5 +1,5 @@
 import { timePolicy } from '../../utils/timePolicy.js';
-import { parseMatchBestOf, parseMatchScore } from './matchFields.js';
+import { parseMatchBestOf, parseMatchScore, parseMatchWinner } from './matchFields.js';
 
 export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   const parsedMatches = [];
@@ -36,7 +36,8 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     const team1Score = parseMatchScore(match.Team1Score, `${tournamentSlug}.${match.MatchId}.Team1Score`);
     const team2Score = parseMatchScore(match.Team2Score, `${tournamentSlug}.${match.MatchId}.Team2Score`);
     const bestOf = parseMatchBestOf(match.BestOf, `${tournamentSlug}.${match.MatchId}.BestOf`);
-    const isFinished = Math.max(team1Score, team2Score) >= Math.ceil(bestOf / 2);
+    const winner = parseMatchWinner(match.Winner, `${tournamentSlug}.${match.MatchId}.Winner`);
+    const isFinished = winner !== null;
     const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
     const isFullLength = (bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2);
 
@@ -63,7 +64,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
         time: matchTimeStr,
         team1Name, team2Name,
         team1Score, team2Score,
-        bestOf,
+        bestOf, winner,
         isFinished, isLive,
         leagueShort: tournamentLeagueShort,
         slug: tournamentSlug,
@@ -78,7 +79,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       if (timestamp > stats[team2Name].last) stats[team2Name].last = timestamp;
 
       parsedMatches.push({
-        team1Name, team2Name, team1Score, team2Score, bestOf, isFullLength,
+        team1Name, team2Name, team1Score, team2Score, bestOf, winner, isFullLength,
         dateDisplay, fullDateDisplay,
         timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
       });
@@ -97,8 +98,8 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       team1MatchResultCode = 'LIVE';
       team2MatchResultCode = 'LIVE';
     } else if (isFinished) {
-      team1MatchResultCode = team1Score > team2Score ? 'WIN' : 'LOSS';
-      team2MatchResultCode = team2Score > team1Score ? 'WIN' : 'LOSS';
+      team1MatchResultCode = winner === 1 ? 'WIN' : winner === 2 ? 'LOSS' : 'DRAW';
+      team2MatchResultCode = winner === 2 ? 'WIN' : winner === 1 ? 'LOSS' : 'DRAW';
     }
 
     stats[team1Name].history.push({
@@ -118,15 +119,15 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
 
     if (!isFinished) { return; }
 
-    const winner = team1Score > team2Score ? team1Name : team2Name;
-    const loser = team1Score > team2Score ? team2Name : team1Name;
+    const winnerName = winner === 1 ? team1Name : winner === 2 ? team2Name : null;
+    const loserName = winner === 1 ? team2Name : winner === 2 ? team1Name : null;
 
     [team1Name, team2Name].forEach(teamName => {
       stats[teamName].seriesTotalMatchCount++;
       stats[teamName].gameTotalCount += (team1Score + team2Score);
     });
 
-    stats[winner].seriesWinCount++;
+    if (winnerName) stats[winnerName].seriesWinCount++;
     stats[team1Name].gameWinCount += team1Score;
     stats[team2Name].gameWinCount += team2Score;
 
@@ -146,18 +147,19 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       }
     }
 
-    if (stats[winner].lossStreakCount > 0) {
-      stats[winner].lossStreakCount = 0;
-      stats[winner].winStreakCount = 1;
-    } else {
-      stats[winner].winStreakCount++;
-    }
-
-    if (stats[loser].winStreakCount > 0) {
-      stats[loser].winStreakCount = 0;
-      stats[loser].lossStreakCount = 1;
-    } else {
-      stats[loser].lossStreakCount++;
+    if (winnerName && loserName) {
+      if (stats[winnerName].lossStreakCount > 0) {
+        stats[winnerName].lossStreakCount = 0;
+        stats[winnerName].winStreakCount = 1;
+      } else {
+        stats[winnerName].winStreakCount++;
+      }
+      if (stats[loserName].winStreakCount > 0) {
+        stats[loserName].winStreakCount = 0;
+        stats[loserName].lossStreakCount = 1;
+      } else {
+        stats[loserName].lossStreakCount++;
+      }
     }
   });
 

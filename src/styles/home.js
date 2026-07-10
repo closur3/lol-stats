@@ -114,6 +114,7 @@ export default `${baseCSS}
     .vs-text { color: #94a3b8; font-size: 13px; font-weight: 700; margin: 0 2px; }
     .score-sep { opacity: 0.4; margin: 0 1px; }
     .score-win { color: #0f172a; }
+    .score-draw { color: #64748b; }
     .score-loss { color: #94a3b8; }
     .tbd-team { color: #9ca3af; }
     .rate-hint { font-weight: 400; color: #94a3b8; font-size: 11px; margin: 0 2px; }

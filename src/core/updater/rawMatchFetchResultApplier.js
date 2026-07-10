@@ -4,15 +4,18 @@ import { updateConfig } from './updateConfig.js';
 const getMatchKey = (match) => String(match.MatchId);
 
 const canonicalMatch = (match) => [
-  match.MatchId,
   match.Team1,
   match.Team2,
+  match.Winner,
   match.Team1Score,
   match.Team2Score,
+  match.FF,
+  match.IsNullified,
   match.DateTimeUTC,
   match.OverviewPage,
   match.BestOf,
-  match.Tab
+  match.Tab,
+  match.MatchId
 ].join("\u001f");
 
 function calcChangedCount(oldData, newData) {
