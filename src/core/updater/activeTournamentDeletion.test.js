@@ -40,9 +40,8 @@ describe("deleteActiveRuntimeState", () => {
     });
     const env = { "lol-stats-kv": kv };
 
-    await expect(deleteActiveRuntimeState(env, slug, {
-      scheduleOptions: { applySchedules: false }
-    })).resolves.toEqual({ deletedSlug: slug });
+    await expect(deleteActiveRuntimeState(env, slug, { applySchedules: false }))
+      .resolves.toEqual({ deletedSlug: slug });
 
     expect(kv.values.get("ScheduleState").slugStates).toEqual({});
     expect(kv.values.get("ScheduleState").schedules).toEqual([baselineCron]);

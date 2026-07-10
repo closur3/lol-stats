@@ -1,9 +1,8 @@
 import { renderArchiveContentFragment, renderContentFragment } from './templates/content.js';
 import { renderPageShell } from './templates/page.js';
-import { readActiveConfig } from '../core/updater/activeConfigReader.js';
+import { readActiveConfig, readArchiveConfig } from '../core/facts/tournamentConfigReader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
-import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
-import { restoreMissingScheduleMetaBySlugFromRawMatches, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
+import { readScheduleMetaBySlug, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
@@ -11,13 +10,8 @@ export async function renderHomeFromFacts(env) {
   const tournaments = await readActiveConfig(env);
   const homeEntries = await readHomeEntries(env, tournaments.map(tournament => tournament.slug));
 
-  if (homeEntries.length === 0) {
-    const hasActiveCron = await readHasActiveCron(env);
-    return renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No active data available</div>`, "home", env.GITHUB_TIME, env.GITHUB_SHA, hasActiveCron);
-  }
-
   const orderedTournaments = homeEntries.map(home => home.tournament);
-  const scheduleMetaBySlug = await restoreMissingScheduleMetaBySlugFromRawMatches(env, orderedTournaments);
+  const scheduleMetaBySlug = await readScheduleMetaBySlug(env, orderedTournaments);
   const renderInput = buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
   const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.scheduleMetaBySlug);
 

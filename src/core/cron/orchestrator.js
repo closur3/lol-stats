@@ -1,5 +1,5 @@
-import { readActiveConfig } from "../updater/activeConfigReader.js";
-import { readStoredRawMatchesBySlug } from "../facts/rawMatchesStore.js";
+import { readActiveConfig } from "../facts/tournamentConfigReader.js";
+import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
@@ -34,7 +34,7 @@ async function runRevisionPath(env, tournaments, revisionResult) {
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
-    const rawMatchesBySlug = await readStoredRawMatchesBySlug(env, changedTournaments);
+    const rawMatchesBySlug = await readExistingRawMatchesBySlug(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
     await runActiveUpdate(env, tournaments, rawMatchesBySlug, false, changedSlugs, {
       forceWrite: false,

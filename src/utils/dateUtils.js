@@ -1,39 +1,4 @@
 export const dateUtils = {
-  /**
-   * 补零函数
-   */
-  pad: (value) => value < 10 ? '0' + value : value,
-
-  /**
-   * 转换为ISO字符串
-   */
-  toISO: (timestampInput) => {
-    const date = timestampInput ? new Date(timestampInput) : new Date();
-    return date.toISOString();
-  },
-
-  /**
-   * 转换为ISO字符串 (无毫秒)
-   */
-  toISOShort: (timestampInput) => {
-    const iso = dateUtils.toISO(timestampInput);
-    return iso.replace(/\.\d{3}Z$/, 'Z');
-  },
-
-  /**
-   * 解析日期字符串
-   */
-  parseDate: (dateStringInput) => {
-    if (!dateStringInput) throw new Error(`Invalid date format: ${dateStringInput}`);
-    if (dateStringInput.includes('T')) {
-      return new Date(dateStringInput);
-    }
-    return new Date(dateStringInput + (dateStringInput.endsWith('Z') ? '' : 'Z'));
-  },
-
-  /**
-   * 根据日期距离现在的时间返回颜色
-   */
   colorDate: (timestampInput) => {
     if (!timestampInput) return "#9ca3af";
     const diffDays = (Date.now() - timestampInput) / (1000 * 60 * 60 * 24);
@@ -44,16 +9,14 @@ export const dateUtils = {
     return "hsl(215, 40%, 60%)";
   },
 
-  /**
-   * 赛程按“天”清理：
-   * - 当天及未来天保留
-   * - 过期天仅在仍有未结束比赛时保留
-   * - 最后按日期升序截断到 maxDays
-   */
-  pruneScheduleMapByDayStatus: (scheduleMap, maxDays = 8, todayStr, hasHistoryUnfinished = {}) => {
+  pruneScheduleMapByDayStatus: (scheduleMap, maxDays, todayStr, hasHistoryUnfinished) => {
     if (!todayStr) throw new Error("todayStr is required");
     if (!scheduleMap || typeof scheduleMap !== "object" || Array.isArray(scheduleMap)) {
       throw new Error("scheduleMap must be a JSON object");
+    }
+    if (!Number.isInteger(maxDays) || maxDays < 1) throw new Error("maxDays must be a positive integer");
+    if (!hasHistoryUnfinished || typeof hasHistoryUnfinished !== "object" || Array.isArray(hasHistoryUnfinished)) {
+      throw new Error("hasHistoryUnfinished must be a JSON object");
     }
     const today = todayStr;
     const kept = {};
@@ -70,7 +33,7 @@ export const dateUtils = {
     });
 
     const limited = {};
-    Object.keys(kept).sort().slice(0, Math.max(1, Number(maxDays))).forEach(date => {
+    Object.keys(kept).sort().slice(0, maxDays).forEach(date => {
       limited[date] = kept[date];
     });
     return limited;

@@ -1,13 +1,13 @@
 import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
-import { rebuildMissingScheduleMetaFromRawMatches } from '../facts/scheduleMetaStore.js';
+import { readScheduleMeta } from '../facts/scheduleMetaStore.js';
 import { updateConfig } from './updateConfig.js';
 
-export async function restoreMissingScheduleMetaBySlugFromRawMatches(env, orderedTournaments) {
+export async function readScheduleMetaBySlug(env, orderedTournaments) {
   const scheduleMetas = await Promise.all(orderedTournaments.map(async (tournament) => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
-    return rebuildMissingScheduleMetaFromRawMatches(env, slug);
+    return readScheduleMeta(env, slug);
   }));
   return new Map(scheduleMetas.map(meta => [meta.slug, meta]));
 }

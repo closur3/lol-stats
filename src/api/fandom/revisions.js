@@ -1,4 +1,4 @@
-import { botUserAgent, fandomApi } from '../../constants/index.js';
+import { botUserAgent, fandomApi, maxRetries } from '../../constants/index.js';
 
 function readRevisionPage(revisionPayload) {
   const pagesObj = revisionPayload?.query?.pages;
@@ -39,7 +39,7 @@ function readRevisionTimestamp(value, label) {
   return value;
 }
 
-export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
+export async function fetchLatestRevision(pageTitle, retryLimit = maxRetries) {
   const revisionParams = new URLSearchParams({
     action: "query",
     prop: "revisions",
@@ -50,7 +50,7 @@ export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
   });
 
   let attempt = 1;
-  while (attempt <= maxRetries) {
+  while (attempt <= retryLimit) {
     try {
       const response = await fetch(`${fandomApi}?${revisionParams.toString()}`, {
         headers: { "User-Agent": botUserAgent, "Accept": "application/json" }
@@ -77,7 +77,7 @@ export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
         missing: false
       };
     } catch (error) {
-      if (attempt >= maxRetries) throw error;
+      if (attempt >= retryLimit) throw error;
       await new Promise(resolveDelay => setTimeout(resolveDelay, 1000 * attempt));
       attempt++;
     }

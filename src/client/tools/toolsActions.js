@@ -1,6 +1,6 @@
 export const toolsActions = `
-          function readActionMessage(res, fallback) {
-              return res.text().then(function(text) { return text || fallback; });
+          function readActionMessage(res, defaultMessage) {
+              return res.text().then(function(text) { return text || defaultMessage; });
           }
 
           function requestForceUpdate(slugs) {
@@ -23,11 +23,10 @@ export const toolsActions = `
               });
           }
 
-          function forceSelected() {
+          function forceSelected(button) {
               var checked = document.querySelectorAll('#active-list .item-chk:checked');
               if (checked.length === 0) { showWarning('Select at least one active tournament.'); return; }
               var slugs = Array.from(checked).map(function(checkboxElement) { return checkboxElement.value; });
-              var button = event.target;
               var restore = disableButton(button);
               requestForceUpdate(slugs).then(function(res) {
                   showForceUpdateResult(res, slugs.length + '/' + slugs.length);

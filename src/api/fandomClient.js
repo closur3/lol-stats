@@ -10,7 +10,7 @@ export class FandomClient {
     return fetchWithRetry(this.authContext, url, maxRetries);
   }
 
-  async fetchAllMatches(slug, sourceInput, dateFilter = null) {
-    return fetchAllMatches(this, slug, sourceInput, dateFilter);
+  async fetchAllMatches(slug, sourceInput) {
+    return fetchAllMatches(this, slug, sourceInput);
   }
 }

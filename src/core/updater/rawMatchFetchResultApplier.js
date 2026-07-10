@@ -56,8 +56,20 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, forc
       const slug = fetchOutcome.slug;
       const fetchedRawMatches = fetchOutcome.rawMatches;
       const currentRawMatches = rawMatchesBySlug[slug];
-      if (!Array.isArray(currentRawMatches)) throw new Error(`RawMatches missing in active update scope: ${slug}`);
       const isForce = force;
+
+      if (currentRawMatches === null) {
+        rawMatchesBySlug[slug] = fetchedRawMatches;
+        syncItems.push({
+          slug,
+          displayName: getDisplayName(displayNameMap, slug),
+          added: fetchedRawMatches.length,
+          updated: 0,
+          isForce
+        });
+        return;
+      }
+      if (!Array.isArray(currentRawMatches)) throw new Error(`RawMatches invalid in active update scope: ${slug}`);
 
       if (!isForce && currentRawMatches.length > 10 && fetchedRawMatches.length < currentRawMatches.length * updateConfig.dropThreshold) {
         dropBreakers.push(`${slug}(Drop ${currentRawMatches.length}->${fetchedRawMatches.length})`);

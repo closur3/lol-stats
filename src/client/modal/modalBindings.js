@@ -1,6 +1,11 @@
 export const modalBindings = `
-function closePopup(){document.getElementById('matchModal').style.display="none";}
-window.onclick=function(event){if(event.target==document.getElementById('matchModal'))closePopup();}
+function closePopup() {
+  document.getElementById('matchModal').style.display = 'none';
+}
+
+window.addEventListener('click', function(event) {
+  if (event.target === document.getElementById('matchModal')) closePopup();
+});
 
 window.renderMatchItem = renderMatchItem;
 window.renderListHTML = renderListHTML;

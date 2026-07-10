@@ -5,7 +5,7 @@ export async function fetchRawMatchesForCandidates(fandomClient, candidates) {
       if (!candidate || typeof candidate !== "object" || !candidate.slug) {
         throw new Error("Invalid fetch candidate");
       }
-      const fetchedMatches = await fandomClient.fetchAllMatches(candidate.slug, candidate.overviewPage, null);
+      const fetchedMatches = await fandomClient.fetchAllMatches(candidate.slug, candidate.overviewPage);
       return { slug: candidate.slug, rawMatches: fetchedMatches };
     })
   );

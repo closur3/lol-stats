@@ -14,9 +14,11 @@ export async function handleDeleteActive(request, env) {
 
   try {
     const scheduleWarnings = [];
-    const result = await deleteActiveRuntimeState(env, payload.slug, {
-      scheduleOptions: resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings })
-    });
+    const result = await deleteActiveRuntimeState(
+      env,
+      payload.slug,
+      resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings })
+    );
     if (scheduleWarnings.length > 0) {
       return new Response(`Deleted active runtime state with schedule warnings: ${scheduleWarnings.join(" | ")}`, { status: 207 });
     }

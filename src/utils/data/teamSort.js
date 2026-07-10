@@ -2,7 +2,9 @@
 import { rate } from './stats.js';
 
 export function sortTeams(statsObj) {
-  if (!statsObj) return [];
+  if (!statsObj || typeof statsObj !== "object" || Array.isArray(statsObj)) {
+    throw new Error("team stats must be a JSON object");
+  }
   const statsArray = Object.values(statsObj).filter(teamStats => teamStats && teamStats.name && teamStats.name !== "TBD");
   const priorMean = sortPolicy.getWeightedPriorMean(statsArray);
 

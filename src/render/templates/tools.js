@@ -85,7 +85,7 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
                       ${activeListHtml}
                   </div>
                   <div class="ops-actions">
-                      <button class="primary-btn" onclick="forceSelected()">Force Update</button>
+                      <button class="primary-btn" onclick="forceSelected(this)">Force Update</button>
                   </div>
 
                   <div class="item-sep"></div>
@@ -99,7 +99,7 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
                       ${archiveListHtml}
                   </div>
                   <div class="ops-actions">
-                      <button class="primary-btn" onclick="rebuildSelected()">Rebuild</button>
+                      <button class="primary-btn" onclick="rebuildSelected(this)">Rebuild</button>
                   </div>
 
               </div>

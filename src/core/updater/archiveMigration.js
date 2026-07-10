@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { readArchiveConfig } from "./archiveConfigReader.js";
+import { readArchiveConfig } from "../facts/tournamentConfigReader.js";
 import { buildArchiveSnapshot } from "./archiveSnapshotBuilder.js";
 
 function assertActiveArchiveDisjoint(activeTournaments, archiveTournaments) {

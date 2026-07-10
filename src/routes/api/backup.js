@@ -1,5 +1,4 @@
-import { readArchiveConfig } from "../../core/updater/archiveConfigReader.js";
-import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
+import { readActiveConfig, readArchiveConfig } from "../../core/facts/tournamentConfigReader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 

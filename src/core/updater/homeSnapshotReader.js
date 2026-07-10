@@ -24,12 +24,11 @@ function assertHomeSnapshot(keyName, home) {
 export async function readHomeEntries(env, slugs) {
   if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
   const kv = env["lol-stats-kv"];
-  const entries = await Promise.all(slugs.map(async slug => {
+  return Promise.all(slugs.map(async slug => {
     const key = kvKeys.home(slug);
     const home = await kv.get(key, { type: "json" });
-    if (!home) return null;
+    if (home == null) throw new Error(`ActiveHome missing: ${slug}`);
     assertHomeSnapshot(key, home);
     return home;
   }));
-  return entries.filter(Boolean);
 }

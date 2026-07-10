@@ -1,5 +1,6 @@
 import { renderTournamentSection } from './content/tournamentSection.js';
 import { renderScheduleSection } from './content/scheduleSection.js';
+import { serializeForInlineScript } from '../../utils/htmlEscape.js';
 
 function assertObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -20,7 +21,7 @@ export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, 
   assertTournaments(tournaments);
   if (!isArchive) assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
 
-  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${JSON.stringify(globalStats)});</script>`;
+  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
     .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleMetaBySlug, isArchive))

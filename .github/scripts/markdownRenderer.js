@@ -11,16 +11,15 @@ export function renderFullRateSummary(stats) {
   return `📊 **Fullrate**: ${parts.join(" | ")}\n\n`;
 }
 
-function readMarkdownRegionGrid(timeGrid, slug) {
-  if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) {
+function readMarkdownTournamentTimeGrid(timeGridBySlug, slug) {
+  if (!timeGridBySlug || typeof timeGridBySlug !== "object" || Array.isArray(timeGridBySlug)) {
     throw new Error("timeGrid must be a JSON object");
   }
-  const regionGrid = timeGrid[slug];
-  if (regionGrid === undefined) return {};
-  if (!regionGrid || typeof regionGrid !== "object" || Array.isArray(regionGrid)) {
+  const tournamentTimeGrid = timeGridBySlug[slug];
+  if (!tournamentTimeGrid || typeof tournamentTimeGrid !== "object" || Array.isArray(tournamentTimeGrid)) {
     throw new Error(`Invalid markdown timeGrid: ${slug}`);
   }
-  return regionGrid;
+  return tournamentTimeGrid;
 }
 
 export function generateMarkdown(tournament, stats, timeGrid) {
@@ -49,15 +48,15 @@ export function generateMarkdown(tournament, stats, timeGrid) {
 
   markdown += `\n## \n📅 **Time Slot Distribution**\n\n| Time Slot | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Total |\n| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n`;
 
-  const regionGrid = readMarkdownRegionGrid(timeGrid, tournament.slug);
-  const hours = Object.keys(regionGrid).filter(hourKey => hourKey !== "Total" && !isNaN(hourKey)).map(Number).sort((leftHour, rightHour) => leftHour - rightHour);
+  const tournamentTimeGrid = readMarkdownTournamentTimeGrid(timeGrid, tournament.slug);
+  const hours = Object.keys(tournamentTimeGrid).filter(hourKey => hourKey !== "Total" && !isNaN(hourKey)).map(Number).sort((leftHour, rightHour) => leftHour - rightHour);
 
   [...hours, "Total"].forEach(hourOrTotal => {
-    if (!regionGrid[hourOrTotal]) return;
+    if (!tournamentTimeGrid[hourOrTotal]) return;
     const label = hourOrTotal === "Total" ? `**Total**` : `**${String(hourOrTotal).padStart(2,'0')}:00**`;
     let line = `| ${label} |`;
     for (let weekdayIndex = 0; weekdayIndex < timeGridColumnCount; weekdayIndex++) {
-      const cell = regionGrid[hourOrTotal][weekdayIndex];
+      const cell = tournamentTimeGrid[hourOrTotal][weekdayIndex];
       if (!cell || cell.totalMatchCount === 0) line += " - |";
       else {
         const rate = Math.round((cell.fullLengthMatchCount / cell.totalMatchCount) * 100);

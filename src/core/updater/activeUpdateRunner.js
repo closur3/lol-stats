@@ -9,7 +9,6 @@ import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homePr
 import { writeActiveTournamentFacts } from './activeTournamentFactWriter.js';
 import { appendActiveLogs } from './logPersistence.js';
 import { commitRevisionWrites } from './revWriter.js';
-import { updateConfig } from './updateConfig.js';
 
 function buildScopedTournaments(tournaments, scopeSlugs) {
   if (!Array.isArray(tournaments)) {
@@ -83,7 +82,7 @@ function buildActiveUpdateLogs(rawMatchUpdate, authContext) {
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
   const scopedRawMatches = buildScopedRawMatches(rawMatchesBySlug, writeScopeSlugs);
-  return analyzeTournaments(scopedRawMatches, scopedTournaments, updateConfig.maxScheduleDays);
+  return analyzeTournaments(scopedRawMatches, scopedTournaments);
 }
 
 async function writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs) {

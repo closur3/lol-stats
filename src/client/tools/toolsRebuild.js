@@ -19,7 +19,7 @@ export const toolsRebuild = `
               }).then(restore);
           }
 
-          function rebuildSelected() {
+          function rebuildSelected(button) {
               var checked = document.querySelectorAll('.qr-chk-archived:checked');
               if (checked.length === 0) { showWarning('Select at least one archived tournament.'); return; }
               var selected = Array.from(checked).map(function(checkboxElement) { return { slug: (checkboxElement.value || '').trim(), name: (checkboxElement.dataset.name || '').trim() }; });
@@ -27,7 +27,6 @@ export const toolsRebuild = `
                   return !item.slug;
               });
               if (hasMissingField) { showWarning('Required tournament data is missing.'); return; }
-              var button = event.target;
               var restore = disableButton(button);
               var success = 0, fail = 0;
               var promises = selected.map(function(selectedArchive) {

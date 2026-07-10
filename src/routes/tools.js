@@ -1,7 +1,6 @@
 import { createToolsAuthCookie, isAdminAuthorized, requirePost } from './api/auth.js';
 import { renderToolsAuthPage, renderToolsPage } from '../render/templates/tools.js';
-import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
-import { readActiveConfig } from '../core/updater/activeConfigReader.js';
+import { readActiveConfig, readArchiveConfig } from '../core/facts/tournamentConfigReader.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 /**

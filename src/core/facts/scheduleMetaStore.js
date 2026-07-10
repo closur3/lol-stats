@@ -38,6 +38,13 @@ export async function rebuildScheduleMetaFromRawMatches(env, slug) {
   return writeScheduleMeta(env, slug, computedMeta);
 }
 
+export async function readScheduleMeta(env, slug) {
+  if (!slug) throw new Error("schedule meta slug missing");
+  const meta = await env["lol-stats-kv"].get(kvKeys.scheduleMeta(slug), { type: "json" });
+  if (meta == null) throw new Error(`ScheduleMeta missing: ${slug}`);
+  return normalizeScheduleMeta(slug, meta);
+}
+
 export async function rebuildMissingScheduleMetaFromRawMatches(env, slug) {
   if (!slug) throw new Error("schedule meta slug missing");
   const meta = await env["lol-stats-kv"].get(kvKeys.scheduleMeta(slug), { type: "json" });

@@ -34,6 +34,7 @@ export async function login(user, pass) {
     throw new Error("Missing Fandom credentials: FANDOM_BOT_USERNAME/FANDOM_BOT_PASSWORD");
   }
 
+  let lastError = null;
   for (let attempt = 1; attempt <= maxLoginRetries; attempt++) {
     try {
       const tokenResp = await fetch(`${fandomApi}?action=query&meta=tokens&type=login&format=json`, {
@@ -63,6 +64,7 @@ export async function login(user, pass) {
       const step2Cookie = extractCookies(loginResp.headers);
       return { cookie: `${step1Cookie}; ${step2Cookie}`, username: loginResult.lgusername };
     } catch (error) {
+      lastError = error;
       console.error(`[FANDOM:AUTH] attempt=${attempt}/${maxLoginRetries} error=${error.message}`);
       if (attempt < maxLoginRetries) {
         await new Promise(resolveDelay => setTimeout(resolveDelay, attempt * 2000));
@@ -70,5 +72,5 @@ export async function login(user, pass) {
     }
   }
 
-  throw new Error(`[Fandom Login] All attempts failed`);
+  throw new Error("Fandom login failed after retries", { cause: lastError });
 }

@@ -26,7 +26,8 @@ export const toolsBootstrap = `
               return function() { button.disabled = false; };
           }
           function sendAuthorizedPost(url, extraHeaders, body) {
-              return fetch(url, { method: 'POST', headers: extraHeaders || {}, body: body, credentials: 'same-origin' });
+              if (!extraHeaders || typeof extraHeaders !== 'object') throw new Error('Request headers missing.');
+              return fetch(url, { method: 'POST', headers: extraHeaders, body: body, credentials: 'same-origin' });
           }
           function showResult(ok, text) { showToast(text, ok ? 'success' : 'error'); }
           function showWarning(text) { showToast(text, 'warning'); }
@@ -34,7 +35,7 @@ export const toolsBootstrap = `
           var pendingConfigActionButton = null;
           var pendingConfigActionPayload = null;
           function getConfigActionMeta(action, payload) {
-              payload = payload || {};
+              if (!payload || typeof payload !== 'object') throw new Error('Configuration action payload missing.');
               var actions = {
                   'active-runtime-delete': {
                       label: 'Delete active runtime state',
@@ -74,7 +75,7 @@ export const toolsBootstrap = `
               if (!meta) { showResult(false, 'Unknown configuration action.'); return; }
               pendingConfigAction = action;
               pendingConfigActionButton = button;
-              pendingConfigActionPayload = payload || null;
+              pendingConfigActionPayload = payload;
               document.getElementById('indexConfirmIcon').textContent = meta.icon;
               document.getElementById('indexConfirmTitle').textContent = meta.label;
               document.getElementById('indexConfirmFlow').textContent = meta.flow;

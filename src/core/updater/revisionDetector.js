@@ -4,23 +4,21 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { normalizeOverviewPages, toDataPage } from '../../utils/data/overviewPages.js';
 
 function hasRevisionRecordChanged(previousRecord, nextRecord) {
-  const prev = previousRecord || {};
-  const next = nextRecord || {};
-  if ((prev.slug || "") !== (next.slug || "")) return true;
+  if (previousRecord.slug !== nextRecord.slug) return true;
 
-  const prevPages = prev.pages && typeof prev.pages === "object" ? prev.pages : {};
-  const nextPages = next.pages && typeof next.pages === "object" ? next.pages : {};
+  const prevPages = previousRecord.pages;
+  const nextPages = nextRecord.pages;
   const prevTitles = Object.keys(prevPages);
   const nextTitles = Object.keys(nextPages);
   if (prevTitles.length !== nextTitles.length) return true;
 
   for (const title of prevTitles) {
     if (!Object.prototype.hasOwnProperty.call(nextPages, title)) return true;
-    const prevPage = prevPages[title] || {};
-    const nextPage = nextPages[title] || {};
-    if ((Number(prevPage.revid) || 0) !== (Number(nextPage.revid) || 0)) return true;
-    if ((prevPage.revisionTimeUTC || "") !== (nextPage.revisionTimeUTC || "")) return true;
-    if ((Number(prevPage.pageid) || 0) !== (Number(nextPage.pageid) || 0)) return true;
+    const prevPage = prevPages[title];
+    const nextPage = nextPages[title];
+    if (prevPage.revid !== nextPage.revid) return true;
+    if (prevPage.revisionTimeUTC !== nextPage.revisionTimeUTC) return true;
+    if (prevPage.pageid !== nextPage.pageid) return true;
   }
   return false;
 }
@@ -30,9 +28,21 @@ function normalizePreviousRevisionState(slug, previousRevisionState) {
   if (typeof previousRevisionState !== "object" || Array.isArray(previousRevisionState)) {
     throw new Error(`REV state must be a JSON object: ${slug}`);
   }
-  const pages = previousRevisionState.pages;
-  if (!pages || typeof pages !== "object" || Array.isArray(pages)) {
+  const storedPages = previousRevisionState.pages;
+  if (!storedPages || typeof storedPages !== "object" || Array.isArray(storedPages)) {
     throw new Error(`REV pages must be a JSON object: ${slug}`);
+  }
+  const pages = {};
+  for (const [title, page] of Object.entries(storedPages)) {
+    if (!page || typeof page !== "object" || Array.isArray(page)) {
+      throw new Error(`REV page must be a JSON object: ${slug}:${title}`);
+    }
+    if (!Number.isInteger(page.revid) || page.revid <= 0) throw new Error(`REV revid invalid: ${slug}:${title}`);
+    if (!Number.isInteger(page.pageid) || page.pageid <= 0) throw new Error(`REV pageid invalid: ${slug}:${title}`);
+    if (typeof page.revisionTimeUTC !== "string" || page.revisionTimeUTC.length === 0) {
+      throw new Error(`REV revisionTimeUTC invalid: ${slug}:${title}`);
+    }
+    pages[title] = page;
   }
   return { slug, pages };
 }

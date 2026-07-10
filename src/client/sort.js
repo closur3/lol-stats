@@ -125,6 +125,5 @@ function parseValue(value) {
 }
 
 window.doSort = doSort;
-window.parseValue = parseValue;
 })();
 `;

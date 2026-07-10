@@ -1,5 +1,5 @@
 import { deleteArchiveSnapshot } from "../../core/updater/archiveSnapshotDeletion.js";
-import { readArchiveConfig } from "../../core/updater/archiveConfigReader.js";
+import { readArchiveConfig } from "../../core/facts/tournamentConfigReader.js";
 import { rebuildArchiveSnapshot } from "../../core/updater/archiveSnapshotRebuilder.js";
 import { requireAdmin, requirePost } from "./auth.js";
 import { readJsonPayload } from "./requestPayload.js";

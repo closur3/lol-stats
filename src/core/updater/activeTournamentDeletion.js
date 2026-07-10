@@ -44,14 +44,13 @@ async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
   if (controlChanged || appliedChanged) await writeScheduleState(env, state);
 }
 
-export async function deleteActiveRuntimeState(env, slug, options = {}) {
+export async function deleteActiveRuntimeState(env, slug, scheduleOptions) {
   const cleanSlug = normalizeSlug(slug);
+  if (!scheduleOptions || typeof scheduleOptions !== "object" || Array.isArray(scheduleOptions)) {
+    throw new Error("scheduleOptions must be a JSON object");
+  }
   await deleteActiveRuntimeFacts(env, cleanSlug);
-  await deleteActiveRuntimeScheduleState(
-    env,
-    cleanSlug,
-    options.scheduleOptions ?? {}
-  );
+  await deleteActiveRuntimeScheduleState(env, cleanSlug, scheduleOptions);
 
   return { deletedSlug: cleanSlug };
 }

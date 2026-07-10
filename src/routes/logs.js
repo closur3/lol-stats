@@ -1,9 +1,9 @@
 import { updateConfig } from '../core/updater/updateConfig.js';
-import { readActiveConfig } from '../core/updater/activeConfigReader.js';
+import { readActiveConfig } from '../core/facts/tournamentConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { renderLogPage } from '../render/templates/logs.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
-import { rebuildMissingScheduleMetaFromRawMatches } from '../core/facts/scheduleMetaStore.js';
+import { readScheduleMeta } from '../core/facts/scheduleMetaStore.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 async function readLogsBySlug(kv, slugs) {
@@ -27,7 +27,7 @@ async function readLogMetaBySlug(env, slugs) {
   const metaPairs = await Promise.all(slugs.map(async slug => {
     const [rawMatches, meta] = await Promise.all([
       readRawMatches(env, slug),
-      rebuildMissingScheduleMetaFromRawMatches(env, slug)
+      readScheduleMeta(env, slug)
     ]);
     return [slug, {
       totalMatchCount: rawMatches.length,

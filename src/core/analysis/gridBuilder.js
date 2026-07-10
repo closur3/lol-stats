@@ -53,7 +53,7 @@ export function buildTournamentTimeGrid(tournamentSlug, parsedMatches, timeGrid)
         if (distance < bestDist) { bestDist = distance; bestCluster = timeCluster; }
       }
     }
-    if (!bestCluster) continue;
+    if (!bestCluster) throw new Error(`Time cluster missing: ${tournamentSlug}.${parsedMatch.matchDateStr}`);
 
     const dayIndex = parsedMatch.weekdayIndex;
     const addMatchToSlot = (tournamentTimeGrid, timeSlotLabel, targetDayIndex) => {

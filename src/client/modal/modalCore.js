@@ -13,11 +13,20 @@ const styleModalEmpty = 'style="text-align:center;color:#999;padding:20px"';
 const styleH2hSummary = 'style="color:#94a3b8;font-size:14px"';
 const styleH2hDash = 'style="margin:0 1px"';
 
+function escapeModalHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+}
+
 function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode, isForfeit) {
-    const dateParts = (dateDisplay || '').split(' ');
+    const dateParts = String(dateDisplay ?? '').split(' ');
     const dateHtml = dateParts.length === 2 
-      ? dateParts[0] + '<br><span ' + styleDateTime + '>' + dateParts[1] + '</span>'
-      : (dateDisplay || '');
+      ? escapeModalHtml(dateParts[0]) + '<br><span ' + styleDateTime + '>' + escapeModalHtml(dateParts[1]) + '</span>'
+      : escapeModalHtml(dateDisplay);
 
     let matchItemClass = 'match-item';
     if (viewType === 'history') {
@@ -33,7 +42,7 @@ function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2N
     if (matchResultCode === 'NEXT') { 
       scoreContent = '<span class="score-text vs">VS</span>'; 
     } else { 
-      const formattedScore = (scoreDisplay || '').toString().replace('-', '<span ' + styleScoreDash + '>-</span>');
+      const formattedScore = escapeModalHtml(scoreDisplay).replace('-', '<span ' + styleScoreDash + '>-</span>');
       scoreContent = '<span class="' + scoreClass + '">' + formattedScore + '</span>' + (isForfeit ? '<span class="match-forfeit">FF</span>' : '');
     }
     const boxClass = isFullLength ? 'score-box is-full' : 'score-box';
@@ -44,9 +53,9 @@ function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2N
            '<div class="col-date">' + dateHtml + '</div>' +
            '<div class="modal-divider"></div>' +
            '<div class="col-vs-area"><div class="spine-row">' +
-           '<span class="spine-l" ' + team1Style + '>' + team1Name + '</span>' +
+           '<span class="spine-l" ' + team1Style + '>' + escapeModalHtml(team1Name) + '</span>' +
            '<div ' + styleScoreWrap + '><div class="' + boxClass + '">' + scoreContent + '</div></div>' +
-           '<span class="spine-r" ' + team2Style + '>' + team2Name + '</span>' +
+           '<span class="spine-r" ' + team2Style + '>' + escapeModalHtml(team2Name) + '</span>' +
            '</div></div>' +
            '<div class="modal-divider"></div>' +
            '<div class="col-res">' + resultTagHtml + '</div>' +

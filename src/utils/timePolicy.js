@@ -68,10 +68,6 @@ function buildAppDateUtcDate(dateKey, hour = 0) {
 }
 
 export const timePolicy = {
-  parseUtcDateTime,
-
-  getAppTimeParts,
-
   getCurrentAppDateTime(timestampInput = new Date()) {
     const date = timestampInput instanceof Date ? timestampInput : new Date(timestampInput);
     const parts = getAppTimeParts(date);
@@ -123,19 +119,6 @@ export const timePolicy = {
 
   getAppDateKey(timestampInput = new Date()) {
     return getAppTimeParts(timestampInput).dateKey;
-  },
-
-  getCoveredUtcDateKeysForAppDate(dateKey) {
-    const start = buildAppDateUtcDate(dateKey, 0);
-    const end = buildAppDateUtcDate(dateKey, 23);
-    return Array.from(new Set([
-      start.toISOString().slice(0, 10),
-      end.toISOString().slice(0, 10)
-    ])).sort();
-  },
-
-  isUtcMatchOnAppDate(rawDateTimeUtc, dateKey) {
-    return getAppTimeParts(parseUtcDateTime(rawDateTimeUtc)).dateKey === dateKey;
   },
 
   appWindowToUtcCronSegments(dateKey, startHour, endHour) {
