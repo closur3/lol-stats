@@ -71,7 +71,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
         time: matchTimeStr,
         team1Name, team2Name,
         team1Score, team2Score,
-        bestOf, winner, forfeitSide, isForfeit,
+        bestOf, winner, isForfeit,
         isFinished, isLive,
         leagueShort: tournamentLeagueShort,
         slug: tournamentSlug,
@@ -86,7 +86,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       if (timestamp > stats[team2Name].last) stats[team2Name].last = timestamp;
 
       parsedMatches.push({
-        team1Name, team2Name, team1Score, team2Score, bestOf, winner, forfeitSide, isForfeit, isFullLength,
+        team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
         dateDisplay, fullDateDisplay,
         timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
       });
@@ -114,14 +114,14 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
-      bestOf, forfeitSide, isForfeit, isFullLength, timestamp
+      bestOf, isForfeit, isFullLength, timestamp
     });
     stats[team2Name].history.push({
       dateDisplay, fullDateDisplay,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,
-      bestOf, forfeitSide, isForfeit, isFullLength, timestamp
+      bestOf, isForfeit, isFullLength, timestamp
     });
 
     if (!isFinished) { return; }

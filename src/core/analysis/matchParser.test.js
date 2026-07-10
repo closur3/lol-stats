@@ -12,7 +12,8 @@ describe("parseAllMatches", () => {
     }], ...tournamentArgs);
 
     expect(parsedMatches).toHaveLength(1);
-    expect(parsedMatches[0]).toMatchObject({ forfeitSide: 1, isForfeit: true, isFullLength: false });
+    expect(parsedMatches[0]).toMatchObject({ isForfeit: true, isFullLength: false });
+    expect(parsedMatches[0]).not.toHaveProperty("forfeitSide");
     expect(stats.Beta.seriesWinCount).toBe(1);
   });
 
