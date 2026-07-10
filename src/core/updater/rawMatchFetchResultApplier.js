@@ -38,7 +38,7 @@ function calcChangedCount(oldData, newData) {
   return { added, updated, deleted, changed: added + updated };
 }
 
-export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, forceSlugs, tournaments) {
+export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, tournaments) {
   const brokenSlugs = new Set();
   const errorSlugs = new Set();
   const syncItems = [];

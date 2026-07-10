@@ -4,7 +4,7 @@ import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { renderLogPage } from '../render/templates/logs.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
 import { restoreMissingScheduleMetaFromRawMatches } from '../core/facts/scheduleMetaStore.js';
-import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
+import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 async function readLogsBySlug(kv, slugs) {
   if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
@@ -76,9 +76,8 @@ export class LogsRouter {
     const logSlugs = Array.from(logsBySlug.keys());
     const homeBySlug = await readLogMetaBySlug(env, logSlugs);
     const activeLogItems = buildActiveLogItems(tournaments, logsBySlug, homeBySlug);
-    const state = await kv.get(kvKeys.scheduleState(), { type: "json" });
-    const activeCron = state && Array.isArray(state.schedules) ? state.schedules.some(cron => cron !== IDLE_SWEEP_CRON) : false;
-    const html = renderLogPage(activeLogItems, env.GITHUB_TIME, env.GITHUB_SHA, activeCron, {
+    const hasActiveCron = await readHasActiveCron(env);
+    const html = renderLogPage(activeLogItems, env.GITHUB_TIME, env.GITHUB_SHA, hasActiveCron, {
       maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES
     });
 

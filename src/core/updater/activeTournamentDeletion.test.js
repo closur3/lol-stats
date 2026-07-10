@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { IDLE_SWEEP_CRON } from "../scheduler/cronBuckets.js";
+import { baselineCron } from "../scheduler/cronBuckets.js";
 import { deleteActiveRuntimeState } from "./activeTournamentDeletion.js";
 
 function createKv(initialValues) {
@@ -35,7 +35,7 @@ describe("deleteActiveRuntimeState", () => {
             playEndHour: null
           }
         },
-        schedules: [IDLE_SWEEP_CRON]
+        schedules: [baselineCron]
       }
     });
     const env = { "lol-stats-kv": kv };
@@ -45,7 +45,7 @@ describe("deleteActiveRuntimeState", () => {
     })).resolves.toEqual({ deletedSlug: slug });
 
     expect(kv.values.get("ScheduleState").slugStates).toEqual({});
-    expect(kv.values.get("ScheduleState").schedules).toEqual([IDLE_SWEEP_CRON]);
+    expect(kv.values.get("ScheduleState").schedules).toEqual([baselineCron]);
     expect(kv.values.get("ConfigActive")).toEqual([{ slug }]);
     expect(kv.values.get("ConfigArchive")).toEqual([{ slug: "archive-2026" }]);
     expect(kv.values.get("ArchiveSnapshot_archive_2026")).toEqual({ slug: "archive-2026" });

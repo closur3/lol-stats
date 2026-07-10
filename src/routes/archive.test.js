@@ -22,7 +22,7 @@ describe("ArchiveRouter", () => {
       }
     };
 
-    const response = await ArchiveRouter.handleArchive({}, env);
+    const response = await ArchiveRouter.handleArchive(env);
     const html = await response.text();
 
     expect(response.status).toBe(500);

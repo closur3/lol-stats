@@ -62,7 +62,7 @@ async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, f
 
   const { authContext, fandomClient } = await createFandomClient(env);
   const results = await fetchMatchesForCandidates(fandomClient, candidates);
-  const processed = applyRawMatchFetchResults(results, rawMatchesBySlug, force, forceSlugs, tournaments);
+  const processed = applyRawMatchFetchResults(results, rawMatchesBySlug, force, tournaments);
   const { syncItems, skipItems, dropBreakers, fetchErrors } = processed;
   console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
   return { authContext, ...processed };
@@ -76,9 +76,9 @@ function attachRevisionChanges(items, revidChanges) {
   }
 }
 
-function buildActiveUpdateLogs(tournaments, processed, authContext) {
+function buildActiveUpdateLogs(processed, authContext) {
   const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = processed;
-  return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap);
+  return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap);
 }
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
@@ -98,7 +98,7 @@ export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force 
 
   const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = processed;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
-  const activeLogEntries = buildActiveUpdateLogs(tournaments, processed, authContext);
+  const activeLogEntries = buildActiveUpdateLogs(processed, authContext);
 
   const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, skipItems, forceWrite, forceSlugs);
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);

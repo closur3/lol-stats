@@ -2,17 +2,10 @@ import { deleteArchiveSnapshot } from "../../core/updater/archiveSnapshotDeletio
 import { readArchiveConfig } from "../../core/updater/archiveConfigReader.js";
 import { rebuildArchiveSnapshot } from "../../core/updater/archiveSnapshotRebuilder.js";
 import { requireAdmin, requirePost } from "./auth.js";
+import { readJsonPayload } from "./requestPayload.js";
 
 function readSlug(payload) {
   return typeof payload?.slug === "string" ? payload.slug.trim() : "";
-}
-
-async function readJsonPayload(request) {
-  try {
-    return await request.json();
-  } catch (_error) {
-    return null;
-  }
 }
 
 export async function handleRebuildArchive(request, env) {

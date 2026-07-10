@@ -1,23 +1,15 @@
 import { renderHomeFromFacts } from '../render/ssrRenderService.js';
+import { createNoCacheHtmlHeaders } from './htmlResponse.js';
 
 export class HomeRouter {
-  static htmlHeaders() {
-    return {
-      "content-type": "text/html;charset=utf-8",
-      "cache-control": "no-store, no-cache, must-revalidate",
-      pragma: "no-cache",
-      expires: "0"
-    };
-  }
-
-  static async handleHome(request, env) {
+  static async handleHome(env) {
     const html = await renderHomeFromFacts(env);
     if (!html) {
       return new Response(
         "Home is not ready yet. <a href='/tools'>Go to Tools</a>.",
-        { headers: HomeRouter.htmlHeaders() }
+        { headers: createNoCacheHtmlHeaders() }
       );
     }
-    return new Response(html, { headers: HomeRouter.htmlHeaders() });
+    return new Response(html, { headers: createNoCacheHtmlHeaders() });
   }
 }

@@ -39,7 +39,7 @@ export function runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DE
       scheduleMetaBySlug[tournament.slug] = scheduleMeta;
     });
 
-    const scheduleMap = buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, scheduleMetaBySlug);
+    const scheduleMap = buildScheduleMap(allFutureMatches, maxScheduleDays, scheduleMetaBySlug);
 
     return {
       globalStats,

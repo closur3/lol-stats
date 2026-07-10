@@ -2,8 +2,7 @@ import { createToolsAuthCookie, isAdminAuthorized, requirePost } from './api/aut
 import { renderToolsAuthPage, renderToolsPage } from '../render/templates/tools.js';
 import { readArchiveConfig } from '../core/updater/archiveConfigReader.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
-import { kvKeys } from '../infrastructure/kv/keyFactory.js';
-import { IDLE_SWEEP_CRON } from '../core/scheduler/cronBuckets.js';
+import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 /**
  * 工具页面路由处理
@@ -22,7 +21,7 @@ export class ToolsRouter {
       }
 
       // 并行读取活跃赛事、归档赛事、CRON 状态
-      const [activeTournaments, archiveResult, activeCron] = await Promise.all([
+      const [activeTournaments, archiveResult, hasActiveCron] = await Promise.all([
       readActiveConfig(env),
       (async () => {
         try {
@@ -31,12 +30,7 @@ export class ToolsRouter {
           return { archivedTournaments: [], archiveError: error.message };
         }
       })(),
-      (async () => {
-        const kv = env["lol-stats-kv"];
-        const state = await kv.get(kvKeys.scheduleState(), { type: "json" });
-        if (!state || !Array.isArray(state.schedules)) return false;
-        return state.schedules.some(cron => cron !== IDLE_SWEEP_CRON);
-      })()
+      readHasActiveCron(env)
       ]);
 
       const time = env.GITHUB_TIME;
@@ -47,7 +41,7 @@ export class ToolsRouter {
         activeTournaments,
         archiveResult.archivedTournaments,
         archiveResult.archiveError,
-        activeCron
+        hasActiveCron
       );
 
       return new Response(html, {

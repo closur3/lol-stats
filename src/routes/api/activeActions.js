@@ -1,14 +1,7 @@
 import { deleteActiveRuntimeState } from "../../core/updater/activeTournamentDeletion.js";
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { requireAdmin, requirePost } from "./auth.js";
-
-async function readJsonPayload(request) {
-  try {
-    return await request.json();
-  } catch (_error) {
-    return null;
-  }
-}
+import { readJsonPayload } from "./requestPayload.js";
 
 export async function handleDeleteActive(request, env) {
   const methodError = requirePost(request);

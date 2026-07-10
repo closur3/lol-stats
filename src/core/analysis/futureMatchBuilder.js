@@ -1,7 +1,7 @@
 import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 
-export function buildScheduleMap(allFutureMatches, tournaments, maxScheduleDays, scheduleMetaBySlug) {
+export function buildScheduleMap(allFutureMatches, maxScheduleDays, scheduleMetaBySlug) {
   let scheduleMap = {};
   const sortedFutureDates = Object.keys(allFutureMatches).sort();
   sortedFutureDates.forEach(date => {

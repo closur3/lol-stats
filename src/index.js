@@ -17,10 +17,10 @@ export default {
 
     switch (url.pathname) {
       case "/":
-        return HomeRouter.handleHome(request, env);
+        return HomeRouter.handleHome(env);
       
       case "/archive":
-        return ArchiveRouter.handleArchive(request, env);
+        return ArchiveRouter.handleArchive(env);
       
       case "/tools":
         return ToolsRouter.handleTools(request, env);

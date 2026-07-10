@@ -7,7 +7,6 @@
     "dev": "npm run dev:kv && wrangler dev",
     "dev:kv": "wrangler kv key put ConfigActive --path config/ConfigActive.json --binding=lol-stats-kv --local && wrangler kv key put ConfigArchive --path config/ConfigArchive.json --binding=lol-stats-kv --local",
     "deploy": "wrangler deploy",
-    "build": "echo 'Build complete - ES modules ready'",
     "test": "vitest run",
     "lint": "eslint src/"
   },

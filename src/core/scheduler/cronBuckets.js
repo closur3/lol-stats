@@ -1,7 +1,7 @@
 import { assertSlugScheduleState, hasPlayWindow, isNowInPlayWindow } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
-export const IDLE_SWEEP_CRON = "0 */2 * * *";
+export const baselineCron = "0 */2 * * *";
 
 const MAX_ACTIVE_CRONS = 4;
 const MAX_TOTAL_CRONS = 5;
@@ -65,7 +65,7 @@ export function buildActiveBucketCronsFromState(state) {
 
 export function collectSchedulesFromState(state) {
   const activeCrons = buildActiveBucketCronsFromState(state);
-  const schedules = Array.from(new Set([IDLE_SWEEP_CRON, ...activeCrons]));
+  const schedules = Array.from(new Set([baselineCron, ...activeCrons]));
   if (schedules.length > MAX_TOTAL_CRONS) {
     throw new Error(`Cloudflare cron limit exceeded: ${schedules.length}/${MAX_TOTAL_CRONS}`);
   }

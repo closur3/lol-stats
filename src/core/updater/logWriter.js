@@ -13,7 +13,7 @@ function pickLatestRevisionTrigger(revidChanges) {
   );
 }
 
-export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap) {
+export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap) {
   const loggedAt = timePolicy.getNow().fullDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
