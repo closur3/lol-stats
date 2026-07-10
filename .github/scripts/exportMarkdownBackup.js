@@ -38,7 +38,9 @@ async function writeSnapshotMarkdown(slug, snapshot, written) {
   console.log(`📝 [写入] markdown/${slug}.md`);
 }
 
-await rm("markdown", { recursive: true, force: true });
+if (includeArchive) {
+  await rm("markdown", { recursive: true, force: true });
+}
 await mkdir("markdown", { recursive: true });
 
 const written = new Set();
