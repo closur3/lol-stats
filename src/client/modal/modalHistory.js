@@ -6,7 +6,7 @@ function openTeam(slug, teamName) {
     
     const history = data.history || [];
     
-    const finished = history.filter(match => match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS');
+    const finished = history.filter(match => match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS' || match.matchResultCode === 'DRAW');
     const upcoming = history.filter(match => match.matchResultCode === 'NEXT' || match.matchResultCode === 'LIVE');
     
     finished.sort((leftMatch, rightMatch) => (rightMatch.timestamp || 0) - (leftMatch.timestamp || 0) || rightMatch.dateDisplay.localeCompare(leftMatch.dateDisplay));
@@ -17,7 +17,7 @@ function openTeam(slug, teamName) {
     finished.forEach(match => {
         const icon = resultIconMap[match.matchResultCode] || resultIconMap['NEXT'];
         const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
+        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isForfeit));
     });
     
     if (upcoming.length > 0) {
@@ -26,7 +26,7 @@ function openTeam(slug, teamName) {
         upcoming.forEach(match => {
             const icon = resultIconMap[match.matchResultCode] || resultIconMap['NEXT'];
             const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
+            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isForfeit));
         });
     }
     
@@ -44,7 +44,7 @@ function openStats(slug, teamName, type) {
     else { titleSuffix = " - Series"; }
     document.getElementById('modalTitle').innerText = teamName + titleSuffix;
     
-    const finished = history.filter(match => match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS');
+    const finished = history.filter(match => match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS' || match.matchResultCode === 'DRAW');
     const upcoming = history.filter(match => match.matchResultCode === 'NEXT' || match.matchResultCode === 'LIVE');
     
     finished.sort((leftMatch, rightMatch) => (rightMatch.timestamp || 0) - (leftMatch.timestamp || 0) || rightMatch.dateDisplay.localeCompare(leftMatch.dateDisplay));
@@ -55,7 +55,7 @@ function openStats(slug, teamName, type) {
     finished.forEach(match => {
         const icon = resultIconMap[match.matchResultCode] || resultIconMap['NEXT'];
         const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
+        listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isForfeit));
     });
     
     if (upcoming.length > 0) {
@@ -64,7 +64,7 @@ function openStats(slug, teamName, type) {
         upcoming.forEach(match => {
             const icon = resultIconMap[match.matchResultCode] || resultIconMap['NEXT'];
             const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode));
+            listHtml.push(renderMatchItem('history', match.dateDisplay, resultTag, teamName, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isForfeit));
         });
     }
     
@@ -83,7 +83,7 @@ function openH2H(slug, team1Name, team2Name) {
     const listHtml = h2hHistory.map(match => {
         const icon = resultIconMap[match.matchResultCode] || resultIconMap['NEXT'];
         const resultTag = '<span class="' + ((match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS') ? '' : 'hist-icon') + '">' + icon + '</span>';
-        return renderMatchItem('history', match.dateDisplay, resultTag, team1Name, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode);
+        return renderMatchItem('history', match.dateDisplay, resultTag, team1Name, match.opponentName, match.isFullLength, match.scoreDisplay, match.matchResultCode, match.isForfeit);
     });
     renderListHTML(listHtml);
     document.getElementById('matchModal').style.display="block";

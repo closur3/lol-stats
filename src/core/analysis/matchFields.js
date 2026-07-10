@@ -18,3 +18,25 @@ export function parseMatchWinner(value, label) {
   if (![0, 1, 2].includes(winner)) throw new Error(`Invalid Winner: ${label}`);
   return winner;
 }
+
+export function parseMatchForfeitSide(value, label) {
+  if (value === "" || value === null) return null;
+  if (value === undefined) throw new Error(`Missing FF: ${label}`);
+  const forfeitSide = Number.parseInt(value, 10);
+  if (![0, 1, 2].includes(forfeitSide)) throw new Error(`Invalid FF: ${label}`);
+  return forfeitSide;
+}
+
+export function parseMatchIsNullified(value, label) {
+  if (value === undefined) throw new Error(`Missing IsNullified: ${label}`);
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  throw new Error(`Invalid IsNullified: ${label}`);
+}
+
+export function validateMatchOutcome(winner, forfeitSide, isNullified, label) {
+  if (isNullified && winner === null) throw new Error(`Nullified match must have Winner: ${label}`);
+  if (forfeitSide === 1 && winner !== 2) throw new Error(`FF Team1 requires Winner 2: ${label}`);
+  if (forfeitSide === 2 && winner !== 1) throw new Error(`FF Team2 requires Winner 1: ${label}`);
+  if (forfeitSide === 0 && winner !== 0) throw new Error(`FF both requires Winner 0: ${label}`);
+}

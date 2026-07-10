@@ -27,7 +27,8 @@ export function buildScheduleRow(match, globalStats) {
   if (match.isFinished) {
     const team1ScoreClass = match.winner === 1 ? "score-win" : match.winner === 2 ? "score-loss" : "score-draw";
     const team2ScoreClass = match.winner === 2 ? "score-win" : match.winner === 1 ? "score-loss" : "score-draw";
-    midContent = `<span class="sch-fin-score"><span class="${team1ScoreClass}">${match.team1Score}</span><span class="score-sep">-</span><span class="${team2ScoreClass}">${match.team2Score}</span></span>`;
+    const forfeitLabel = match.isForfeit ? `<span class="match-forfeit">FF</span>` : "";
+    midContent = `<span class="sch-fin-score"><span class="${team1ScoreClass}">${match.team1Score}</span><span class="score-sep">-</span><span class="${team2ScoreClass}">${match.team2Score}</span>${forfeitLabel}</span>`;
   } else if (match.isLive) {
     midContent = `<span class="sch-live-score">${match.team1Score}<span class="score-sep">-</span>${match.team2Score}</span>`;
   }

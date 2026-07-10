@@ -117,6 +117,7 @@ export default `${baseCSS}
     .score-draw { color: #64748b; }
     .score-loss { color: #94a3b8; }
     .tbd-team { color: #9ca3af; }
+    .match-forfeit { margin-left: 3px; color: #b45309; font-size: 10px; font-weight: 700; vertical-align: 1px; }
     .rate-hint { font-weight: 400; color: #94a3b8; font-size: 11px; margin: 0 2px; }
     .sch-empty { margin-top: 40px; text-align: center; color: #94a3b8; background: #fff; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; font-weight: 600; }
     .arch-empty-msg { text-align: center; padding: 40px; color: #94a3b8; }

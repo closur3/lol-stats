@@ -1,5 +1,5 @@
 import { timePolicy } from '../../utils/timePolicy.js';
-import { parseMatchBestOf, parseMatchScore, parseMatchWinner } from './matchFields.js';
+import { parseMatchBestOf, parseMatchForfeitSide, parseMatchIsNullified, parseMatchScore, parseMatchWinner, validateMatchOutcome } from './matchFields.js';
 
 export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   const parsedMatches = [];
@@ -30,16 +30,23 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     const team2Name = resolveName(match.Team2);
     if (!team1Name || !team2Name) { return; }
 
-    ensureTeam(team1Name);
-    ensureTeam(team2Name);
-
+    const matchLabel = `${tournamentSlug}.${match.MatchId}`;
     const team1Score = parseMatchScore(match.Team1Score, `${tournamentSlug}.${match.MatchId}.Team1Score`);
     const team2Score = parseMatchScore(match.Team2Score, `${tournamentSlug}.${match.MatchId}.Team2Score`);
     const bestOf = parseMatchBestOf(match.BestOf, `${tournamentSlug}.${match.MatchId}.BestOf`);
     const winner = parseMatchWinner(match.Winner, `${tournamentSlug}.${match.MatchId}.Winner`);
+    const forfeitSide = parseMatchForfeitSide(match.FF, `${matchLabel}.FF`);
+    const isNullified = parseMatchIsNullified(match.IsNullified, `${matchLabel}.IsNullified`);
+    validateMatchOutcome(winner, forfeitSide, isNullified, matchLabel);
+    if (isNullified) return;
+
+    ensureTeam(team1Name);
+    ensureTeam(team2Name);
+
     const isFinished = winner !== null;
+    const isForfeit = forfeitSide !== null;
     const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
-    const isFullLength = (bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2);
+    const isFullLength = !isForfeit && ((bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2));
 
     const matchTime = timePolicy.deriveMatchTime(match.DateTimeUTC);
     const {
@@ -64,7 +71,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
         time: matchTimeStr,
         team1Name, team2Name,
         team1Score, team2Score,
-        bestOf, winner,
+        bestOf, winner, forfeitSide, isForfeit,
         isFinished, isLive,
         leagueShort: tournamentLeagueShort,
         slug: tournamentSlug,
@@ -79,7 +86,7 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       if (timestamp > stats[team2Name].last) stats[team2Name].last = timestamp;
 
       parsedMatches.push({
-        team1Name, team2Name, team1Score, team2Score, bestOf, winner, isFullLength,
+        team1Name, team2Name, team1Score, team2Score, bestOf, winner, forfeitSide, isForfeit, isFullLength,
         dateDisplay, fullDateDisplay,
         timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
       });
@@ -107,14 +114,14 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
-      bestOf, isFullLength, timestamp
+      bestOf, forfeitSide, isForfeit, isFullLength, timestamp
     });
     stats[team2Name].history.push({
       dateDisplay, fullDateDisplay,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,
-      bestOf, isFullLength, timestamp
+      bestOf, forfeitSide, isForfeit, isFullLength, timestamp
     });
 
     if (!isFinished) { return; }

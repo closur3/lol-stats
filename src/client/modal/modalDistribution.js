@@ -6,7 +6,7 @@ function showPopup(title, dayIndex, matches) {
     const listHtml = sortedMatches.map(match => {
         const bestOfClass = 'best-of-pill bo' + match.bestOf;
         const boTag = '<span class="' + bestOfClass + '">BO' + match.bestOf + '</span>';
-        return renderMatchItem('distribution', match.dateDisplay, boTag, match.team1Name, match.team2Name, match.isFullLength, match.scoreDisplay, null);
+        return renderMatchItem('distribution', match.dateDisplay, boTag, match.team1Name, match.team2Name, match.isFullLength, match.scoreDisplay, null, match.isForfeit);
     });
     renderListHTML(listHtml);
     document.getElementById('matchModal').style.display = "block";

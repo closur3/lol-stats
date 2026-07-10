@@ -2,6 +2,7 @@ export const modalCore = `
 const resultIconMap = {
   'WIN': '\\u2705', 
   'LOSS': '\\u274c', 
+  'DRAW': '&#8722;',
   'LIVE': '\\ud83d\\udd35', 
   'NEXT': '\\ud83d\\udd52' 
 };
@@ -12,7 +13,7 @@ const styleModalEmpty = 'style="text-align:center;color:#999;padding:20px"';
 const styleH2hSummary = 'style="color:#94a3b8;font-size:14px"';
 const styleH2hDash = 'style="margin:0 1px"';
 
-function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode) {
+function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode, isForfeit) {
     const dateParts = (dateDisplay || '').split(' ');
     const dateHtml = dateParts.length === 2 
       ? dateParts[0] + '<br><span ' + styleDateTime + '>' + dateParts[1] + '</span>'
@@ -33,7 +34,7 @@ function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2N
       scoreContent = '<span class="score-text vs">VS</span>'; 
     } else { 
       const formattedScore = (scoreDisplay || '').toString().replace('-', '<span ' + styleScoreDash + '>-</span>');
-      scoreContent = '<span class="' + scoreClass + '">' + formattedScore + '</span>'; 
+      scoreContent = '<span class="' + scoreClass + '">' + formattedScore + '</span>' + (isForfeit ? '<span class="match-forfeit">FF</span>' : '');
     }
     const boxClass = isFullLength ? 'score-box is-full' : 'score-box';
     const team1Style = team1Name === 'TBD' ? 'style="padding-right:5px;color:#9ca3af !important;"' : 'style="padding-right:5px;"';
