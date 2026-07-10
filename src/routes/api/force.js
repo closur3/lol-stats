@@ -1,6 +1,5 @@
 import { runScheduleMaintenance } from "../../core/scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
-import { Logger } from "../../infrastructure/logger.js";
 import { readActiveConfig } from "../../core/updater/activeConfigReader.js";
 import { readPreviousRawMatchesMap } from "../../core/facts/rawMatchesStore.js";
 import { runActiveUpdate } from "../../core/updater/activeUpdateRunner.js";
@@ -29,7 +28,6 @@ export async function handleForceUpdate(request, env) {
       return new Response("Invalid JSON payload", { status: 400 });
     }
 
-    const logger = new Logger();
     let tournaments;
     try {
       tournaments = await readActiveConfig(env);
@@ -47,7 +45,7 @@ export async function handleForceUpdate(request, env) {
       forceWrite: true,
       revidChanges,
       pendingRevisionWrites
-    }, logger);
+    });
 
     const scheduleWarnings = [];
     const scheduleOptions = resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings });

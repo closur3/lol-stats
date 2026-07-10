@@ -4,7 +4,7 @@ import { runFullAnalysis } from '../analyzer.js';
 import { determineCandidates } from './candidates.js';
 import { fetchMatchesForCandidates } from './matchDataFetcher.js';
 import { applyRawMatchFetchResults } from './rawMatchFetchResultApplier.js';
-import { generateLog, buildActiveLogEntries } from './logWriter.js';
+import { buildActiveLogEntries } from './logWriter.js';
 import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homeProjector.js';
 import { writeActiveTournamentFacts } from './activeTournamentFactWriter.js';
 import { appendActiveLogs } from './logPersistence.js';
@@ -76,9 +76,8 @@ function attachRevisionChanges(items, revidChanges) {
   }
 }
 
-function buildActiveUpdateLogs(tournaments, processed, authContext, logger) {
+function buildActiveUpdateLogs(tournaments, processed, authContext) {
   const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = processed;
-  generateLog(syncItems, skipItems, dropBreakers, fetchErrors, authContext, logger);
   return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, tournaments, displayNameMap);
 }
 
@@ -92,14 +91,14 @@ async function writeActiveProjections(env, scopedTournaments, analysis, writeSco
   await writeHomeProjections(env, scopedTournaments, analysis, writeScopeSlugs);
 }
 
-export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force = false, forceSlugs = null, options = {}, logger) {
+export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force = false, forceSlugs = null, options = {}) {
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
   const processed = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
   if (!processed) return;
 
   const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = processed;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
-  const activeLogEntries = buildActiveUpdateLogs(tournaments, processed, authContext, logger);
+  const activeLogEntries = buildActiveUpdateLogs(tournaments, processed, authContext);
 
   const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, skipItems, forceWrite, forceSlugs);
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);

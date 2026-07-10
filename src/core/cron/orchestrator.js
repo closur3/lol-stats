@@ -7,7 +7,6 @@ import { reconcileCurrentScheduleState, runScheduleMaintenance } from "../schedu
 import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { migrateArchiveSnapshotsFromActiveFacts } from "../updater/archiveMigration.js";
-import { Logger } from "../../infrastructure/logger.js";
 
 function filterTournaments(tournaments, slugs) {
   return tournaments.filter(tournament => slugs.has(tournament.slug));
@@ -31,7 +30,7 @@ async function detectRevisionChangesForTarget(env, tournaments, target) {
   return { changedSlugs, revidChanges, pendingRevisionWrites };
 }
 
-async function runRevisionPath(env, tournaments, revisionResult, logger) {
+async function runRevisionPath(env, tournaments, revisionResult) {
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
@@ -41,14 +40,13 @@ async function runRevisionPath(env, tournaments, revisionResult, logger) {
       forceWrite: false,
       revidChanges,
       pendingRevisionWrites
-    }, logger);
+    });
   } else {
     await commitRevisionWrites(env, pendingRevisionWrites);
   }
 }
 
 export async function runCron(env, event) {
-  const logger = new Logger();
   const scheduleOptions = resolveScheduleOptions(env);
   const tournaments = await readActiveConfig(env);
   if (!Array.isArray(tournaments)) {
@@ -60,6 +58,6 @@ export async function runCron(env, event) {
   if (target.type === 'none') return;
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
-  await runRevisionPath(env, tournaments, revisionResult, logger);
+  await runRevisionPath(env, tournaments, revisionResult);
   await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
 }

@@ -4,53 +4,6 @@ export function rpad2(n) {
   return n < 10 ? `${n}\u00A0` : `${n}`;
 }
 
-function formatDeltaTag(item) {
-  if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("log item must be a JSON object");
-  if (!Number.isInteger(item.added) || item.added < 0) throw new Error(`log item added invalid: ${item.slug}`);
-  if (!Number.isInteger(item.updated) || item.updated < 0) throw new Error(`log item updated invalid: ${item.slug}`);
-  const added = item.added;
-  const updated = item.updated;
-  if (added > 0 && updated > 0) return `+${rpad2(added)}~${rpad2(updated)}`;
-  if (added > 0) return `+${rpad2(added)}`;
-  if (updated > 0) return `~${rpad2(updated)}`;
-  return "~0 ";
-}
-
-export function generateLog(syncItems, skipItems, dropBreakers, fetchErrors, authContext, logger) {
-  const isAnon = (!authContext || authContext.isAnonymous);
-  const authSuffix = isAnon ? " 👻" : "";
-
-  const formatItem = (item) => `${item.displayName} ${formatDeltaTag(item)}`;
-
-  const syncDetails = syncItems.map(formatItem);
-  const skipDetails = skipItems.map(formatItem);
-
-  let trafficLight, action, content;
-
-  if (syncDetails.length === 0 && fetchErrors.length === 0 && dropBreakers.length === 0) {
-    trafficLight = "⚪"; action = "[SKIP]";
-
-    let parts = [];
-    if (skipDetails.length > 0) parts.push(`🔍 ${skipDetails.join(", ")}`);
-
-    content = parts.join(" | ");
-  } else {
-    const hasErr = fetchErrors.length > 0 || dropBreakers.length > 0;
-    trafficLight = hasErr ? "🔴" : "🟢";
-    action = hasErr ? "[ERR!]" : "[SYNC]";
-
-    let parts = [];
-    if (syncDetails.length > 0) parts.push(`🔄 ${syncDetails.join(", ")}`);
-    if (dropBreakers.length > 0) parts.push(`🚧 ${dropBreakers.join(", ")}`);
-    if (fetchErrors.length > 0) parts.push(`❌ ${fetchErrors.join(", ")}`);
-
-    content = parts.join(" | ");
-  }
-
-  const finalLog = `${trafficLight} ${action} | ${content}${authSuffix}`;
-  if (trafficLight === "🔴") logger.error(finalLog); else logger.success(finalLog);
-}
-
 function pickLatestRevisionTrigger(revidChanges) {
   if (revidChanges === undefined) return null;
   if (!Array.isArray(revidChanges)) throw new Error("revidChanges must be an array");
