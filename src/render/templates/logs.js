@@ -1,8 +1,9 @@
 import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
-import { getScheduleMetaPhaseDisplay, resolveScheduleMetaPhase } from '../../utils/scheduleMetaPhase.js';
+import { resolveScheduleMetaPhase } from '../../utils/scheduleMetaPhase.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 import { rpad2 } from '../../core/updater/logWriter.js';
+import { getSchedulePhaseLabel, renderSchedulePhaseIcon } from '../components/schedulePhaseIcon.js';
 
 function formatDelta(entry) {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
@@ -91,9 +92,7 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     const entries = normalizeEntryList(item);
     const lastEntry = entries[0];
     const phase = resolveScheduleMetaPhase(item);
-    const phaseDisplay = getScheduleMetaPhaseDisplay(phase);
     const phaseCls = `phase-${phase}`;
-    const phaseEmojiCls = `phase-emoji-${phase}`;
 
     const syncCount = entries.filter(isSyncEntry).length;
     const errCount = entries.filter(isErrorEntry).length;
@@ -112,7 +111,7 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     }).join("");
 
     return `<div class="tournament-card">
-      <div class="tournament-card-header"><div class="tournament-card-title"><span class="tournament-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="tournament-total-pill">${totalCount}</span>`}</div><div class="tournament-card-status"><span class="phase-tag ${phaseCls}"><span class="phase-emoji ${phaseEmojiCls}">${phaseDisplay.emoji}</span><span>${phaseDisplay.text}</span></span></div></div>
+      <div class="tournament-card-header"><div class="tournament-card-title"><span class="tournament-card-name">${safeName}</span>${totalCount == null ? '' : `<span class="tournament-total-pill">${totalCount}</span>`}</div><div class="tournament-card-status"><span class="phase-tag ${phaseCls}">${renderSchedulePhaseIcon(phase)}<span>${getSchedulePhaseLabel(phase)}</span></span></div></div>
       <div class="card-stats"><span>SYNC <span class="stat-val">${syncCount}</span></span><span>ERR <span class="stat-val">${errCount}</span></span><span>LAST <span class="stat-val">${escapeHtml(lastTime)}</span></span></div>
       <div class="timeline">${bars}</div>
       <div class="tournament-card-logs">${rows}</div>

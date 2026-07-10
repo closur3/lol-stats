@@ -8,10 +8,8 @@ export default `${baseCSS}
     .tournament-card-name { font-weight: 600; font-size: 16px; color: #0f172a; }
     .tournament-total-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; padding: 0 8px; border-radius: 999px; background: #e2e8f0; color: #334155; font-size: 12px; font-weight: 700; line-height: 1; }
     .tournament-card-status { display: flex; align-items: center; gap: 6px; }
-    .phase-tag { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; font-size: 12px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 4px; transform: translateY(-1px); }
-    .phase-emoji { display: inline-block; line-height: 1; margin-right: 1px; }
-    .phase-emoji-play { transform: translateY(-1.5px); }
-    .phase-emoji-idle, .phase-emoji-done, .phase-emoji-offday { transform: translateY(0); }
+    .phase-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; font-size: 12px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+    .phase-tag .schedule-phase-icon { width: 16px; height: 16px; flex-shrink: 0; }
     .phase-play { background: #dbeafe; color: #1d4ed8; }
     .phase-done { background: #e0e7ff; color: #4338ca; }
     .phase-offday { background: #dcfce7; color: #166534; }

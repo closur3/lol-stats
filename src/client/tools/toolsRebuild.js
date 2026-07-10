@@ -1,25 +1,55 @@
 export const TOOLS_REBUILD = `
+          function requestArchiveRebuild(slug) {
+              return sendAuthorizedPost('/rebuild-archive', { 'Content-Type': 'application/json' }, JSON.stringify({ slug: slug }));
+          }
+
+          function rebuildArchive(slug, name, button) {
+              var restore = disableButton(button);
+              requestArchiveRebuild(slug).then(function(res) {
+                  if (checkAuthError(res.status)) return;
+                  if (res.ok) {
+                      showResult(true, 'Archive rebuild completed: ' + name);
+                      return;
+                  }
+                  return readActionMessage(res, 'Request failed.').then(function(message) {
+                      showResult(false, 'Archive rebuild failed: ' + name + ' — ' + message);
+                  });
+              }).catch(function() {
+                  showResult(false, NETWORK_ERROR_MSG);
+              }).then(restore);
+          }
+
           function rebuildSelected() {
               var checked = document.querySelectorAll('.qr-chk-archived:checked');
-              if (checked.length === 0) { showToast("⚠️ No archive selected", "error"); return; }
+              if (checked.length === 0) { showWarning('Select at least one archived tournament.'); return; }
               var selected = Array.from(checked).map(function(checkboxElement) { return { slug: (checkboxElement.value || '').trim(), name: (checkboxElement.dataset.name || '').trim() }; });
               var hasMissingField = selected.some(function(item) {
                   return !item.slug;
               });
-              if (hasMissingField) { showToast("⚠️ Missing required fields", "error"); return; }
+              if (hasMissingField) { showWarning('Required tournament data is missing.'); return; }
               var button = event.target;
-              var restore = setButtonBusy(button, 'Rebuilding...');
+              var restore = disableButton(button);
               var success = 0, fail = 0;
               var promises = selected.map(function(selectedArchive) {
-                  return sendAuthorizedPost('/rebuild-archive', { 'Content-Type': 'application/json' }, JSON.stringify({ slug: selectedArchive.slug })).then(function(res) { if (res.ok) success++; else { fail++; res.text().then(function(errorMessage) { if (errorMessage) showToast('❌ ' + selectedArchive.name + ': ' + errorMessage, "error"); }); if (checkAuthError(res.status)) return; } }).catch(function() { fail++; });
+                  return requestArchiveRebuild(selectedArchive.slug).then(function(res) {
+                      if (checkAuthError(res.status)) return;
+                      if (res.ok) {
+                          success++;
+                          return;
+                      }
+                      fail++;
+                      return res.text().then(function(errorMessage) {
+                          if (errorMessage) showToast('Archive rebuild failed: ' + selectedArchive.name + ' — ' + errorMessage, 'error');
+                      });
+                  }).catch(function() { fail++; });
               });
               Promise.all(promises).then(function() {
                   restore();
                   var total = success + fail;
                   var message = fail === 0
-                      ? ('✅ Rebuild completed: ' + success + '/' + total)
-                      : ('⚠️ Rebuild partial: ' + success + '/' + total);
-                  showResult(fail === 0, message);
+                      ? ('Archive rebuild completed: ' + success + '/' + total)
+                      : ('Archive rebuild partially completed: ' + success + '/' + total);
+                  if (fail === 0) showResult(true, message); else showWarning(message);
               });
           }
 `;

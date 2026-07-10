@@ -17,13 +17,6 @@ function readScheduleMetaPhaseInput(meta) {
   };
 }
 
-const scheduleMetaPhaseDisplay = {
-  play: { emoji: "🎮", text: "PLAY" },
-  idle: { emoji: "⏳", text: "IDLE" },
-  done: { emoji: "☑️", text: "DONE" },
-  offday: { emoji: "⏸", text: "OFFDAY" }
-};
-
 export function resolveScheduleMetaPhase(meta, nowMs = Date.now()) {
   const { earliest, unfinished, historyUnfinished } = readScheduleMetaPhaseInput(meta);
 
@@ -31,15 +24,4 @@ export function resolveScheduleMetaPhase(meta, nowMs = Date.now()) {
   if (unfinished > 0) return earliest > 0 && nowMs < earliest ? "idle" : "play";
   if (earliest === 0) return "offday";
   return "done";
-}
-
-export function getScheduleMetaPhaseDisplay(phase) {
-  const display = scheduleMetaPhaseDisplay[phase];
-  if (!display) throw new Error(`Invalid ScheduleMeta phase: ${phase}`);
-  return display;
-}
-
-export function resolveHomeEmojiFromScheduleMeta(meta, nowMs = Date.now()) {
-  const phase = resolveScheduleMetaPhase(meta, nowMs);
-  return getScheduleMetaPhaseDisplay(phase).emoji;
 }

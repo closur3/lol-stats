@@ -2,8 +2,8 @@ export const TOOLS_BOOTSTRAP = `
           var toastContainer = document.getElementById("toast-container");
           var TOAST_DURATION_MS = 3000;
           var REDIRECT_DELAY_MS = 1500;
-          var AUTH_ERROR_MSG = "🔒 Session expired or incorrect password.";
-          var NETWORK_ERROR_MSG = "❌ Network connection failed";
+          var AUTH_ERROR_MSG = "Session expired. Sign in again.";
+          var NETWORK_ERROR_MSG = "Network request failed. Try again.";
 
           document.getElementById('chk-active-all').addEventListener('change', function() {
               document.querySelectorAll('#active-list .item-chk').forEach(function(checkboxElement) { checkboxElement.checked = this.checked; }.bind(this));
@@ -21,14 +21,15 @@ export const TOOLS_BOOTSTRAP = `
               setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, TOAST_DURATION_MS);
           }
           function checkAuthError(status) { if (status === 401) { showToast(AUTH_ERROR_MSG, "error"); clearAuth(); return true; } return false; }
-          function setButtonBusy(button, busyText) {
-              var originalText = button.innerHTML; button.innerHTML = busyText; button.style.pointerEvents = 'none'; button.style.opacity = '0.7';
-              return function() { button.innerHTML = originalText; button.style.pointerEvents = 'auto'; button.style.opacity = '1'; };
+          function disableButton(button) {
+              button.disabled = true;
+              return function() { button.disabled = false; };
           }
           function sendAuthorizedPost(url, extraHeaders, body) {
               return fetch(url, { method: 'POST', headers: extraHeaders || {}, body: body, credentials: 'same-origin' });
           }
           function showResult(ok, text) { showToast(text, ok ? 'success' : 'error'); }
+          function showWarning(text) { showToast(text, 'warning'); }
           var pendingConfigAction = null;
           var pendingConfigActionButton = null;
           var pendingConfigActionPayload = null;
@@ -42,9 +43,9 @@ export const TOOLS_BOOTSTRAP = `
                       url: '/delete-active',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ slug: payload.slug }),
-                      busyText: 'Deleting...',
                       submitText: 'Delete',
-                      doneText: 'Deleted active runtime state'
+                      successMessage: 'Active runtime state deleted: ' + (payload.name || payload.slug),
+                      failurePrefix: 'Delete failed: ' + (payload.name || payload.slug)
                   },
                   'archive-delete': {
                       label: 'Delete archive snapshot',
@@ -53,9 +54,9 @@ export const TOOLS_BOOTSTRAP = `
                       url: '/delete-archive',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ slug: payload.slug }),
-                      busyText: 'Deleting...',
                       submitText: 'Delete',
-                      doneText: 'Deleted archive snapshot'
+                      successMessage: 'Archive snapshot deleted: ' + (payload.name || payload.slug),
+                      failurePrefix: 'Delete failed: ' + (payload.name || payload.slug)
                   }
               };
               return actions[action] || null;
@@ -70,7 +71,7 @@ export const TOOLS_BOOTSTRAP = `
           }
           function previewConfigAction(action, button, payload) {
               var meta = getConfigActionMeta(action, payload);
-              if (!meta) { showResult(false, '❌ Unknown config action'); return; }
+              if (!meta) { showResult(false, 'Unknown configuration action.'); return; }
               pendingConfigAction = action;
               pendingConfigActionButton = button;
               pendingConfigActionPayload = payload || null;
@@ -86,19 +87,23 @@ export const TOOLS_BOOTSTRAP = `
               if (!pendingConfigAction) return;
               var meta = getConfigActionMeta(pendingConfigAction, pendingConfigActionPayload);
               if (!meta) return;
-              var restoreConfirm = setButtonBusy(button, meta.busyText);
-              var restoreAction = pendingConfigActionButton ? setButtonBusy(pendingConfigActionButton, meta.busyText) : function() {};
+              var restoreConfirm = disableButton(button);
+              var restoreAction = pendingConfigActionButton ? disableButton(pendingConfigActionButton) : function() {};
               sendAuthorizedPost(meta.url, meta.headers, meta.body).then(function(res) {
                   restoreConfirm();
                   restoreAction();
                   if (checkAuthError(res.status)) return;
                   if (res.ok) {
                       closeConfigActionConfirm();
-                      showResult(true, '🧭 ' + meta.doneText);
+                      if (res.status === 207) {
+                          res.text().then(function(message) { showWarning(message || 'Operation completed with schedule warnings.'); });
+                      } else {
+                          showResult(true, meta.successMessage);
+                      }
                       setTimeout(function() { location.reload(); }, REDIRECT_DELAY_MS);
                   } else {
                       res.text().then(function(errorMessage) {
-                          showResult(false, errorMessage ? ('❌ ' + errorMessage) : '❌ Failed');
+                          showResult(false, meta.failurePrefix + ' — ' + (errorMessage || 'Request failed.'));
                       });
                   }
               }).catch(function() {

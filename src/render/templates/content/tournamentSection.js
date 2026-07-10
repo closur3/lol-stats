@@ -1,11 +1,12 @@
 import { getFirstOverviewPage } from '../../../utils/data/overviewPages.js';
 import { sortTeams } from '../../../utils/data/teamSort.js';
 import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
-import { resolveHomeEmojiFromScheduleMeta, resolveScheduleMetaPhase } from '../../../utils/scheduleMetaPhase.js';
+import { resolveScheduleMetaPhase } from '../../../utils/scheduleMetaPhase.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { summarizeFullRate } from '../../../core/analysis/fullRateSummary.js';
 import { buildTeamRow } from '../../components/teamRow.js';
 import { buildTimeTable } from '../../components/timeTable.js';
+import { renderSchedulePhaseIcon } from '../../components/schedulePhaseIcon.js';
 
 function buildTournamentSummary(stats) {
   const summary = summarizeFullRate(stats);
@@ -49,10 +50,11 @@ export function renderTournamentSection(tournament, globalStats, timeData, sched
   const tableBody = buildTournamentTable(tournament, stats, sortMeta);
   const timeTableHtml = buildTimeTable(tournamentTimeData);
 
-  let emojiStr = "";
+  let phaseIcon = "";
+  let phase = null;
   if (!isArchive) {
-    const displayEmoji = resolveHomeEmojiFromScheduleMeta(meta);
-    emojiStr = `<span class="tournament-phase-emoji">${displayEmoji}</span>`;
+    phase = resolveScheduleMetaPhase(meta);
+    phaseIcon = renderSchedulePhaseIcon(phase);
   }
   const mainPage = getFirstOverviewPage(tournament.overviewPage);
   const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
@@ -64,7 +66,7 @@ export function renderTournamentSection(tournament, globalStats, timeData, sched
     return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
   }
 
-  const isSleepCollapsed = resolveScheduleMetaPhase(meta) === "offday";
+  const isSleepCollapsed = phase === "offday";
   const openAttr = (isSleepCollapsed || summary.hasNoData) ? "" : " open";
-  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${emojiStr}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
+  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
 }
