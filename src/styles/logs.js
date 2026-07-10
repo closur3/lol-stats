@@ -11,9 +11,9 @@ export default `${baseCSS}
     .phase-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: 4px; }
     .phase-tag .schedule-phase-icon { width: 16px; height: 16px; flex-shrink: 0; }
     .phase-play { background: #dbeafe; color: #1d4ed8; }
-    .phase-done { background: #e0e7ff; color: #4338ca; }
-    .phase-offday { background: #dcfce7; color: #166534; }
-    .phase-idle { background: #e2e8f0; color: #334155; }
+    .phase-done { background: #dcfce7; color: #166534; }
+    .phase-offday { background: #e2e8f0; color: #475569; }
+    .phase-idle { background: #ede9fe; color: #5b21b6; }
     .card-stats { display: flex; gap: 16px; padding: 8px var(--card-x-pad); font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f8fafc; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
     .stat-val { color: #0f172a; font-weight: 600; }
     .timeline { display: flex; gap: 2px; height: 16px; align-items: flex-end; padding: 6px 16px 0 16px; border-bottom: 1px solid #f8fafc; }

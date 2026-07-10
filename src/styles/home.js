@@ -19,9 +19,9 @@ export default `${baseCSS}
     .tournament-title-row { display: flex; align-items: center; gap: 6px; }
     .tournament-title-row .schedule-phase-icon { width: 18px; height: 18px; flex-shrink: 0; }
     .schedule-phase-icon-play { color: #1d4ed8; }
-    .schedule-phase-icon-idle { color: #334155; }
-    .schedule-phase-icon-done { color: #4338ca; }
-    .schedule-phase-icon-offday { color: #166534; }
+    .schedule-phase-icon-idle { color: #5b21b6; }
+    .schedule-phase-icon-done { color: #166534; }
+    .schedule-phase-icon-offday { color: #475569; }
     .table-title .tournament-jump-btn { display: inline-flex; align-items: center; justify-content: center; color: #0f172a; text-decoration: none; flex-shrink: 0; line-height: 1; }
     .table-title .tournament-jump-btn svg { width: 13px; height: 13px; stroke-width: 2.6; }
     .table-title .tournament-jump-btn:hover { color: #2563eb; }
