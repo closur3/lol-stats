@@ -1,15 +1,23 @@
 import { renderHomeFromFacts } from '../render/ssrRenderService.js';
+import { renderDataErrorPage } from '../render/templates/error.js';
 import { createNoCacheHtmlHeaders } from './htmlResponse.js';
 
 export class HomeRouter {
   static async handleHome(env) {
-    const html = await renderHomeFromFacts(env);
-    if (!html) {
-      return new Response(
-        "Home is not ready yet. <a href='/tools'>Go to Tools</a>.",
-        { headers: createNoCacheHtmlHeaders() }
-      );
+    try {
+      const html = await renderHomeFromFacts(env);
+      if (!html) throw new Error("Home render returned no content");
+      return new Response(html, { headers: createNoCacheHtmlHeaders() });
+    } catch (error) {
+      console.error(`[HOME:RENDER] ${error.message}`);
+      return new Response(renderDataErrorPage(error, env.GITHUB_TIME, env.GITHUB_SHA, {
+        dataLabel: "Home",
+        navMode: "home",
+        retryHref: "/"
+      }), {
+        status: 500,
+        headers: createNoCacheHtmlHeaders()
+      });
     }
-    return new Response(html, { headers: createNoCacheHtmlHeaders() });
   }
 }

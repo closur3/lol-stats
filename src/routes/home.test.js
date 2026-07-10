@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ArchiveRouter } from "./archive.js";
+import { HomeRouter } from "./home.js";
 
 function tournament(slug) {
   return {
@@ -13,22 +13,23 @@ function tournament(slug) {
   };
 }
 
-describe("ArchiveRouter", () => {
-  it("reports every unavailable ArchiveSnapshot in one error page", async () => {
+describe("HomeRouter", () => {
+  it("reports every unavailable ActiveHome in the shared error page", async () => {
     const config = [tournament("missing-one"), tournament("missing-two")];
-    const env = {
+    const response = await HomeRouter.handleHome({
       "lol-stats-kv": {
-        get: async key => key === "ConfigArchive" ? config : null
+        get: async key => key === "ConfigActive" ? config : null
       }
-    };
-
-    const response = await ArchiveRouter.handleArchive(env);
+    });
     const html = await response.text();
 
     expect(response.status).toBe(500);
-    expect(html).toContain("2 ArchiveSnapshot unavailable");
+    expect(html).toContain("Home data is not ready");
+    expect(html).toContain("2 ActiveHome unavailable");
     expect(html).toContain("missing-one");
     expect(html).toContain("missing-two");
-    expect(html).toContain("Missing ArchiveSnapshot");
+    expect(html).toContain("Missing ActiveHome");
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/tools"');
   });
 });

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { renderArchiveErrorPage } from "./error.js";
+import { renderDataErrorPage } from "./error.js";
 
-describe("renderArchiveErrorPage", () => {
+describe("renderDataErrorPage", () => {
   it("renders the repair action and escapes the error detail", () => {
-    const html = renderArchiveErrorPage(new Error("Invalid <snapshot>"), "time", "sha");
+    const html = renderDataErrorPage(new Error("Invalid <snapshot>"), "time", "sha", {
+      dataLabel: "Archive",
+      navMode: "archive",
+      retryHref: "/archive"
+    });
 
     expect(html).toContain("Archive data is not ready");
     expect(html).toContain("500 Internal Server Error");
