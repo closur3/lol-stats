@@ -11,8 +11,8 @@ const escapeJsString = (str) => {
 };
 
 export function buildScheduleRow(match, globalStats) {
-  const bestOfLabel = match.bestOf ? `BO${match.bestOf}` : "";
-  const bestOfClass = match.bestOf === 5 ? "sch-pill gold" : "sch-pill";
+  const bestOfLabel = `BO${match.bestOf}`;
+  const bestOfClass = `best-of-pill bo${match.bestOf}`;
   const isTbd1 = match.team1Name === "TBD", isTbd2 = match.team2Name === "TBD";
   const safeTeam1 = escapeJsString(match.team1Name);
   const safeTeam2 = escapeJsString(match.team2Name);

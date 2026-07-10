@@ -7,6 +7,6 @@ export function parseMatchScore(value, label) {
 
 export function parseMatchBestOf(value, label) {
   const bestOf = Number.parseInt(value, 10);
-  if (!Number.isInteger(bestOf) || bestOf <= 0) throw new Error(`Invalid BestOf: ${label}`);
+  if (![1, 2, 3, 5].includes(bestOf)) throw new Error(`Unsupported BestOf: ${label}`);
   return bestOf;
 }

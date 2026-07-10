@@ -78,7 +78,7 @@ function openH2H(slug, team1Name, team2Name) {
     const h2hHistory = (data.history || []).filter(match => match.opponentName === team2Name);
     let team1Wins = 0, team2Wins = 0;
     h2hHistory.forEach(match => { if(match.matchResultCode === 'WIN') team1Wins++; else if(match.matchResultCode === 'LOSS') team2Wins++; });
-    const summary = h2hHistory.length > 0 ? ' <span ' + STYLE_H2H_SUMMARY + '>(' + team1Wins + '<span ' + STYLE_H2H_DASH + '>-</span>' + team2Wins + ')</span>' : "";
+    const summary = h2hHistory.length > 0 ? ' <span ' + styleH2hSummary + '>(' + team1Wins + '<span ' + styleH2hDash + '>-</span>' + team2Wins + ')</span>' : "";
     document.getElementById('modalTitle').innerHTML = team1Name + " vs " + team2Name + summary;
     const listHtml = h2hHistory.map(match => {
         const icon = resultIconMap[match.matchResultCode] || resultIconMap['NEXT'];

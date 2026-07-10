@@ -107,7 +107,7 @@ export default `${baseCSS}
     .sch-time { width: 54px; color: #94a3b8; font-size: 12px; display: flex; align-items: center; justify-content: center; padding: 0; }
     .sch-tag-col { width: 54px; display: flex; align-items: center; justify-content: center; padding: 0; }
     .sch-vs-container { flex: 1; display: flex; align-items: stretch; justify-content: center; }
-    .sch-tag-col .sch-pill { font-size: 12px; }
+    .sch-tag-col .best-of-pill { font-size: 12px; }
     .sch-live-score { color: #10b981; font-size: 13px; }
     .sch-fin-score { color: #334155; font-size: 13px; }
     .sch-mid-cell { display: flex; justify-content: center; align-items: center; width: 34px; transition: background 0.2s; }
@@ -170,8 +170,10 @@ export default `${baseCSS}
     .col-res .hist-icon { font-size: 18px; }
     .col-vs-area { flex: 1; min-width: 0; }
     .modal-divider { width: 1px; height: 28px; background: #e2e8f0; flex-shrink: 0; margin: 0 16px; }
-    .sch-pill { padding: 2px 6px; border-radius: 4px; font-size: 13px; font-weight: 600; background: #dbeafe; color: #1d4ed8; display: inline-block; line-height: normal; }
-    .sch-pill.gold { background: #f2d49c; color: #9c5326; }
+    .best-of-pill { padding: 2px 6px; border-radius: 4px; font-size: 13px; font-weight: 600; display: inline-block; line-height: normal; }
+    .best-of-pill.bo1, .best-of-pill.bo2 { background: #e2e8f0; color: #475569; }
+    .best-of-pill.bo3 { background: #dbeafe; color: #1d4ed8; }
+    .best-of-pill.bo5 { background: #f2d49c; color: #9c5326; }
     .score-box { display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 0; min-height: 28px; min-width: 48px; transition: 0.2s; }
     .score-box.is-full { background: #fff7ed; border-color: #fdba74; box-shadow: inset 0 0 0 1px #fdba74; }
     .score-box.is-full .score-text { color: #c2410c; }

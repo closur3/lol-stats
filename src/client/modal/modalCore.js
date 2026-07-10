@@ -11,7 +11,6 @@ const styleScoreWrap = 'style="width:52px;flex-shrink:0;display:flex;align-items
 const styleModalEmpty = 'style="text-align:center;color:#999;padding:20px"';
 const styleH2hSummary = 'style="color:#94a3b8;font-size:14px"';
 const styleH2hDash = 'style="margin:0 1px"';
-const styleMutedDash = 'style="color:#cbd5e1"';
 
 function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode) {
     const dateParts = (dateDisplay || '').split(' ');
