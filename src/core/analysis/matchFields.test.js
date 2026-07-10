@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMatchForfeitSide, parseMatchIsNullified, parseMatchWinner, validateMatchOutcome } from "./matchFields.js";
+import { parseMatchForfeitSide, parseMatchIsNullified, parseMatchOutcome, parseMatchWinner, validateMatchOutcome } from "./matchFields.js";
 
 describe("match outcome fields", () => {
   it("maps Fandom FF values to the forfeiting side", () => {
@@ -19,5 +19,10 @@ describe("match outcome fields", () => {
     expect(parseMatchIsNullified("0", "match.IsNullified")).toBe(false);
     expect(parseMatchIsNullified("1", "match.IsNullified")).toBe(true);
     expect(() => parseMatchIsNullified(undefined, "match.IsNullified")).toThrow("Missing IsNullified");
+  });
+
+  it("exposes only display-relevant outcome fields", () => {
+    expect(parseMatchOutcome({ Winner: "2", FF: "1", IsNullified: "0" }, "match"))
+      .toEqual({ winner: 2, isForfeit: true, isNullified: false });
   });
 });

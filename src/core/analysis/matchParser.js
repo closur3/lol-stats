@@ -1,5 +1,5 @@
 import { timePolicy } from '../../utils/timePolicy.js';
-import { parseMatchBestOf, parseMatchForfeitSide, parseMatchIsNullified, parseMatchScore, parseMatchWinner, validateMatchOutcome } from './matchFields.js';
+import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFields.js';
 
 export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   const parsedMatches = [];
@@ -34,17 +34,13 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     const team1Score = parseMatchScore(match.Team1Score, `${tournamentSlug}.${match.MatchId}.Team1Score`);
     const team2Score = parseMatchScore(match.Team2Score, `${tournamentSlug}.${match.MatchId}.Team2Score`);
     const bestOf = parseMatchBestOf(match.BestOf, `${tournamentSlug}.${match.MatchId}.BestOf`);
-    const winner = parseMatchWinner(match.Winner, `${tournamentSlug}.${match.MatchId}.Winner`);
-    const forfeitSide = parseMatchForfeitSide(match.FF, `${matchLabel}.FF`);
-    const isNullified = parseMatchIsNullified(match.IsNullified, `${matchLabel}.IsNullified`);
-    validateMatchOutcome(winner, forfeitSide, isNullified, matchLabel);
+    const { winner, isForfeit, isNullified } = parseMatchOutcome(match, matchLabel);
     if (isNullified) return;
 
     ensureTeam(team1Name);
     ensureTeam(team2Name);
 
     const isFinished = winner !== null;
-    const isForfeit = forfeitSide !== null;
     const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
     const isFullLength = !isForfeit && ((bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2));
 

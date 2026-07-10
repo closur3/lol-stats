@@ -40,3 +40,11 @@ export function validateMatchOutcome(winner, forfeitSide, isNullified, label) {
   if (forfeitSide === 2 && winner !== 1) throw new Error(`FF Team2 requires Winner 1: ${label}`);
   if (forfeitSide === 0 && winner !== 0) throw new Error(`FF both requires Winner 0: ${label}`);
 }
+
+export function parseMatchOutcome(match, label) {
+  const winner = parseMatchWinner(match.Winner, `${label}.Winner`);
+  const forfeitSide = parseMatchForfeitSide(match.FF, `${label}.FF`);
+  const isNullified = parseMatchIsNullified(match.IsNullified, `${label}.IsNullified`);
+  validateMatchOutcome(winner, forfeitSide, isNullified, label);
+  return { winner, isForfeit: forfeitSide !== null, isNullified };
+}

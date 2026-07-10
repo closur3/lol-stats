@@ -1,5 +1,5 @@
 import { timePolicy } from '../../utils/timePolicy.js';
-import { parseMatchIsNullified, parseMatchWinner } from './matchFields.js';
+import { parseMatchOutcome } from './matchFields.js';
 
 export function computeScheduleMetaFromRawMatches(rawMatches) {
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
@@ -9,7 +9,7 @@ export function computeScheduleMetaFromRawMatches(rawMatches) {
   let hasHistoryUnfinished = false;
 
   for (const match of rawMatches) {
-    const isNullified = parseMatchIsNullified(match.IsNullified, `ScheduleMeta.${match.MatchId}.IsNullified`);
+    const { winner, isNullified } = parseMatchOutcome(match, `ScheduleMeta.${match.MatchId}`);
     if (isNullified) continue;
 
     const matchTime = timePolicy.deriveMatchTime(match.DateTimeUTC);
@@ -20,7 +20,6 @@ export function computeScheduleMetaFromRawMatches(rawMatches) {
       todayEarliest = ts;
     }
 
-    const winner = parseMatchWinner(match.Winner, `ScheduleMeta.${match.MatchId}.Winner`);
     const isFinished = winner !== null;
     if (isFinished) continue;
 
