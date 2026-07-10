@@ -12,7 +12,7 @@ function toActiveCron(startHour, endHour, day) {
 }
 
 function mergeIntervals(intervals) {
-  const sorted = [...intervals].sort((a, b) => cronDayOrder[a.day] - cronDayOrder[b.day] || a.startHour - b.startHour || a.endHour - b.endHour);
+  const sorted = [...intervals].sort((leftInterval, rightInterval) => cronDayOrder[leftInterval.day] - cronDayOrder[rightInterval.day] || leftInterval.startHour - rightInterval.startHour || leftInterval.endHour - rightInterval.endHour);
   const merged = [];
 
   for (const interval of sorted) {

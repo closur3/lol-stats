@@ -1,6 +1,6 @@
 import { escapeHtml } from '../../../utils/htmlEscape.js';
 import { timePolicy } from '../../../utils/timePolicy.js';
-import { buildScheduleRow } from '../../components/scheduleRow.js';
+import { renderScheduleRow } from '../../components/scheduleRow.js';
 
 export function renderScheduleSection(scheduleMap, globalStats) {
   const dates = Object.keys(scheduleMap).sort();
@@ -21,7 +21,7 @@ export function renderScheduleSection(scheduleMap, globalStats) {
         cardHtml += `<div class="sch-group-header"><div class="spine-row sch-group-row"><span class="spine-l sch-group-name">${escapeHtml(match.leagueShort)}</span>${blockHtml}</div></div>`;
         lastGroupKey = groupKey;
       }
-      cardHtml += buildScheduleRow(match, globalStats);
+      cardHtml += renderScheduleRow(match, globalStats);
     });
 
     cardHtml += `</div></div>`;

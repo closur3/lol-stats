@@ -1,9 +1,9 @@
 import { FandomClient } from '../../api/fandomClient.js';
 import { login } from '../../api/fandom/auth.js';
-import { runFullAnalysis } from '../analyzer.js';
-import { determineCandidates } from './candidates.js';
-import { fetchMatchesForCandidates } from './matchDataFetcher.js';
-import { applyRawMatchFetchResults } from './rawMatchFetchResultApplier.js';
+import { analyzeTournaments } from '../analyzer.js';
+import { selectFetchCandidates } from './candidates.js';
+import { fetchRawMatchesForCandidates } from './matchDataFetcher.js';
+import { applyRawMatchFetchOutcomes } from './rawMatchFetchResultApplier.js';
 import { buildActiveLogEntries } from './logWriter.js';
 import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homeProjector.js';
 import { writeActiveTournamentFacts } from './activeTournamentFactWriter.js';
@@ -54,36 +54,36 @@ async function createFandomClient(env) {
 }
 
 async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs) {
-  const candidates = determineCandidates(tournaments, forceSlugs);
+  const candidates = selectFetchCandidates(tournaments, forceSlugs);
   if (candidates.length === 0) {
     console.log(`[FANDOM:SKIP] no-candidates`);
     return null;
   }
 
   const { authContext, fandomClient } = await createFandomClient(env);
-  const results = await fetchMatchesForCandidates(fandomClient, candidates);
-  const processed = applyRawMatchFetchResults(results, rawMatchesBySlug, force, tournaments);
-  const { syncItems, skipItems, dropBreakers, fetchErrors } = processed;
+  const fetchOutcomes = await fetchRawMatchesForCandidates(fandomClient, candidates);
+  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, force, tournaments);
+  const { syncItems, skipItems, dropBreakers, fetchErrors } = rawMatchUpdate;
   console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
-  return { authContext, ...processed };
+  return { authContext, ...rawMatchUpdate };
 }
 
-function attachRevisionChanges(items, revidChanges) {
-  for (const item of items) {
-    if (revidChanges[item.slug]) {
-      item.revidChanges = revidChanges[item.slug];
+function attachRevisionChanges(updateItems, revidChanges) {
+  for (const updateItem of updateItems) {
+    if (revidChanges[updateItem.slug]) {
+      updateItem.revidChanges = revidChanges[updateItem.slug];
     }
   }
 }
 
-function buildActiveUpdateLogs(processed, authContext) {
-  const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = processed;
+function buildActiveUpdateLogs(rawMatchUpdate, authContext) {
+  const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = rawMatchUpdate;
   return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap);
 }
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
   const scopedRawMatches = buildScopedRawMatches(rawMatchesBySlug, writeScopeSlugs);
-  return runFullAnalysis(scopedRawMatches, scopedTournaments, updateConfig.maxScheduleDays);
+  return analyzeTournaments(scopedRawMatches, scopedTournaments, updateConfig.maxScheduleDays);
 }
 
 async function writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs) {
@@ -93,14 +93,14 @@ async function writeActiveProjections(env, scopedTournaments, analysis, writeSco
 
 export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force = false, forceSlugs = null, options = {}) {
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
-  const processed = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
-  if (!processed) return;
+  const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
+  if (!rawMatchUpdate) return;
 
-  const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = processed;
+  const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = rawMatchUpdate;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
-  const activeLogEntries = buildActiveUpdateLogs(processed, authContext);
+  const activeLogEntries = buildActiveUpdateLogs(rawMatchUpdate, authContext);
 
-  const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, skipItems, forceWrite, forceSlugs);
+  const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, forceWrite, forceSlugs);
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
   let analysis = null;
   if (writeScopeSlugs.size > 0) {

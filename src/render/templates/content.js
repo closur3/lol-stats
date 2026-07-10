@@ -13,9 +13,9 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentOnly(globalStats, timeData, scheduleMap, tournaments, isArchive = false, scheduleMetaBySlug) {
+export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleMetaBySlug) {
   assertObject(globalStats, "globalStats");
-  assertObject(timeData, "timeData");
+  assertObject(timeGridBySlug, "timeGridBySlug");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
   if (!isArchive) assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
@@ -23,13 +23,13 @@ export function renderContentOnly(globalStats, timeData, scheduleMap, tournament
   const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${JSON.stringify(globalStats)});</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
-    .map(tournament => renderTournamentSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive))
+    .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleMetaBySlug, isArchive))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, globalStats);
 
   return `${tablesHtml} ${scheduleHtml} ${injectedData}`;
 }
 
-export function renderArchiveContentOnly(globalStats, timeData, tournaments) {
-  return renderContentOnly(globalStats, timeData, {}, tournaments, true, null);
+export function renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments) {
+  return renderContentFragment(globalStats, timeGridBySlug, {}, tournaments, true, null);
 }

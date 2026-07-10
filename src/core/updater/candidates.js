@@ -1,4 +1,4 @@
-export function determineCandidates(tournaments, forceSlugs = null) {
+export function selectFetchCandidates(tournaments, forceSlugs = null) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const candidates = [];
   const hasScope = !!(forceSlugs && forceSlugs.size > 0);

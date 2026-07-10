@@ -1,4 +1,4 @@
-export function getRateHtml(teamName, slug, bestOf, globalStats) {
+export function renderRateBadge(teamName, slug, bestOf, globalStats) {
   const teamStats = globalStats[slug];
   if (!teamStats || !teamStats[teamName]) return "";
 

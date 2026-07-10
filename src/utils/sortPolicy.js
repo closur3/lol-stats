@@ -9,8 +9,8 @@ export const sortPolicy = {
     const full = Number(fullCount ?? 0);
     const total = Number(totalCount ?? 0);
     const mean = Number.isFinite(priorMean) ? priorMean : 0.5;
-    const k = Number(priorStrength ?? 0);
-    return (full + (mean * k)) / (total + k);
+    const priorSampleSize = Number(priorStrength ?? 0);
+    return (full + (mean * priorSampleSize)) / (total + priorSampleSize);
   },
 
   getTeamWeightedCounts: (teamStats = {}) => {

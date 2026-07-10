@@ -1,10 +1,10 @@
 import { timeGridColumnCount } from '../../constants/index.js';
 import { clusterTimeSlots, assignMatchesToClusters } from './timeCluster.js';
 
-export function buildTimeGridAndSchedule(tournamentSlug, parsedMatches, timeGrid) {
+export function buildTournamentTimeGrid(tournamentSlug, parsedMatches, timeGrid) {
   const dayCounts = {};
-  for (const m of parsedMatches) {
-    dayCounts[m.matchDateStr] = (dayCounts[m.matchDateStr] || 0) + 1;
+  for (const parsedMatch of parsedMatches) {
+    dayCounts[parsedMatch.matchDateStr] = (dayCounts[parsedMatch.matchDateStr] || 0) + 1;
   }
   const maxMatchesPerDay = Math.max(...Object.values(dayCounts), 1);
   const clusters = clusterTimeSlots(parsedMatches, maxMatchesPerDay);
@@ -28,38 +28,38 @@ export function buildTimeGridAndSchedule(tournamentSlug, parsedMatches, timeGrid
     }
   }
 
-  for (const m of parsedMatches) {
-    const matchObj = {
-      dateDisplay: m.dateDisplay,
-      fullDateDisplay: m.fullDateDisplay,
-      timestamp: m.timestamp,
-      team1Name: m.team1Name,
-      team2Name: m.team2Name,
-      scoreDisplay: `${m.team1Score}-${m.team2Score}`,
-      winner: m.winner,
-      isForfeit: m.isForfeit,
-      isFullLength: m.isFullLength,
-      bestOf: m.bestOf
+  for (const parsedMatch of parsedMatches) {
+    const timeGridMatch = {
+      dateDisplay: parsedMatch.dateDisplay,
+      fullDateDisplay: parsedMatch.fullDateDisplay,
+      timestamp: parsedMatch.timestamp,
+      team1Name: parsedMatch.team1Name,
+      team2Name: parsedMatch.team2Name,
+      scoreDisplay: `${parsedMatch.team1Score}-${parsedMatch.team2Score}`,
+      winner: parsedMatch.winner,
+      isForfeit: parsedMatch.isForfeit,
+      isFullLength: parsedMatch.isFullLength,
+      bestOf: parsedMatch.bestOf
     };
 
     let bestCluster = null;
-    const assignedClusterIndex = assignedClusterByMatch.get(m);
+    const assignedClusterIndex = assignedClusterByMatch.get(parsedMatch);
     if (assignedClusterIndex != null && clusters[assignedClusterIndex]) {
       bestCluster = clusters[assignedClusterIndex];
     } else {
       let bestDist = Infinity;
-      for (const c of clusters) {
-        const dist = Math.abs(m.timeMinutes - c.actualCenter);
-        if (dist < bestDist) { bestDist = dist; bestCluster = c; }
+      for (const timeCluster of clusters) {
+        const distance = Math.abs(parsedMatch.timeMinutes - timeCluster.actualCenter);
+        if (distance < bestDist) { bestDist = distance; bestCluster = timeCluster; }
       }
     }
     if (!bestCluster) continue;
 
-    const dayIndex = m.weekdayIndex;
-    const addMatchToSlot = (grid, label, dayIndex) => {
-      grid[label][dayIndex].totalMatchCount++;
-      if (m.isFullLength) grid[label][dayIndex].fullLengthMatchCount++;
-      grid[label][dayIndex].matches.push(matchObj);
+    const dayIndex = parsedMatch.weekdayIndex;
+    const addMatchToSlot = (tournamentTimeGrid, timeSlotLabel, targetDayIndex) => {
+      tournamentTimeGrid[timeSlotLabel][targetDayIndex].totalMatchCount++;
+      if (parsedMatch.isFullLength) tournamentTimeGrid[timeSlotLabel][targetDayIndex].fullLengthMatchCount++;
+      tournamentTimeGrid[timeSlotLabel][targetDayIndex].matches.push(timeGridMatch);
     };
     addMatchToSlot(timeGrid[tournamentSlug], bestCluster.label, dayIndex);
     addMatchToSlot(timeGrid[tournamentSlug], "Total", dayIndex);

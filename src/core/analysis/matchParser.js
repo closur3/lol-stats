@@ -1,7 +1,7 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFields.js';
 
-export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
+export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   const parsedMatches = [];
   const scheduleMeta = {
     todayEarliestTimestamp: 0,
@@ -26,8 +26,8 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
   };
 
   rawMatches.forEach(match => {
-    const team1Name = resolveName(match.Team1);
-    const team2Name = resolveName(match.Team2);
+    const team1Name = resolveTeamName(match.Team1);
+    const team2Name = resolveTeamName(match.Team2);
     if (!team1Name || !team2Name) { return; }
 
     const matchLabel = `${tournamentSlug}.${match.MatchId}`;
@@ -56,11 +56,11 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
       roundedMinutes
     } = matchTime;
 
-    if (matchDateStr === todayStr && timestamp && (!scheduleMeta.todayEarliestTimestamp || timestamp < scheduleMeta.todayEarliestTimestamp)) {
+    if (matchDateStr === currentDate && timestamp && (!scheduleMeta.todayEarliestTimestamp || timestamp < scheduleMeta.todayEarliestTimestamp)) {
       scheduleMeta.todayEarliestTimestamp = timestamp;
     }
 
-    if (matchDateStr !== "-" && (matchDateStr >= todayStr || !isFinished)) {
+    if (matchDateStr !== "-" && (matchDateStr >= currentDate || !isFinished)) {
       if (!allFutureMatches[matchDateStr]) allFutureMatches[matchDateStr] = [];
       const tabName = match.Tab || "";
       allFutureMatches[matchDateStr].push({
@@ -89,9 +89,9 @@ export function parseAllMatches(rawMatches, resolveName, todayStr, tournamentSlu
     }
 
     if (!isFinished) {
-      if (matchDateStr === todayStr) {
+      if (matchDateStr === currentDate) {
         scheduleMeta.todayUnfinished++;
-      } else if (matchDateStr < todayStr) {
+      } else if (matchDateStr < currentDate) {
         scheduleMeta.hasHistoryUnfinished = true;
       }
     }

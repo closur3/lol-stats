@@ -46,12 +46,12 @@ function readIncludeArchive(request) {
 
 async function readHomeBackup(kv, env) {
   const tournaments = await readActiveConfig(env);
-  return readSnapshotsBySlug(kv, tournaments.map(t => t.slug), kvKeys.home, assertSnapshot, assertHomeFields);
+  return readSnapshotsBySlug(kv, tournaments.map(tournament => tournament.slug), kvKeys.home, assertSnapshot, assertHomeFields);
 }
 
 async function readArchiveBackup(kv, env) {
   const archiveTournaments = await readArchiveConfig(env);
-  return readSnapshotsBySlug(kv, archiveTournaments.map(t => t.slug), kvKeys.archive, assertSnapshot);
+  return readSnapshotsBySlug(kv, archiveTournaments.map(tournament => tournament.slug), kvKeys.archive, assertSnapshot);
 }
 
 export async function handleBackup(request, env) {

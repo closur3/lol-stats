@@ -8,8 +8,8 @@ function resolveTournamentDisplayName(tournament) {
 export function buildDisplayNameMap(tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   return new Map(
-    tournaments.map(t => [
-      t.slug, resolveTournamentDisplayName(t)
+    tournaments.map(tournament => [
+      tournament.slug, resolveTournamentDisplayName(tournament)
     ])
   );
 }

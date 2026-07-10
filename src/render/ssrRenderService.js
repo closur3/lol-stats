@@ -1,4 +1,4 @@
-import { renderArchiveContentOnly, renderContentOnly } from './templates/content.js';
+import { renderArchiveContentFragment, renderContentFragment } from './templates/content.js';
 import { renderPageShell } from './templates/page.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { readHomeEntries } from '../core/updater/homeSnapshotReader.js';
@@ -9,7 +9,7 @@ import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 export async function renderHomeFromFacts(env) {
   const tournaments = await readActiveConfig(env);
-  const homeEntries = await readHomeEntries(env, tournaments.map(t => t.slug));
+  const homeEntries = await readHomeEntries(env, tournaments.map(tournament => tournament.slug));
 
   if (homeEntries.length === 0) {
     const hasActiveCron = await readHasActiveCron(env);
@@ -21,7 +21,7 @@ export async function renderHomeFromFacts(env) {
   const renderInput = buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaBySlug);
   const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.scheduleMetaBySlug);
 
-  const homeFragment = renderContentOnly(
+  const homeFragment = renderContentFragment(
     renderInput.globalStats,
     renderInput.timeGrid,
     limitedScheduleMap,
@@ -43,10 +43,10 @@ export async function renderArchiveFromFacts(env) {
     return renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, hasActiveCron);
   }
 
-  const slugs = tournaments.map(t => t.slug);
-  const rawSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
+  const slugs = tournaments.map(tournament => tournament.slug);
+  const archiveSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
   const snapshotErrors = [];
-  const validSnapshots = rawSnapshots.map((snapshot, index) => {
+  const validSnapshots = archiveSnapshots.map((snapshot, index) => {
     const slug = slugs[index];
     const snapshotTournament = snapshot?.tournament;
     if (!snapshot || !snapshotTournament || !snapshotTournament.slug) {
@@ -73,12 +73,12 @@ export async function renderArchiveFromFacts(env) {
     throw error;
   }
 
-  const combined = validSnapshots.map(snap => {
-    const snapshotTournament = snap.tournament;
+  const combined = validSnapshots.map(snapshot => {
+    const snapshotTournament = snapshot.tournament;
     const miniTournaments = [snapshotTournament];
-    const content = renderArchiveContentOnly(
-      { [snapshotTournament.slug]: snap.stats },
-      { [snapshotTournament.slug]: snap.timeGrid },
+    const content = renderArchiveContentFragment(
+      { [snapshotTournament.slug]: snapshot.stats },
+      { [snapshotTournament.slug]: snapshot.timeGrid },
       miniTournaments
     );
     return content;

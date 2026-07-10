@@ -118,23 +118,23 @@ async function collectRevisionChecks(env, tournaments) {
   return Promise.all(tournaments.map(tournament => prepareRevisionCheck(env, tournament)));
 }
 
-function applyRevisionCheckResult(state, checkResult) {
+function applyRevisionCheckResult(revisionDetectionState, checkResult) {
   const { slug, shouldWriteRev, nextRecord, revisionChanged, changedPages, revidChanges: slugRevidChanges } = checkResult;
 
   if (shouldWriteRev) {
-    state.pendingRevisionWrites[slug] = nextRecord;
+    revisionDetectionState.pendingRevisionWrites[slug] = nextRecord;
   }
 
   if (revisionChanged) {
-    state.changedSlugs.add(slug);
-    state.revidChanges[slug] = slugRevidChanges;
+    revisionDetectionState.changedSlugs.add(slug);
+    revisionDetectionState.revidChanges[slug] = slugRevidChanges;
     console.log(`[REV:CHANGE] ${slug} pages=${changedPages.length}${changedPages.length ? ` | ${changedPages.join(", ")}` : ""}`);
   }
 }
 
 export async function detectRevisionChanges(env, tournaments) {
   const checks = await collectRevisionChecks(env, tournaments);
-  const state = {
+  const revisionDetectionState = {
     changedSlugs: new Set(),
     revidChanges: {},
     pendingRevisionWrites: {}
@@ -142,13 +142,13 @@ export async function detectRevisionChanges(env, tournaments) {
 
   const revChecks = await Promise.all(checks.map(check => evaluateRevisionCheck(check)));
   for (const checkResult of revChecks) {
-    applyRevisionCheckResult(state, checkResult);
+    applyRevisionCheckResult(revisionDetectionState, checkResult);
   }
 
   return {
-    changedSlugs: state.changedSlugs,
-    revidChanges: state.revidChanges,
-    pendingRevisionWrites: state.pendingRevisionWrites,
+    changedSlugs: revisionDetectionState.changedSlugs,
+    revidChanges: revisionDetectionState.revidChanges,
+    pendingRevisionWrites: revisionDetectionState.pendingRevisionWrites,
     checkedSlugs: checks.length
   };
 }

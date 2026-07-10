@@ -20,8 +20,8 @@ function readLoginResult(loginData) {
     throw new Error("Invalid login payload");
   }
   if (login.result !== "Success") {
-    const result = typeof login.result === "string" && login.result ? login.result : "unknown";
-    throw new Error(`Login Failed: ${result}`);
+    const loginResult = typeof login.result === "string" && login.result ? login.result : "unknown";
+    throw new Error(`Login Failed: ${loginResult}`);
   }
   if (typeof login.lgusername !== "string" || login.lgusername.length === 0) {
     throw new Error("Invalid login username payload");

@@ -1,7 +1,7 @@
 import { botUserAgent, fandomApi } from '../../constants/index.js';
 
-function readAllPages(data) {
-  const pages = data?.query?.allpages;
+function readAllPages(responseData) {
+  const pages = responseData?.query?.allpages;
   if (!Array.isArray(pages)) throw new Error("Invalid subpages payload");
   return pages;
 }
@@ -31,8 +31,8 @@ export async function fetchAllSubpages(basePage) {
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const data = await response.json();
-    const pages = readAllPages(data);
+    const responseData = await response.json();
+    const pages = readAllPages(responseData);
 
     for (const page of pages) {
       const title = page.title;
@@ -41,7 +41,7 @@ export async function fetchAllSubpages(basePage) {
       }
     }
 
-    continueToken = data?.continue?.apcontinue || null;
+    continueToken = responseData?.continue?.apcontinue || null;
   } while (continueToken);
 
   return Array.from(new Set(allPages));

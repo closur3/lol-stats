@@ -28,7 +28,8 @@ export default [
       "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
       "no-case-declarations": "warn",
       "no-constant-condition": ["warn", { "checkLoops": false }],
-      "camelcase": ["error", { "properties": "never", "ignoreDestructuring": true }]
+      "camelcase": ["error", { "properties": "never", "ignoreDestructuring": true }],
+      "id-length": ["error", { "min": 2 }]
     }
   }
 ];

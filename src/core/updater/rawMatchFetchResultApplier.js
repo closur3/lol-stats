@@ -18,30 +18,30 @@ const canonicalMatch = (match) => [
   match.MatchId
 ].join("\u001f");
 
-function calcChangedCount(oldData, newData) {
-  const oldMap = new Map();
-  for (const matchRecord of oldData) oldMap.set(getMatchKey(matchRecord), canonicalMatch(matchRecord));
+function calcChangedCount(currentRawMatches, fetchedRawMatches) {
+  const currentMatchSignaturesById = new Map();
+  for (const matchRecord of currentRawMatches) currentMatchSignaturesById.set(getMatchKey(matchRecord), canonicalMatch(matchRecord));
 
   let added = 0;
   let updated = 0;
-  const newKeys = new Set();
-  for (const matchRecord of newData) {
+  const fetchedMatchIds = new Set();
+  for (const matchRecord of fetchedRawMatches) {
     const key = getMatchKey(matchRecord);
-    newKeys.add(key);
-    const prevVal = oldMap.get(key);
-    if (prevVal == null) added++;
-    else if (prevVal !== canonicalMatch(matchRecord)) updated++;
+    fetchedMatchIds.add(key);
+    const currentMatchSignature = currentMatchSignaturesById.get(key);
+    if (currentMatchSignature == null) added++;
+    else if (currentMatchSignature !== canonicalMatch(matchRecord)) updated++;
   }
 
   let deleted = 0;
-  for (const key of oldMap.keys()) {
-    if (!newKeys.has(key)) deleted++;
+  for (const key of currentMatchSignaturesById.keys()) {
+    if (!fetchedMatchIds.has(key)) deleted++;
   }
 
   return { added, updated, deleted, changed: added + updated };
 }
 
-export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, tournaments) {
+export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, force, tournaments) {
   const brokenSlugs = new Set();
   const errorSlugs = new Set();
   const syncItems = [];
@@ -51,29 +51,29 @@ export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, tour
 
   const displayNameMap = buildDisplayNameMap(tournaments);
 
-  results.forEach(resultItem => {
-    if (resultItem.status === 'fulfilled') {
-      const slug = resultItem.slug;
-      const newData = resultItem.data;
-      const oldData = rawMatchesBySlug[slug];
-      if (!Array.isArray(oldData)) throw new Error(`RawMatches missing in active update scope: ${slug}`);
+  fetchOutcomes.forEach(fetchOutcome => {
+    if (fetchOutcome.status === 'fulfilled') {
+      const slug = fetchOutcome.slug;
+      const fetchedRawMatches = fetchOutcome.rawMatches;
+      const currentRawMatches = rawMatchesBySlug[slug];
+      if (!Array.isArray(currentRawMatches)) throw new Error(`RawMatches missing in active update scope: ${slug}`);
       const isForce = force;
 
-      if (!isForce && oldData.length > 10 && newData.length < oldData.length * updateConfig.dropThreshold) {
-        dropBreakers.push(`${slug}(Drop ${oldData.length}->${newData.length})`);
+      if (!isForce && currentRawMatches.length > 10 && fetchedRawMatches.length < currentRawMatches.length * updateConfig.dropThreshold) {
+        dropBreakers.push(`${slug}(Drop ${currentRawMatches.length}->${fetchedRawMatches.length})`);
         brokenSlugs.add(slug);
       } else {
-        const changedCount = calcChangedCount(oldData, newData);
+        const changedCount = calcChangedCount(currentRawMatches, fetchedRawMatches);
         if (changedCount.changed === 0 && changedCount.deleted > 0) {
           if (isForce) {
-            rawMatchesBySlug[slug] = newData;
+            rawMatchesBySlug[slug] = fetchedRawMatches;
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           } else {
-            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${oldData.length}->${newData.length} (deleted=${changedCount.deleted}), preserving previous RawMatches`);
+            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${currentRawMatches.length}->${fetchedRawMatches.length} (deleted=${changedCount.deleted}), preserving previous RawMatches`);
             skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
           }
         } else {
-          rawMatchesBySlug[slug] = newData;
+          rawMatchesBySlug[slug] = fetchedRawMatches;
           if (changedCount.changed > 0) {
             syncItems.push({
               slug,
@@ -88,10 +88,10 @@ export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, tour
         }
       }
     } else {
-      const errMsg = resultItem.err?.message || resultItem.err?.toString() || 'unknown';
-      console.log(`[FANDOM:FETCH_ERR] ${resultItem.slug} error=${errMsg}`);
-      fetchErrors.push(`${resultItem.slug}(Fail: ${errMsg.substring(0, 50)})`);
-      errorSlugs.add(resultItem.slug);
+      const fetchErrorMessage = fetchOutcome.error?.message || fetchOutcome.error?.toString() || 'unknown';
+      console.log(`[FANDOM:FETCH_ERR] ${fetchOutcome.slug} error=${fetchErrorMessage}`);
+      fetchErrors.push(`${fetchOutcome.slug}(Fail: ${fetchErrorMessage.substring(0, 50)})`);
+      errorSlugs.add(fetchOutcome.slug);
     }
   });
 

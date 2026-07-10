@@ -4,8 +4,8 @@ import { escapeHtml } from '../../utils/htmlEscape.js';
 
 const timeTableColumns = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total"];
 
-function requireTimeCell(regionGrid, hour, dayIndex) {
-  const cell = regionGrid[hour]?.[dayIndex];
+function requireTimeCell(timeGrid, hour, dayIndex) {
+  const cell = timeGrid[hour]?.[dayIndex];
   if (!cell || typeof cell !== "object" || Array.isArray(cell)) {
     throw new Error(`timeGrid cell missing: ${hour}.${dayIndex}`);
   }
@@ -26,12 +26,12 @@ function validateTimeCell(cell, hour, dayIndex) {
   }
 }
 
-function collectBoxFilters(regionGrid, hours) {
+function collectBoxFilters(timeGrid, hours) {
   const bestOfSet = new Set();
   for (const hour of hours) {
-    if (!regionGrid[hour]) throw new Error(`timeGrid bucket missing: ${hour}`);
+    if (!timeGrid[hour]) throw new Error(`timeGrid bucket missing: ${hour}`);
     for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
-      const cell = requireTimeCell(regionGrid, hour, dayIndex);
+      const cell = requireTimeCell(timeGrid, hour, dayIndex);
       validateTimeCell(cell, hour, dayIndex);
       for (const match of cell.matches) {
         if (!Number.isInteger(match.bestOf) || match.bestOf <= 0) {
@@ -67,13 +67,13 @@ function renderValueCell(label, dayIndex, cellData) {
   return `<td class="time-table-cell" data-matches="${matchesJson}" data-day-index="${dayIndex}" data-title="${escapeHtml(label)}" style="background:${color(fullRate, true)};" onclick="showTimeCellPopup(this)"><div class="t-cell"><span class="t-val">${cellData.fullLengthMatchCount}<span class="score-sep">/</span>${cellData.totalMatchCount}</span><span class="t-pct">(${Math.round(fullRate * 100)}%)</span></div></td>`;
 }
 
-export function buildTimeTable(regionGrid) {
-  if (!regionGrid || typeof regionGrid !== "object" || Array.isArray(regionGrid)) {
-    throw new Error("regionGrid must be a JSON object");
+export function renderTimeTable(timeGrid) {
+  if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) {
+    throw new Error("timeGrid must be a JSON object");
   }
-  const hours = Object.keys(regionGrid).filter(key => key !== "Total" && !isNaN(key)).map(Number).sort((leftHour, rightHour) => leftHour - rightHour);
+  const hours = Object.keys(timeGrid).filter(key => key !== "Total" && !isNaN(key)).map(Number).sort((leftHour, rightHour) => leftHour - rightHour);
   const tableHours = [...hours, "Total"];
-  const boxFilters = collectBoxFilters(regionGrid, tableHours);
+  const boxFilters = collectBoxFilters(timeGrid, tableHours);
 
   let html = `<div class="time-table-block" data-box-filter="all"><table class="time-table"><thead><tr class="time-header-row"><th class="team-col time-filter-cell">${renderBoxFilter(boxFilters)}</th>`;
   timeTableColumns.forEach(dayName => { html += `<th class="time-header-cell">${dayName}</th>`; });
@@ -87,7 +87,7 @@ export function buildTimeTable(regionGrid) {
     html += `<tr${rowClass}><td class="${labelClass}">${label}</td>`;
 
     for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
-      const cellData = requireTimeCell(regionGrid, hour, dayIndex);
+      const cellData = requireTimeCell(timeGrid, hour, dayIndex);
       validateTimeCell(cellData, hour, dayIndex);
       if (cellData.totalMatchCount === 0) {
         html += renderEmptyCell(escapeHtml(JSON.stringify(cellData.matches)));

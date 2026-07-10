@@ -1,6 +1,6 @@
-export function mkSpine(val, sep) {
-  if (!val || val === "-") return `<span class="muted-dash">-</span>`;
-  const parts = val.split(sep);
-  if (parts.length !== 2) return val;
-  return `<div class="spine-row"><span class="spine-l spine-strong">${parts[0]}</span><span class="spine-sep spine-sep-muted">${sep}</span><span class="spine-r spine-strong">${parts[1]}</span></div>`;
+export function renderSplitScore(value, separator) {
+  if (!value || value === "-") return `<span class="muted-dash">-</span>`;
+  const scoreParts = value.split(separator);
+  if (scoreParts.length !== 2) return value;
+  return `<div class="spine-row"><span class="spine-l spine-strong">${scoreParts[0]}</span><span class="spine-sep spine-sep-muted">${separator}</span><span class="spine-r spine-strong">${scoreParts[1]}</span></div>`;
 }

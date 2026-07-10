@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildResolveName } from "./teamResolver.js";
+import { buildTeamNameResolver } from "./teamResolver.js";
 
-describe("buildResolveName", () => {
+describe("buildTeamNameResolver", () => {
   it("resolves only exact tournament team names", () => {
-    const resolveName = buildResolveName({
+    const resolveTeamName = buildTeamNameResolver({
       "AG.AL": "AGAL",
       "Team Secret (Vietnamese Team)": "TS"
     });
 
-    expect(resolveName("AG.AL")).toBe("AGAL");
-    expect(resolveName("Team Secret (Vietnamese Team)")).toBe("TS");
-    expect(() => resolveName("Team Secret")).toThrow("Team mapping missing: Team Secret");
+    expect(resolveTeamName("AG.AL")).toBe("AGAL");
+    expect(resolveTeamName("Team Secret (Vietnamese Team)")).toBe("TS");
+    expect(() => resolveTeamName("Team Secret")).toThrow("Team mapping missing: Team Secret");
   });
 });

@@ -2,7 +2,7 @@ import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
 import { resolveScheduleMetaPhase } from '../../utils/scheduleMetaPhase.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
-import { rpad2 } from '../../core/updater/logWriter.js';
+import { padLogCount } from '../../core/updater/logWriter.js';
 import { getSchedulePhaseLabel, renderSchedulePhaseIcon } from '../components/schedulePhaseIcon.js';
 
 function formatDelta(entry) {
@@ -19,11 +19,11 @@ function formatDelta(entry) {
   const updated = entry.updated;
   if (entry.action === "SYNC") {
     let delta = "";
-    if (added > 0) delta += `+${rpad2(added)}`;
-    if (updated > 0) delta += `~${rpad2(updated)}`;
+    if (added > 0) delta += `+${padLogCount(added)}`;
+    if (updated > 0) delta += `~${padLogCount(updated)}`;
     return delta || "~0 ";
   }
-  return `~${rpad2(added + updated)}`;
+  return `~${padLogCount(added + updated)}`;
 }
 
 function renderTrigger(entry, icon) {
@@ -76,27 +76,27 @@ function normalizeActiveLogItems(activeLogItems) {
   });
 }
 
-function normalizeEntryList(item) {
-  if (item.logs === undefined) return [];
-  if (!Array.isArray(item.logs)) throw new Error(`Invalid active logs: ${item.name || ""}`);
-  return item.logs;
+function normalizeLogEntries(activeLogItem) {
+  if (activeLogItem.logs === undefined) return [];
+  if (!Array.isArray(activeLogItem.logs)) throw new Error(`Invalid active logs: ${activeLogItem.name || ""}`);
+  return activeLogItem.logs;
 }
 
 export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, options = {}) {
   const maxLogEntries = Number(options.maxLogEntries);
-  const items = normalizeActiveLogItems(activeLogItems);
+  const logItems = normalizeActiveLogItems(activeLogItems);
 
-  const cardsHtml = items.map(item => {
-    const name = item.name || "";
+  const cardsHtml = logItems.map(activeLogItem => {
+    const name = activeLogItem.name || "";
     const safeName = escapeHtml(name);
-    const entries = normalizeEntryList(item);
+    const entries = normalizeLogEntries(activeLogItem);
     const lastEntry = entries[0];
-    const phase = resolveScheduleMetaPhase(item);
+    const phase = resolveScheduleMetaPhase(activeLogItem);
     const phaseCls = `phase-${phase}`;
 
     const syncCount = entries.filter(isSyncEntry).length;
     const errCount = entries.filter(isErrorEntry).length;
-    const totalCount = Number.isFinite(item.totalMatches) ? item.totalMatches : null;
+    const totalCount = Number.isFinite(activeLogItem.totalMatches) ? activeLogItem.totalMatches : null;
     const lastTime = lastEntry?.loggedAt || "";
     const bars = entries.slice(0, 10).reverse().map(entry => {
       const cls = isSyncEntry(entry) ? "bar-sync" : isErrorEntry(entry) ? "bar-err" : "bar-idle";

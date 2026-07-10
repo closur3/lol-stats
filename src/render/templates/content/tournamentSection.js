@@ -4,8 +4,8 @@ import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
 import { resolveScheduleMetaPhase } from '../../../utils/scheduleMetaPhase.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { summarizeFullRate } from '../../../core/analysis/fullRateSummary.js';
-import { buildTeamRow } from '../../components/teamRow.js';
-import { buildTimeTable } from '../../components/timeTable.js';
+import { renderTeamRow } from '../../components/teamRow.js';
+import { renderTimeTable } from '../../components/timeTable.js';
 import { renderSchedulePhaseIcon } from '../../components/schedulePhaseIcon.js';
 
 function buildTournamentSummary(stats) {
@@ -26,20 +26,20 @@ function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {
 
 function buildTournamentTable(tournament, stats, sortMeta) {
   const tableId = `t_${String(tournament.slug).replace(/[^A-Za-z0-9_-]/g, '_')}`;
-  const rows = stats.map(teamStats => buildTeamRow(teamStats, tournament.slug, sortMeta)).join("");
+  const rows = stats.map(teamStats => renderTeamRow(teamStats, tournament.slug, sortMeta)).join("");
   const tableBody = `<table id="${tableId}" data-sort-col="2" data-sort-dir-2="asc"><thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th class="col-streak" onclick="doSort(9, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(10, '${tableId}')">LAST DATE</th></tr></thead><tbody>${rows}</tbody></table>`;
   return tableBody;
 }
 
-export function renderTournamentSection(tournament, globalStats, timeData, scheduleMetaBySlug, isArchive) {
+export function renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleMetaBySlug, isArchive) {
   const meta = readScheduleMeta(scheduleMetaBySlug, tournament.slug, isArchive);
   const rawStats = globalStats[tournament.slug];
   if (!rawStats || typeof rawStats !== "object" || Array.isArray(rawStats)) {
     throw new Error(`globalStats missing: ${tournament.slug}`);
   }
-  const tournamentTimeData = timeData[tournament.slug];
-  if (!tournamentTimeData || typeof tournamentTimeData !== "object" || Array.isArray(tournamentTimeData)) {
-    throw new Error(`timeData missing: ${tournament.slug}`);
+  const tournamentTimeGrid = timeGridBySlug[tournament.slug];
+  if (!tournamentTimeGrid || typeof tournamentTimeGrid !== "object" || Array.isArray(tournamentTimeGrid)) {
+    throw new Error(`timeGrid missing: ${tournament.slug}`);
   }
   const stats = sortTeams(rawStats);
   const sortMeta = {
@@ -48,7 +48,7 @@ export function renderTournamentSection(tournament, globalStats, timeData, sched
   };
   const summary = buildTournamentSummary(stats);
   const tableBody = buildTournamentTable(tournament, stats, sortMeta);
-  const timeTableHtml = buildTimeTable(tournamentTimeData);
+  const timeTableHtml = renderTimeTable(tournamentTimeGrid);
 
   let phaseIcon = "";
   let phase = null;

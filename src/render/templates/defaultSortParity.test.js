@@ -34,7 +34,7 @@ function createTimeGrid() {
 }
 
 function extractWebTeamOrder(html) {
-  return Array.from(html.matchAll(/onclick="openTeam\('sort-parity', '([^']+)'\)"/g)).map(match => match[1]);
+  return Array.from(html.matchAll(/onclick="openTeam\(&quot;sort-parity&quot;, &quot;([^&]+)&quot;\)"/g)).map(match => match[1]);
 }
 
 function extractMarkdownTeamOrder(markdown) {

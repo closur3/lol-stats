@@ -71,7 +71,7 @@ export class LogsRouter {
   static async handleLogs(_request, env) {
     const kv = env["lol-stats-kv"];
     const tournaments = await readActiveConfig(env);
-    const slugs = tournaments.map(t => t.slug);
+    const slugs = tournaments.map(tournament => tournament.slug);
     const logsBySlug = await readLogsBySlug(kv, slugs);
     const logSlugs = Array.from(logsBySlug.keys());
     const homeBySlug = await readLogMetaBySlug(env, logSlugs);

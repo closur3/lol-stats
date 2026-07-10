@@ -1,4 +1,4 @@
-export function buildResolveName(teamMap) {
+export function buildTeamNameResolver(teamMap) {
   return (rawName) => {
     if (typeof rawName !== "string" || !rawName) throw new Error("Raw team name missing");
     if (rawName === "TBD") return rawName;
