@@ -4,7 +4,7 @@ import { timePolicy } from "../../utils/timePolicy.js";
 
 export async function resolveScheduledExecutionScope(env, scheduledTimeMs, eventCron) {
   const now = new Date(scheduledTimeMs);
-  const today = timePolicy.getBusinessDateKey(now);
+  const today = timePolicy.getAppDateKey(now);
   const state = await readScheduleState(env);
   if (!state || state.date !== today) return { type: "all" };
 

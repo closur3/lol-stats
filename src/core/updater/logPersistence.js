@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { UPDATE_CONFIG } from "./updateConfig.js";
+import { updateConfig } from "./updateConfig.js";
 
 async function readExistingLogEntries(kv, logKey) {
   const logs = await kv.get(logKey, { type: "json" });
@@ -20,7 +20,7 @@ export async function appendActiveLogs(env, activeLogEntries) {
     }
     const logKey = kvKeys.log(slug);
     const oldLogs = await readExistingLogEntries(kv, logKey);
-    const nextLogs = [entry, ...oldLogs].slice(0, UPDATE_CONFIG.MAX_LOG_ENTRIES);
+    const nextLogs = [entry, ...oldLogs].slice(0, updateConfig.maxLogEntries);
     await env["lol-stats-kv"].put(logKey, JSON.stringify(nextLogs));
   }));
 }

@@ -1,13 +1,13 @@
-import { MODAL_BINDINGS } from './modal/modalBindings.js';
-import { MODAL_CORE } from './modal/modalCore.js';
-import { MODAL_DISTRIBUTION } from './modal/modalDistribution.js';
-import { MODAL_HISTORY } from './modal/modalHistory.js';
+import { modalBindings } from './modal/modalBindings.js';
+import { modalCore } from './modal/modalCore.js';
+import { modalDistribution } from './modal/modalDistribution.js';
+import { modalHistory } from './modal/modalHistory.js';
 
-export const MODAL_SCRIPT = [
+export const modalScript = [
   "(function(){",
-  MODAL_CORE,
-  MODAL_DISTRIBUTION,
-  MODAL_HISTORY,
-  MODAL_BINDINGS,
+  modalCore,
+  modalDistribution,
+  modalHistory,
+  modalBindings,
   "})();"
 ].join("\n");

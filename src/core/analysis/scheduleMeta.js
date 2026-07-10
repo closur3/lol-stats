@@ -2,7 +2,7 @@ import { timePolicy } from '../../utils/timePolicy.js';
 
 export function computeScheduleMetaFromRawMatches(rawMatches) {
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
-  const todayStr = timePolicy.getNow().dateString;
+  const todayStr = timePolicy.getCurrentAppDateTime().dateString;
   let todayEarliest = 0;
   let todayUnfinished = 0;
   let hasHistoryUnfinished = false;

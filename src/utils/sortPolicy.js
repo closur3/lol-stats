@@ -2,8 +2,8 @@
  * 排序策略（单一事实来源）
  */
 export const sortPolicy = {
-  BO5_WEIGHT: 1.33,
-  BAYES_PRIOR_STRENGTH: 4,
+  bo5Weight: 1.33,
+  bayesPriorStrength: 4,
 
   bayesPosteriorRate: (fullCount, totalCount, priorMean, priorStrength = 4) => {
     const full = Number(fullCount ?? 0);
@@ -18,8 +18,8 @@ export const sortPolicy = {
     const bo3Total = teamStats.bestOf3TotalMatchCount ?? 0;
     const bo5Full = teamStats.bestOf5FullMatchCount ?? 0;
     const bo5Total = teamStats.bestOf5TotalMatchCount ?? 0;
-    const weightedFullMatchCount = bo3Full + (bo5Full * sortPolicy.BO5_WEIGHT);
-    const weightedTotalMatchCount = bo3Total + (bo5Total * sortPolicy.BO5_WEIGHT);
+    const weightedFullMatchCount = bo3Full + (bo5Full * sortPolicy.bo5Weight);
+    const weightedTotalMatchCount = bo3Total + (bo5Total * sortPolicy.bo5Weight);
     return { weightedFullMatchCount, weightedTotalMatchCount };
   },
 
@@ -51,7 +51,6 @@ export const sortPolicy = {
     const isBo5 = Number(bestOf) === 5;
     const full = isBo5 ? (teamStats.bestOf5FullMatchCount ?? 0) : (teamStats.bestOf3FullMatchCount ?? 0);
     const total = isBo5 ? (teamStats.bestOf5TotalMatchCount ?? 0) : (teamStats.bestOf3TotalMatchCount ?? 0);
-    return sortPolicy.bayesPosteriorRate(full, total, priorMean, sortPolicy.BAYES_PRIOR_STRENGTH);
+    return sortPolicy.bayesPosteriorRate(full, total, priorMean, sortPolicy.bayesPriorStrength);
   }
 };
-

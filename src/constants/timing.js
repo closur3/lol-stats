@@ -1,2 +1,2 @@
-export const FETCH_DELAY_MS = 2000;
-export const MAX_RETRIES = 3;
+export const fetchDelayMs = 2000;
+export const maxRetries = 3;

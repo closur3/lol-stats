@@ -14,7 +14,7 @@ function pickLatestRevisionTrigger(revidChanges) {
 }
 
 export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap) {
-  const loggedAt = timePolicy.getNow().fullDateTimeString;
+  const loggedAt = timePolicy.getCurrentAppDateTime().fullDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
   const bySlug = {};
 

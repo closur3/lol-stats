@@ -1,6 +1,6 @@
 import { pct, rate } from '../../src/utils/data/stats.js';
 import { sortTeams } from '../../src/utils/data/teamSort.js';
-import { TIME_GRID_COLUMN_COUNT } from '../../src/constants/index.js';
+import { timeGridColumnCount } from '../../src/constants/index.js';
 import { timePolicy } from '../../src/utils/timePolicy.js';
 import { summarizeFullRate } from '../../src/core/analysis/fullRateSummary.js';
 
@@ -56,7 +56,7 @@ export function generateMarkdown(tournament, stats, timeGrid) {
     if (!regionGrid[hourOrTotal]) return;
     const label = hourOrTotal === "Total" ? `**Total**` : `**${String(hourOrTotal).padStart(2,'0')}:00**`;
     let line = `| ${label} |`;
-    for (let weekdayIndex = 0; weekdayIndex < TIME_GRID_COLUMN_COUNT; weekdayIndex++) {
+    for (let weekdayIndex = 0; weekdayIndex < timeGridColumnCount; weekdayIndex++) {
       const cell = regionGrid[hourOrTotal][weekdayIndex];
       if (!cell || cell.totalMatchCount === 0) line += " - |";
       else {

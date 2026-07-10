@@ -1,4 +1,4 @@
-export const TIME_TABLE_SCRIPT = `
+export const timeTableScript = `
 function readTimeCellMatches(cellElement) {
     const rawMatches = cellElement.dataset.matches;
     if (rawMatches == null) throw new Error("time table cell matches missing");

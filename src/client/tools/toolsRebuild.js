@@ -1,4 +1,4 @@
-export const TOOLS_REBUILD = `
+export const toolsRebuild = `
           function requestArchiveRebuild(slug) {
               return sendAuthorizedPost('/rebuild-archive', { 'Content-Type': 'application/json' }, JSON.stringify({ slug: slug }));
           }
@@ -15,7 +15,7 @@ export const TOOLS_REBUILD = `
                       showResult(false, 'Archive rebuild failed: ' + name + ' — ' + message);
                   });
               }).catch(function() {
-                  showResult(false, NETWORK_ERROR_MSG);
+                  showResult(false, networkErrorMessage);
               }).then(restore);
           }
 

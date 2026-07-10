@@ -1,4 +1,4 @@
-export const MODAL_BINDINGS = `
+export const modalBindings = `
 function closePopup(){document.getElementById('matchModal').style.display="none";}
 window.onclick=function(event){if(event.target==document.getElementById('matchModal'))closePopup();}
 

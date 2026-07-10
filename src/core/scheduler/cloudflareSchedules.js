@@ -1,4 +1,4 @@
-const WORKER_NAME = "lol-stats";
+const workerName = "lol-stats";
 
 export async function applyCloudflareSchedules(env, schedules) {
   const token = env.CLOUDFLARE_API_TOKEN;
@@ -6,7 +6,7 @@ export async function applyCloudflareSchedules(env, schedules) {
   if (!token || !accountId) {
     throw new Error("Missing Cloudflare schedule env: CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID");
   }
-  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${WORKER_NAME}/schedules`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}/schedules`;
   const response = await fetch(url, {
     method: "PUT",
     headers: {

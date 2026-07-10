@@ -1,4 +1,4 @@
-import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+import { botUserAgent, fandomApi } from '../../constants/index.js';
 
 function readRevisionPage(revisionPayload) {
   const pagesObj = revisionPayload?.query?.pages;
@@ -52,8 +52,8 @@ export async function fetchLatestRevision(pageTitle, maxRetries = 3) {
   let attempt = 1;
   while (attempt <= maxRetries) {
     try {
-      const response = await fetch(`${FANDOM_API}?${revisionParams.toString()}`, {
-        headers: { "User-Agent": BOT_UA, "Accept": "application/json" }
+      const response = await fetch(`${fandomApi}?${revisionParams.toString()}`, {
+        headers: { "User-Agent": botUserAgent, "Accept": "application/json" }
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const revisionPayload = await response.json();

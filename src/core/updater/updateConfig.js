@@ -1,5 +1,5 @@
-export const UPDATE_CONFIG = {
-  DROP_THRESHOLD: 0.9,
-  MAX_LOG_ENTRIES: 20,
-  MAX_SCHEDULE_DAYS: 8,
+export const updateConfig = {
+  dropThreshold: 0.9,
+  maxLogEntries: 20,
+  maxScheduleDays: 8,
 };

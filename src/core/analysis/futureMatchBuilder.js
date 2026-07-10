@@ -17,7 +17,7 @@ export function buildScheduleMap(allFutureMatches, maxScheduleDays, scheduleMeta
   for (const [slug, meta] of Object.entries(scheduleMetaBySlug)) {
     if (meta.hasHistoryUnfinished) historyUnfinished[slug] = true;
   }
-  const todayStr = timePolicy.getNow().dateString;
+  const todayStr = timePolicy.getCurrentAppDateTime().dateString;
   scheduleMap = dateUtils.pruneScheduleMapByDayStatus(scheduleMap, maxScheduleDays, todayStr, historyUnfinished);
 
   return scheduleMap;

@@ -1,11 +1,11 @@
-import { TIME_GRID_COLUMN_COUNT, DEFAULT_MAX_SCHEDULE_DAYS } from '../constants/index.js';
+import { timeGridColumnCount, defaultMaxScheduleDays } from '../constants/index.js';
 import { timePolicy } from '../utils/timePolicy.js';
 import { buildResolveName } from './analysis/teamResolver.js';
 import { parseAllMatches } from './analysis/matchParser.js';
 import { buildTimeGridAndSchedule } from './analysis/gridBuilder.js';
 import { buildScheduleMap } from './analysis/futureMatchBuilder.js';
 
-export function runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DEFAULT_MAX_SCHEDULE_DAYS) {
+export function runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = defaultMaxScheduleDays) {
     if (!Array.isArray(tournaments)) {
       throw new Error("tournaments must be an array");
     }
@@ -15,14 +15,14 @@ export function runFullAnalysis(allRawMatches, tournaments, maxScheduleDays = DE
     const timeGrid = { "ALL": {} };
     const createSlot = () => {
       const slot = {};
-      for (let dayIndex = 0; dayIndex < TIME_GRID_COLUMN_COUNT; dayIndex++) {
+      for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
         slot[dayIndex] = { totalMatchCount: 0, fullLengthMatchCount: 0, matches: [] };
       }
       return slot;
     };
     timeGrid.ALL = createSlot();
 
-    const todayStr = timePolicy.getNow().dateString;
+    const todayStr = timePolicy.getCurrentAppDateTime().dateString;
     const allFutureMatches = {};
 
     tournaments.forEach((tournament, tournamentIndex) => {

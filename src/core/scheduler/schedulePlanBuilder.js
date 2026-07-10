@@ -21,7 +21,7 @@ function buildWindowFromMeta(meta) {
   const fields = assertScheduleMetaFields("ScheduleMeta", meta);
   if (!fields.hasHistoryUnfinished && !fields.todayEarliestTimestamp) return null;
   return {
-    startHour: fields.hasHistoryUnfinished ? 0 : timePolicy.getBusinessHour(fields.todayEarliestTimestamp),
+    startHour: fields.hasHistoryUnfinished ? 0 : timePolicy.getAppHour(fields.todayEarliestTimestamp),
     endHour: 23
   };
 }
@@ -43,7 +43,7 @@ export function buildNextSlugScheduleState(slug, slugState, meta, now) {
 
 export function buildDailyScheduleState(tournaments, metasBySlug, now) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  const today = timePolicy.getBusinessDateKey(now);
+  const today = timePolicy.getAppDateKey(now);
   const next = buildIdleState(today, tournaments);
 
   for (const tournament of tournaments) {

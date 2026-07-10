@@ -1,13 +1,13 @@
 import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
-import { restoreMissingScheduleMetaFromRawMatches } from '../facts/scheduleMetaStore.js';
-import { UPDATE_CONFIG } from './updateConfig.js';
+import { rebuildMissingScheduleMetaFromRawMatches } from '../facts/scheduleMetaStore.js';
+import { updateConfig } from './updateConfig.js';
 
 export async function restoreMissingScheduleMetaBySlugFromRawMatches(env, orderedTournaments) {
   const scheduleMetas = await Promise.all(orderedTournaments.map(async (tournament) => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
-    return restoreMissingScheduleMetaFromRawMatches(env, slug);
+    return rebuildMissingScheduleMetaFromRawMatches(env, slug);
   }));
   return new Map(scheduleMetas.map(meta => [meta.slug, meta]));
 }
@@ -81,8 +81,8 @@ export function pruneHomeSchedule(scheduleMap, scheduleMetaBySlug) {
 
   return dateUtils.pruneScheduleMapByDayStatus(
     scheduleMap,
-    UPDATE_CONFIG.MAX_SCHEDULE_DAYS,
-    timePolicy.getNow().dateString,
+    updateConfig.maxScheduleDays,
+    timePolicy.getCurrentAppDateTime().dateString,
     historyUnfinished
   );
 }

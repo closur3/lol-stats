@@ -1,9 +1,9 @@
-import { UPDATE_CONFIG } from '../core/updater/updateConfig.js';
+import { updateConfig } from '../core/updater/updateConfig.js';
 import { readActiveConfig } from '../core/updater/activeConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { renderLogPage } from '../render/templates/logs.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
-import { restoreMissingScheduleMetaFromRawMatches } from '../core/facts/scheduleMetaStore.js';
+import { rebuildMissingScheduleMetaFromRawMatches } from '../core/facts/scheduleMetaStore.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 async function readLogsBySlug(kv, slugs) {
@@ -27,7 +27,7 @@ async function readLogMetaBySlug(env, slugs) {
   const metaPairs = await Promise.all(slugs.map(async slug => {
     const [rawMatches, meta] = await Promise.all([
       readRawMatches(env, slug),
-      restoreMissingScheduleMetaFromRawMatches(env, slug)
+      rebuildMissingScheduleMetaFromRawMatches(env, slug)
     ]);
     return [slug, {
       totalMatchCount: rawMatches.length,
@@ -78,7 +78,7 @@ export class LogsRouter {
     const activeLogItems = buildActiveLogItems(tournaments, logsBySlug, homeBySlug);
     const hasActiveCron = await readHasActiveCron(env);
     const html = renderLogPage(activeLogItems, env.GITHUB_TIME, env.GITHUB_SHA, hasActiveCron, {
-      maxLogEntries: UPDATE_CONFIG.MAX_LOG_ENTRIES
+      maxLogEntries: updateConfig.maxLogEntries
     });
 
     return new Response(html, {

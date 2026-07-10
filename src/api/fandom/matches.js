@@ -1,4 +1,4 @@
-import { FETCH_DELAY_MS, FANDOM_API } from '../../constants/index.js';
+import { fetchDelayMs, fandomApi } from '../../constants/index.js';
 import { assertCargoDate, cargoStringLiteral } from './cargoQuery.js';
 
 export async function fetchAllMatches(fandomClient, slug, sourceInput, dateFilter = null) {
@@ -36,7 +36,7 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput, dateFilte
       maxlag: "1"
     });
 
-    const batchRaw = await fandomClient.fetchWithRetry(`${FANDOM_API}?${cargoParams}`);
+    const batchRaw = await fandomClient.fetchWithRetry(`${fandomApi}?${cargoParams}`);
     const batch = batchRaw.map(record => record.title);
 
     if (!batch.length) break;
@@ -58,7 +58,7 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput, dateFilte
     if (dateFilter) break;
     if (batch.length < limit) break;
 
-    await new Promise(resolveDelay => setTimeout(resolveDelay, FETCH_DELAY_MS));
+    await new Promise(resolveDelay => setTimeout(resolveDelay, fetchDelayMs));
   }
 
   if (all.length === 0) {

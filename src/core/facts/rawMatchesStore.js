@@ -14,7 +14,7 @@ export async function readRawMatches(env, slug) {
   return rawMatches;
 }
 
-async function readPreviousRawMatches(env, slug) {
+async function readStoredRawMatches(env, slug) {
   if (!slug) throw new Error("previous rawMatches slug missing");
   const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(slug), { type: "json" });
   if (rawMatches == null) return [];
@@ -28,12 +28,12 @@ export async function writeRawMatches(env, slug, rawMatches) {
   await env["lol-stats-kv"].put(kvKeys.rawMatches(slug), JSON.stringify(rawMatches));
 }
 
-export async function readPreviousRawMatchesMap(env, tournaments) {
+export async function readStoredRawMatchesBySlug(env, tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const entries = await Promise.all(tournaments.map(async (tournament) => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
-    return [slug, await readPreviousRawMatches(env, slug)];
+    return [slug, await readStoredRawMatches(env, slug)];
   }));
   return Object.fromEntries(entries);
 }

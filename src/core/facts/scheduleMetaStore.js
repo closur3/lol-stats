@@ -38,7 +38,7 @@ export async function rebuildScheduleMetaFromRawMatches(env, slug) {
   return writeScheduleMeta(env, slug, computedMeta);
 }
 
-export async function restoreMissingScheduleMetaFromRawMatches(env, slug) {
+export async function rebuildMissingScheduleMetaFromRawMatches(env, slug) {
   if (!slug) throw new Error("schedule meta slug missing");
   const meta = await env["lol-stats-kv"].get(kvKeys.scheduleMeta(slug), { type: "json" });
   if (meta == null) return rebuildScheduleMetaFromRawMatches(env, slug);

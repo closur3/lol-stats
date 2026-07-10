@@ -1,13 +1,13 @@
-const BUSINESS_UTC_OFFSET_HOURS = 8;
+const appTimeZoneOffsetHours = 8;
 
-const WEEKDAY_CRON_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-const WEEKDAY_DISPLAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const BUSINESS_UTC_OFFSET_MS = BUSINESS_UTC_OFFSET_HOURS * 60 * 60 * 1000;
+const weekdayCronNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const weekdayDisplayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const appTimeZoneOffsetMs = appTimeZoneOffsetHours * 60 * 60 * 1000;
 const pad2 = (value) => String(value).padStart(2, "0");
 
-function parseBusinessDateKey(dateKey) {
+function parseAppDateKey(dateKey) {
   const match = String(dateKey || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) throw new Error(`Invalid business date key: ${dateKey}`);
+  if (!match) throw new Error(`Invalid app date key: ${dateKey}`);
   return {
     year: Number(match[1]),
     month: Number(match[2]),
@@ -25,17 +25,17 @@ function parseUtcDateTime(raw) {
   return date;
 }
 
-function getBusinessParts(timestampInput = new Date()) {
+function getAppTimeParts(timestampInput = new Date()) {
   const date = timestampInput instanceof Date ? timestampInput : new Date(timestampInput);
   if (Number.isNaN(date.getTime())) throw new Error(`Invalid timestamp: ${timestampInput}`);
 
-  const businessDate = new Date(date.getTime() + BUSINESS_UTC_OFFSET_MS);
-  const yearNumber = businessDate.getUTCFullYear();
-  const monthNumber = businessDate.getUTCMonth() + 1;
-  const dayNumber = businessDate.getUTCDate();
-  const hourNumber = businessDate.getUTCHours();
-  const minuteNumber = businessDate.getUTCMinutes();
-  const secondNumber = businessDate.getUTCSeconds();
+  const appDate = new Date(date.getTime() + appTimeZoneOffsetMs);
+  const yearNumber = appDate.getUTCFullYear();
+  const monthNumber = appDate.getUTCMonth() + 1;
+  const dayNumber = appDate.getUTCDate();
+  const hourNumber = appDate.getUTCHours();
+  const minuteNumber = appDate.getUTCMinutes();
+  const secondNumber = appDate.getUTCSeconds();
   const year = String(yearNumber);
   const month = pad2(monthNumber);
   const day = pad2(dayNumber);
@@ -62,19 +62,19 @@ function getBusinessParts(timestampInput = new Date()) {
   };
 }
 
-function buildBusinessDateUtcDate(dateKey, hour = 0) {
-  const { year, month, day } = parseBusinessDateKey(dateKey);
-  return new Date(Date.UTC(year, month - 1, day, hour - BUSINESS_UTC_OFFSET_HOURS, 0, 0));
+function buildAppDateUtcDate(dateKey, hour = 0) {
+  const { year, month, day } = parseAppDateKey(dateKey);
+  return new Date(Date.UTC(year, month - 1, day, hour - appTimeZoneOffsetHours, 0, 0));
 }
 
 export const timePolicy = {
   parseUtcDateTime,
 
-  getBusinessParts,
+  getAppTimeParts,
 
-  getNow(timestampInput = new Date()) {
+  getCurrentAppDateTime(timestampInput = new Date()) {
     const date = timestampInput instanceof Date ? timestampInput : new Date(timestampInput);
-    const parts = getBusinessParts(date);
+    const parts = getAppTimeParts(date);
     const fullDateTimeString = `${parts.fullDateDisplay} ${parts.hour}:${parts.minute}:${parts.second}`;
     return {
       dateTime: date,
@@ -88,7 +88,7 @@ export const timePolicy = {
 
   deriveMatchTime(rawDateTimeUtc) {
     const date = parseUtcDateTime(rawDateTimeUtc);
-    const parts = getBusinessParts(date);
+    const parts = getAppTimeParts(date);
     const timeMinutes = parts.hourNumber * 60 + parts.minuteNumber;
     return {
       date,
@@ -107,46 +107,46 @@ export const timePolicy = {
 
   formatDateTime(timestamp) {
     if (!timestamp) return "(Pending)";
-    const parts = getBusinessParts(timestamp);
+    const parts = getAppTimeParts(timestamp);
     return `${parts.year}-${parts.month}-${parts.dayOfMonth} ${parts.hour}:${parts.minute}`;
   },
 
   getWeekdayName(dateKey) {
-    const { year, month, day } = parseBusinessDateKey(dateKey);
+    const { year, month, day } = parseAppDateKey(dateKey);
     const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-    return WEEKDAY_DISPLAY_NAMES[weekday];
+    return weekdayDisplayNames[weekday];
   },
 
-  getBusinessHour(timestampInput = new Date()) {
-    return getBusinessParts(timestampInput).hourNumber;
+  getAppHour(timestampInput = new Date()) {
+    return getAppTimeParts(timestampInput).hourNumber;
   },
 
-  getBusinessDateKey(timestampInput = new Date()) {
-    return getBusinessParts(timestampInput).dateKey;
+  getAppDateKey(timestampInput = new Date()) {
+    return getAppTimeParts(timestampInput).dateKey;
   },
 
-  getUtcDateKeysForBusinessDate(dateKey) {
-    const start = buildBusinessDateUtcDate(dateKey, 0);
-    const end = buildBusinessDateUtcDate(dateKey, 23);
+  getCoveredUtcDateKeysForAppDate(dateKey) {
+    const start = buildAppDateUtcDate(dateKey, 0);
+    const end = buildAppDateUtcDate(dateKey, 23);
     return Array.from(new Set([
       start.toISOString().slice(0, 10),
       end.toISOString().slice(0, 10)
     ])).sort();
   },
 
-  isUtcMatchOnBusinessDate(rawDateTimeUtc, dateKey) {
-    return getBusinessParts(parseUtcDateTime(rawDateTimeUtc)).dateKey === dateKey;
+  isUtcMatchOnAppDate(rawDateTimeUtc, dateKey) {
+    return getAppTimeParts(parseUtcDateTime(rawDateTimeUtc)).dateKey === dateKey;
   },
 
-  businessWindowToUtcCronSegments(dateKey, startHour, endHour) {
+  appWindowToUtcCronSegments(dateKey, startHour, endHour) {
     if (!Number.isInteger(startHour) || !Number.isInteger(endHour) || startHour < 0 || startHour > 23 || endHour < 0 || endHour > 23 || startHour > endHour) {
-      throw new Error(`Invalid business play window: ${startHour}-${endHour}`);
+      throw new Error(`Invalid app play window: ${startHour}-${endHour}`);
     }
 
     const segments = [];
-    for (let businessHour = startHour; businessHour <= endHour; businessHour++) {
-      const utcDate = buildBusinessDateUtcDate(dateKey, businessHour);
-      const day = WEEKDAY_CRON_NAMES[utcDate.getUTCDay()];
+    for (let appHour = startHour; appHour <= endHour; appHour++) {
+      const utcDate = buildAppDateUtcDate(dateKey, appHour);
+      const day = weekdayCronNames[utcDate.getUTCDay()];
       const hour = utcDate.getUTCHours();
       const last = segments.at(-1);
       if (last && last.day === day && last.endHour + 1 === hour) {

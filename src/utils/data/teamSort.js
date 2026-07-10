@@ -14,8 +14,8 @@ export function sortTeams(statsObj) {
     const rightFullRate = rightWeightedTotalMatchCount > 0 ? rightWeightedFullMatchCount / rightWeightedTotalMatchCount : 2.0;
     if (leftFullRate !== rightFullRate) return leftFullRate - rightFullRate;
 
-    const leftBayesRate = sortPolicy.bayesPosteriorRate(leftWeightedFullMatchCount, leftWeightedTotalMatchCount, priorMean, sortPolicy.BAYES_PRIOR_STRENGTH);
-    const rightBayesRate = sortPolicy.bayesPosteriorRate(rightWeightedFullMatchCount, rightWeightedTotalMatchCount, priorMean, sortPolicy.BAYES_PRIOR_STRENGTH);
+    const leftBayesRate = sortPolicy.bayesPosteriorRate(leftWeightedFullMatchCount, leftWeightedTotalMatchCount, priorMean, sortPolicy.bayesPriorStrength);
+    const rightBayesRate = sortPolicy.bayesPosteriorRate(rightWeightedFullMatchCount, rightWeightedTotalMatchCount, priorMean, sortPolicy.bayesPriorStrength);
     if (leftBayesRate !== rightBayesRate) return leftBayesRate - rightBayesRate;
 
     if (leftWeightedTotalMatchCount !== rightWeightedTotalMatchCount) return rightWeightedTotalMatchCount - leftWeightedTotalMatchCount;

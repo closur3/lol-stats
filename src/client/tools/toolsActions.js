@@ -1,4 +1,4 @@
-export const TOOLS_ACTIONS = `
+export const toolsActions = `
           function readActionMessage(res, fallback) {
               return res.text().then(function(text) { return text || fallback; });
           }
@@ -31,14 +31,14 @@ export const TOOLS_ACTIONS = `
               var restore = disableButton(button);
               requestForceUpdate(slugs).then(function(res) {
                   showForceUpdateResult(res, slugs.length + '/' + slugs.length);
-              }).catch(function() { showResult(false, NETWORK_ERROR_MSG); }).then(restore);
+              }).catch(function() { showResult(false, networkErrorMessage); }).then(restore);
           }
 
           function forceOne(slug, name, btnEl) {
               var restore = disableButton(btnEl);
               requestForceUpdate([slug]).then(function(res) {
                   showForceUpdateResult(res, name);
-              }).catch(function() { showResult(false, NETWORK_ERROR_MSG); }).then(restore);
+              }).catch(function() { showResult(false, networkErrorMessage); }).then(restore);
           }
 
           function deleteActive(slug, name, button) {

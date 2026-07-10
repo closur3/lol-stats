@@ -15,14 +15,14 @@ export function clusterTimeSlots(finishedMatches, maxClusters) {
     }));
   }
 
-  const THRESHOLD = 60;
+  const threshold = 60;
   const clusters = [];
   let currentCluster = { centerMinutes: sortedTimes[0], times: [sortedTimes[0]] };
 
   for (let i = 1; i < sortedTimes.length; i++) {
     const time = sortedTimes[i];
     const dist = Math.abs(time - currentCluster.centerMinutes);
-    if (dist <= THRESHOLD && clusters.length + 1 < maxClusters) {
+    if (dist <= threshold && clusters.length + 1 < maxClusters) {
       currentCluster.times.push(time);
       currentCluster.centerMinutes = Math.round(currentCluster.times.reduce((a, b) => a + b, 0) / currentCluster.times.length);
     } else {

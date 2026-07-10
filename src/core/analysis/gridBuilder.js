@@ -1,4 +1,4 @@
-import { TIME_GRID_COLUMN_COUNT } from '../../constants/index.js';
+import { timeGridColumnCount } from '../../constants/index.js';
 import { clusterTimeSlots, assignMatchesToClusters } from './timeCluster.js';
 
 export function buildTimeGridAndSchedule(tournamentSlug, parsedMatches, timeGrid) {
@@ -12,7 +12,7 @@ export function buildTimeGridAndSchedule(tournamentSlug, parsedMatches, timeGrid
 
   const createSlot = () => {
     const slot = {};
-    for (let dayIndex = 0; dayIndex < TIME_GRID_COLUMN_COUNT; dayIndex++) {
+    for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
       slot[dayIndex] = { totalMatchCount: 0, fullLengthMatchCount: 0, matches: [] };
     }
     return slot;

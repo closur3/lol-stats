@@ -1,5 +1,5 @@
 import { timePolicy } from "../../utils/timePolicy.js";
-import { restoreMissingScheduleMetaFromRawMatches, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
+import { rebuildMissingScheduleMetaFromRawMatches, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
 import {
   alignStateSlugsWithTournaments,
   areSchedulesApplied,
@@ -8,7 +8,7 @@ import {
   recordAppliedSchedules,
   writeScheduleState
 } from "./scheduleState.js";
-import { collectSchedulesFromState } from "./cronBuckets.js";
+import { buildCronsFromScheduleState } from "./cronBuckets.js";
 import { runScheduleApply } from "./scheduleApplyRunner.js";
 import {
   buildDailyScheduleState,
@@ -31,7 +31,7 @@ async function restoreMissingScheduleMetasForTournaments(env, tournaments) {
     tournaments.map(async (tournament) => {
       const slug = tournament?.slug;
       if (!slug) throw new Error("Tournament slug missing");
-      return restoreMissingScheduleMetaFromRawMatches(env, slug);
+      return rebuildMissingScheduleMetaFromRawMatches(env, slug);
     })
   );
 }
@@ -39,10 +39,10 @@ async function restoreMissingScheduleMetasForTournaments(env, tournaments) {
 async function planNewScheduleDay(env, tournaments, now, lastDay, options) {
   const rebuiltMetas = await rebuildScheduleMetasForTournaments(env, tournaments);
   const metasBySlug = new Map(rebuiltMetas.map(meta => [meta.slug, meta]));
-  const today = timePolicy.getBusinessDateKey(now);
+  const today = timePolicy.getAppDateKey(now);
   console.log(`[SCHED:DAY] ${lastDay || "none"} -> ${today}`);
   const state = buildDailyScheduleState(tournaments, metasBySlug, now);
-  const schedules = collectSchedulesFromState(state);
+  const schedules = buildCronsFromScheduleState(state);
   const applyResult = await runScheduleApply(env, schedules, "PLAN", options);
   if (applyResult === "applied") recordAppliedSchedules(state, schedules);
   await writeScheduleState(env, state);
@@ -70,7 +70,7 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
 
   const hasChanges = alignmentChanged || reconciled.length > 0;
   if (!hasChanges) {
-    const schedules = collectSchedulesFromState(state);
+    const schedules = buildCronsFromScheduleState(state);
     if (areSchedulesApplied(state, schedules)) return;
     const applyResult = await runScheduleApply(env, schedules, "REAPPLY", options);
     if (applyResult === "applied") recordAppliedSchedules(state, schedules);
@@ -79,11 +79,11 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
   }
 
   if (reconciled.length > 0) {
-    const today = timePolicy.getBusinessDateKey(now);
+    const today = timePolicy.getAppDateKey(now);
     console.log(`[SCHED:STATE] date=${today} ${reconciled.join(",")}`);
   }
 
-  const schedules = collectSchedulesFromState(state);
+  const schedules = buildCronsFromScheduleState(state);
   if (!areSchedulesApplied(state, schedules)) {
     const applyResult = await runScheduleApply(env, schedules, "RECONCILE", options);
     if (applyResult === "applied") recordAppliedSchedules(state, schedules);
@@ -94,7 +94,7 @@ async function reconcileCurrentScheduleDay(env, tournaments, state, now, options
 export async function reconcileCurrentScheduleState(env, tournaments, scheduledTimeMs, options = {}) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(scheduledTimeMs);
-  const today = timePolicy.getBusinessDateKey(now);
+  const today = timePolicy.getAppDateKey(now);
   const state = await readScheduleState(env);
   if (!state || state.date !== today) return false;
   await reconcileCurrentScheduleDay(env, tournaments, state, now, options);
@@ -104,7 +104,7 @@ export async function reconcileCurrentScheduleState(env, tournaments, scheduledT
 export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, options = {}) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(scheduledTimeMs);
-  const today = timePolicy.getBusinessDateKey(now);
+  const today = timePolicy.getAppDateKey(now);
 
   const state = await readScheduleState(env);
   const lastDay = state?.date || null;

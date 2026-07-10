@@ -1,5 +1,5 @@
 import { buildDisplayNameMap, getDisplayName } from './displayName.js';
-import { UPDATE_CONFIG } from './updateConfig.js';
+import { updateConfig } from './updateConfig.js';
 
 const getMatchKey = (match) => String(match.MatchId);
 
@@ -56,7 +56,7 @@ export function applyRawMatchFetchResults(results, rawMatchesBySlug, force, tour
       if (!Array.isArray(oldData)) throw new Error(`RawMatches missing in active update scope: ${slug}`);
       const isForce = force;
 
-      if (!isForce && oldData.length > 10 && newData.length < oldData.length * UPDATE_CONFIG.DROP_THRESHOLD) {
+      if (!isForce && oldData.length > 10 && newData.length < oldData.length * updateConfig.dropThreshold) {
         dropBreakers.push(`${slug}(Drop ${oldData.length}->${newData.length})`);
         brokenSlugs.add(slug);
       } else {

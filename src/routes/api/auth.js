@@ -1,4 +1,4 @@
-const TOOLS_AUTH_COOKIE = "ToolsAuth";
+const toolsAuthCookie = "ToolsAuth";
 
 function readCookie(request, name) {
   const cookieHeader = request.headers.get("Cookie");
@@ -15,11 +15,11 @@ export function createToolsAuthCookie(request, env) {
   const secret = env.ADMIN_SECRET;
   if (!secret) throw new Error("ADMIN_SECRET missing");
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return `${TOOLS_AUTH_COOKIE}=${encodeURIComponent(secret)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure}`;
+  return `${toolsAuthCookie}=${encodeURIComponent(secret)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure}`;
 }
 
 function isToolsCookieAuthorized(request, env) {
-  return readCookie(request, TOOLS_AUTH_COOKIE) === env.ADMIN_SECRET;
+  return readCookie(request, toolsAuthCookie) === env.ADMIN_SECRET;
 }
 
 export function isAdminAuthorized(request, env) {

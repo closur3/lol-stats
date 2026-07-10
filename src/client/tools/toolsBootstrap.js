@@ -1,9 +1,9 @@
-export const TOOLS_BOOTSTRAP = `
+export const toolsBootstrap = `
           var toastContainer = document.getElementById("toast-container");
-          var TOAST_DURATION_MS = 3000;
-          var REDIRECT_DELAY_MS = 1500;
-          var AUTH_ERROR_MSG = "Session expired. Sign in again.";
-          var NETWORK_ERROR_MSG = "Network request failed. Try again.";
+          var toastDurationMs = 3000;
+          var redirectDelayMs = 1500;
+          var authErrorMessage = "Session expired. Sign in again.";
+          var networkErrorMessage = "Network request failed. Try again.";
 
           document.getElementById('chk-active-all').addEventListener('change', function() {
               document.querySelectorAll('#active-list .item-chk').forEach(function(checkboxElement) { checkboxElement.checked = this.checked; }.bind(this));
@@ -18,9 +18,9 @@ export const TOOLS_BOOTSTRAP = `
               var toast = document.createElement('div');
               toast.className = 'toast ' + type; toast.innerText = message;
               toastContainer.appendChild(toast); void toast.offsetWidth; toast.classList.add('show');
-              setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, TOAST_DURATION_MS);
+              setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, toastDurationMs);
           }
-          function checkAuthError(status) { if (status === 401) { showToast(AUTH_ERROR_MSG, "error"); clearAuth(); return true; } return false; }
+          function checkAuthError(status) { if (status === 401) { showToast(authErrorMessage, "error"); clearAuth(); return true; } return false; }
           function disableButton(button) {
               button.disabled = true;
               return function() { button.disabled = false; };
@@ -100,7 +100,7 @@ export const TOOLS_BOOTSTRAP = `
                       } else {
                           showResult(true, meta.successMessage);
                       }
-                      setTimeout(function() { location.reload(); }, REDIRECT_DELAY_MS);
+                      setTimeout(function() { location.reload(); }, redirectDelayMs);
                   } else {
                       res.text().then(function(errorMessage) {
                           showResult(false, meta.failurePrefix + ' — ' + (errorMessage || 'Request failed.'));
@@ -109,7 +109,7 @@ export const TOOLS_BOOTSTRAP = `
               }).catch(function() {
                   restoreConfirm();
                   restoreAction();
-                  showResult(false, NETWORK_ERROR_MSG);
+                  showResult(false, networkErrorMessage);
               });
           }
           document.getElementById('config-action-confirm').addEventListener('click', function(event) {

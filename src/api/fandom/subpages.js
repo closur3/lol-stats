@@ -1,4 +1,4 @@
-import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+import { botUserAgent, fandomApi } from '../../constants/index.js';
 
 function readAllPages(data) {
   const pages = data?.query?.allpages;
@@ -25,8 +25,8 @@ export async function fetchAllSubpages(basePage) {
       format: "json"
     });
 
-    const response = await fetch(`${FANDOM_API}?${params.toString()}`, {
-      headers: { "User-Agent": BOT_UA, "Accept": "application/json" }
+    const response = await fetch(`${fandomApi}?${params.toString()}`, {
+      headers: { "User-Agent": botUserAgent, "Accept": "application/json" }
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

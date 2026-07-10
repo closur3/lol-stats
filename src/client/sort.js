@@ -1,6 +1,6 @@
-export const SORT_SCRIPT = `
+export const sortScript = `
 (function(){
-const COL_TEAM=0, COL_BO3=1, COL_BO3_PCT=2, COL_BO5=3, COL_BO5_PCT=4, COL_SERIES=5, COL_SERIES_WR=6, COL_GAME=7, COL_GAME_WR=8, COL_STREAK=9, COL_LAST_DATE=10;
+const columnTeam=0, columnBo3=1, columnBo3Percent=2, columnBo5=3, columnBo5Percent=4, columnSeries=5, columnSeriesWinRate=6, columnGame=7, columnGameWinRate=8, columnStreak=9, columnLastDate=10;
 
 function doSort(columnIndex, tableId) {
     const table = document.getElementById(tableId);
@@ -8,7 +8,7 @@ function doSort(columnIndex, tableId) {
     const rows = Array.from(tbody.rows);
     const sortDirKey = 'data-sort-dir-' + columnIndex;
     const currentDir = table.getAttribute(sortDirKey);
-    const defaultAscCols = [COL_TEAM, COL_BO3_PCT, COL_BO5_PCT];
+    const defaultAscCols = [columnTeam, columnBo3Percent, columnBo5Percent];
     const nextDir = (!currentDir) ? (defaultAscCols.includes(columnIndex) ? 'asc' : 'desc') : (currentDir === 'desc' ? 'asc' : 'desc');
 
     rows.sort((rowA, rowB) => {
@@ -19,13 +19,13 @@ function doSort(columnIndex, tableId) {
         if (isMissingA !== isMissingB) return isMissingA ? 1 : -1;
 
         const compareTeamName = () => {
-            const teamA = (rowA.cells[COL_TEAM].innerText || "").toLowerCase();
-            const teamB = (rowB.cells[COL_TEAM].innerText || "").toLowerCase();
+            const teamA = (rowA.cells[columnTeam].innerText || "").toLowerCase();
+            const teamB = (rowB.cells[columnTeam].innerText || "").toLowerCase();
             if (teamA === teamB) return 0;
             return teamA > teamB ? 1 : -1;
         };
 
-        if (columnIndex === COL_SERIES) {
+        if (columnIndex === columnSeries) {
             const parseSeriesRecord = (text) => {
                 if (text === "-" || !text.includes("-")) return { wins: -1, losses: 9999, winRate: -1 };
                 const parts = text.split("-");
@@ -35,15 +35,15 @@ function doSort(columnIndex, tableId) {
                 return { wins, losses, winRate: total > 0 ? (wins / total) : -1 };
             };
 
-            const recA = parseSeriesRecord(rowA.cells[COL_SERIES].innerText);
-            const recB = parseSeriesRecord(rowB.cells[COL_SERIES].innerText);
+            const recA = parseSeriesRecord(rowA.cells[columnSeries].innerText);
+            const recB = parseSeriesRecord(rowB.cells[columnSeries].innerText);
 
             if (recA.wins !== recB.wins) return nextDir === 'asc' ? (recA.wins - recB.wins) : (recB.wins - recA.wins);
             if (recA.losses !== recB.losses) return nextDir === 'asc' ? (recB.losses - recA.losses) : (recA.losses - recB.losses);
             if (recA.winRate !== recB.winRate) return nextDir === 'asc' ? (recA.winRate - recB.winRate) : (recB.winRate - recA.winRate);
 
-            const gameA = parseValue(rowA.cells[COL_GAME_WR].innerText);
-            const gameB = parseValue(rowB.cells[COL_GAME_WR].innerText);
+            const gameA = parseValue(rowA.cells[columnGameWinRate].innerText);
+            const gameB = parseValue(rowB.cells[columnGameWinRate].innerText);
             if (gameA !== gameB) return nextDir === 'asc' ? (gameA - gameB) : (gameB - gameA);
             return compareTeamName();
         }
@@ -51,10 +51,10 @@ function doSort(columnIndex, tableId) {
         let valueA = rowA.cells[columnIndex].innerText;
         let valueB = rowB.cells[columnIndex].innerText;
         
-        if (columnIndex === COL_LAST_DATE) { 
+        if (columnIndex === columnLastDate) {
           valueA = valueA === "-" ? "" : valueA; 
           valueB = valueB === "-" ? "" : valueB; 
-        } else if (columnIndex === COL_STREAK) { 
+        } else if (columnIndex === columnStreak) {
           const parseStreak = (streak) => streak === "-" ? 0 : (streak.includes('W') ? parseInt(streak) : -parseInt(streak)); 
           valueA = parseStreak(valueA); 
           valueB = parseStreak(valueB); 
@@ -65,7 +65,7 @@ function doSort(columnIndex, tableId) {
 
         if (valueA !== valueB) return nextDir === 'asc' ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
         
-        if (columnIndex === COL_BO3_PCT || columnIndex === COL_BO5_PCT) { 
+        if (columnIndex === columnBo3Percent || columnIndex === columnBo5Percent) {
           const tieA = parseFloat(rowA.cells[columnIndex].dataset.bayesTie || "0");
           const tieB = parseFloat(rowB.cells[columnIndex].dataset.bayesTie || "0");
           if (tieA !== tieB) return nextDir === 'asc' ? (tieA - tieB) : (tieB - tieA);
@@ -74,20 +74,20 @@ function doSort(columnIndex, tableId) {
           const sampleB = parseFloat(rowB.cells[columnIndex].dataset.sampleSize || "0");
           if (sampleA !== sampleB) return nextDir === 'asc' ? (sampleB - sampleA) : (sampleA - sampleB);
 
-          const seriesA = parseValue(rowA.cells[COL_SERIES_WR].innerText);
-          const seriesB = parseValue(rowB.cells[COL_SERIES_WR].innerText);
+          const seriesA = parseValue(rowA.cells[columnSeriesWinRate].innerText);
+          const seriesB = parseValue(rowB.cells[columnSeriesWinRate].innerText);
           if (seriesA !== seriesB) return seriesB - seriesA;
 
-          const gameA = parseValue(rowA.cells[COL_GAME_WR].innerText);
-          const gameB = parseValue(rowB.cells[COL_GAME_WR].innerText);
+          const gameA = parseValue(rowA.cells[columnGameWinRate].innerText);
+          const gameB = parseValue(rowB.cells[columnGameWinRate].innerText);
           if (gameA !== gameB) return gameB - gameA;
         }
         
-        if (columnIndex === COL_SERIES_WR) {
-            const gameA = parseValue(rowA.cells[COL_GAME_WR].innerText);
-            const gameB = parseValue(rowB.cells[COL_GAME_WR].innerText);
+        if (columnIndex === columnSeriesWinRate) {
+            const gameA = parseValue(rowA.cells[columnGameWinRate].innerText);
+            const gameB = parseValue(rowB.cells[columnGameWinRate].innerText);
             if (gameA !== gameB) return gameB - gameA;
-        } else if (columnIndex === COL_GAME) {
+        } else if (columnIndex === columnGame) {
             const getGameNet = (cell) => {
                 const text = cell.innerText;
                 if (text === "-" || !text.includes("-")) return 0;
@@ -99,8 +99,8 @@ function doSort(columnIndex, tableId) {
                 }
                 return 0;
             };
-            const netA = getGameNet(rowA.cells[COL_GAME]);
-            const netB = getGameNet(rowB.cells[COL_GAME]);
+            const netA = getGameNet(rowA.cells[columnGame]);
+            const netB = getGameNet(rowB.cells[columnGame]);
             if (netA !== netB) return netB - netA;
         }
         return compareTeamName();

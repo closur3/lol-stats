@@ -1,5 +1,5 @@
-export const PAGE_ACTIONS_SCRIPT = `
-const FLOATING_ACTIONS_FOOTER_GAP = 12;
+export const pageActionsScript = `
+const floatingActionsFooterGap = 12;
 
 function getTournamentSections() {
     return Array.from(document.querySelectorAll("details.home-sec"));
@@ -58,7 +58,7 @@ function syncFloatingActionsMobilePosition() {
     const footerBox = footer.getBoundingClientRect();
     if (footerBox.top < window.innerHeight) {
         const actionsBox = actions.getBoundingClientRect();
-        const centerY = footerBox.top - FLOATING_ACTIONS_FOOTER_GAP - (actionsBox.height / 2);
+        const centerY = footerBox.top - floatingActionsFooterGap - (actionsBox.height / 2);
         actions.style.top = centerY + "px";
         actions.style.bottom = "auto";
         actions.style.transform = "translate(-50%, -50%)";

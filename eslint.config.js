@@ -27,7 +27,8 @@ export default [
       "no-empty": ["warn", { "allowEmptyCatch": true }],
       "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
       "no-case-declarations": "warn",
-      "no-constant-condition": ["warn", { "checkLoops": false }]
+      "no-constant-condition": ["warn", { "checkLoops": false }],
+      "camelcase": ["error", { "properties": "never", "ignoreDestructuring": true }]
     }
   }
 ];

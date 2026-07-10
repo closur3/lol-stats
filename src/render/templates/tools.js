@@ -1,10 +1,10 @@
 ﻿import toolsCSS from '../../styles/tools.js';
-import { TOOLS_SCRIPT } from '../../client/tools.js';
+import { toolsScript } from '../../client/tools.js';
 import { escapeHtml } from '../../utils/htmlEscape.js';
 import { renderPageShell } from './page.js';
 import { renderActiveTournamentList, renderArchivedTournamentList } from './toolsLists.js';
 
-const TOOLS_AUTH_SCRIPT = `
+const toolsAuthScript = `
 <script>
   const authForm = document.getElementById("tools-auth-form");
   const authInput = document.getElementById("auth-pwd");
@@ -59,7 +59,7 @@ export function renderToolsAuthPage(time, sha) {
 
   return renderPageShell("Tools", "", "tools", time, sha, false, {
     css: toolsCSS,
-    script: TOOLS_AUTH_SCRIPT,
+    script: toolsAuthScript,
     preBody,
     showModal: false
   });
@@ -123,7 +123,7 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
 
   return renderPageShell("Tools", bodyContent, "tools", time, sha, hasActiveCron, {
     css: toolsCSS,
-    script: `<script>${TOOLS_SCRIPT}</script>`,
+    script: `<script>${toolsScript}</script>`,
     preBody,
     showModal: false
   });

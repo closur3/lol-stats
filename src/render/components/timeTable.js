@@ -1,8 +1,8 @@
 import { color } from '../../utils/data/stats.js';
-import { TIME_GRID_COLUMN_COUNT } from '../../constants/index.js';
+import { timeGridColumnCount } from '../../constants/index.js';
 import { escapeHtml } from '../../utils/htmlEscape.js';
 
-const TIME_TABLE_COLUMNS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total"];
+const timeTableColumns = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total"];
 
 function requireTimeCell(regionGrid, hour, dayIndex) {
   const cell = regionGrid[hour]?.[dayIndex];
@@ -30,7 +30,7 @@ function collectBoxFilters(regionGrid, hours) {
   const bestOfSet = new Set();
   for (const hour of hours) {
     if (!regionGrid[hour]) throw new Error(`timeGrid bucket missing: ${hour}`);
-    for (let dayIndex = 0; dayIndex < TIME_GRID_COLUMN_COUNT; dayIndex++) {
+    for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
       const cell = requireTimeCell(regionGrid, hour, dayIndex);
       validateTimeCell(cell, hour, dayIndex);
       for (const match of cell.matches) {
@@ -76,7 +76,7 @@ export function buildTimeTable(regionGrid) {
   const boxFilters = collectBoxFilters(regionGrid, tableHours);
 
   let html = `<div class="time-table-block" data-box-filter="all"><table class="time-table"><thead><tr class="time-header-row"><th class="team-col time-filter-cell">${renderBoxFilter(boxFilters)}</th>`;
-  TIME_TABLE_COLUMNS.forEach(dayName => { html += `<th class="time-header-cell">${dayName}</th>`; });
+  timeTableColumns.forEach(dayName => { html += `<th class="time-header-cell">${dayName}</th>`; });
   html += "</tr></thead><tbody>";
 
   tableHours.forEach(hour => {
@@ -86,7 +86,7 @@ export function buildTimeTable(regionGrid) {
     const labelClass = isTotal ? "team-col time-total-label" : "team-col";
     html += `<tr${rowClass}><td class="${labelClass}">${label}</td>`;
 
-    for (let dayIndex = 0; dayIndex < TIME_GRID_COLUMN_COUNT; dayIndex++) {
+    for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
       const cellData = requireTimeCell(regionGrid, hour, dayIndex);
       validateTimeCell(cellData, hour, dayIndex);
       if (cellData.totalMatchCount === 0) {

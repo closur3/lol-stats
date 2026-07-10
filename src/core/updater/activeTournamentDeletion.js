@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { collectSchedulesFromState } from "../scheduler/cronBuckets.js";
+import { buildCronsFromScheduleState } from "../scheduler/cronBuckets.js";
 import { runScheduleApply } from "../scheduler/scheduleApplyRunner.js";
 import {
   areSchedulesApplied,
@@ -32,7 +32,7 @@ async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
   const controlChanged = Object.prototype.hasOwnProperty.call(state.slugStates, slug);
   if (controlChanged) delete state.slugStates[slug];
 
-  const schedules = collectSchedulesFromState(state);
+  const schedules = buildCronsFromScheduleState(state);
   let appliedChanged = false;
   if (!areSchedulesApplied(state, schedules)) {
     const applyResult = await runScheduleApply(env, schedules, "DELETE_ACTIVE", scheduleOptions);

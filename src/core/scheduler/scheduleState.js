@@ -55,7 +55,7 @@ function assertPlayWindow(slug, slugState) {
 }
 
 export function isNowInPlayWindow(slugState, nowUtc) {
-  const hour = timePolicy.getBusinessHour(nowUtc);
+  const hour = timePolicy.getAppHour(nowUtc);
   return hour >= slugState.playStartHour && hour <= slugState.playEndHour;
 }
 

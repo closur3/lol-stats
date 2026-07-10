@@ -1,7 +1,7 @@
-﻿import { BOT_UA, FANDOM_API } from '../../constants/index.js';
+import { botUserAgent, fandomApi } from '../../constants/index.js';
 import { extractCookies } from '../../utils/data/cookies.js';
 
-const MAX_LOGIN_RETRIES = 3;
+const maxLoginRetries = 3;
 
 function readLoginToken(tokenData) {
   const loginToken = tokenData?.query?.tokens?.logintoken;
@@ -34,10 +34,10 @@ export async function login(user, pass) {
     throw new Error("Missing Fandom credentials: FANDOM_BOT_USERNAME/FANDOM_BOT_PASSWORD");
   }
 
-  for (let attempt = 1; attempt <= MAX_LOGIN_RETRIES; attempt++) {
+  for (let attempt = 1; attempt <= maxLoginRetries; attempt++) {
     try {
-      const tokenResp = await fetch(`${FANDOM_API}?action=query&meta=tokens&type=login&format=json`, {
-        headers: { "User-Agent": BOT_UA }
+      const tokenResp = await fetch(`${fandomApi}?action=query&meta=tokens&type=login&format=json`, {
+        headers: { "User-Agent": botUserAgent }
       });
       if (!tokenResp.ok) throw new Error(`Token HTTP Error: ${tokenResp.status}`);
 
@@ -52,10 +52,10 @@ export async function login(user, pass) {
       loginParams.append("lgpassword", pass);
       loginParams.append("lgtoken", loginToken);
 
-      const loginResp = await fetch(FANDOM_API, {
+      const loginResp = await fetch(fandomApi, {
         method: "POST",
         body: loginParams,
-        headers: { "User-Agent": BOT_UA, "Cookie": step1Cookie }
+        headers: { "User-Agent": botUserAgent, "Cookie": step1Cookie }
       });
       const loginData = await loginResp.json();
       const loginResult = readLoginResult(loginData);
@@ -63,8 +63,8 @@ export async function login(user, pass) {
       const step2Cookie = extractCookies(loginResp.headers);
       return { cookie: `${step1Cookie}; ${step2Cookie}`, username: loginResult.lgusername };
     } catch (error) {
-      console.error(`[FANDOM:AUTH] attempt=${attempt}/${MAX_LOGIN_RETRIES} error=${error.message}`);
-      if (attempt < MAX_LOGIN_RETRIES) {
+      console.error(`[FANDOM:AUTH] attempt=${attempt}/${maxLoginRetries} error=${error.message}`);
+      if (attempt < maxLoginRetries) {
         await new Promise(resolveDelay => setTimeout(resolveDelay, attempt * 2000));
       }
     }
