@@ -96,5 +96,5 @@ jobs:
           set -euo pipefail
           [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET."; exit 1; }
           [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
-          curl -fsSL -X POST "${WORKER_URL}/run-cron" \
+          curl -sSL --show-error --fail-with-body -X POST "${WORKER_URL}/run-cron" \
             -H "Authorization: Bearer ${ADMIN_SECRET}"
