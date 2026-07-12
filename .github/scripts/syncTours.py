@@ -7,7 +7,7 @@ TARGET_FILE = "config/ConfigActive.json"
 ARCHIVE_FILE = "config/ConfigArchive.json"
 
 # ==================== 配置区 ====================
-PREHEAT_DAYS, EXPIRE_DAYS = 7, 1
+PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
 DEFAULT_REGIONS = ["International", "China", "Korea"]
 WHITELIST = []
 BLACKLIST = ["Opening"]
