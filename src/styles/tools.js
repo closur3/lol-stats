@@ -54,7 +54,7 @@ export default `${baseCSS}
 
     @media (max-width: 650px) { .flex-row { flex-direction: column; align-items: stretch; text-align: left; } .primary-btn, .secondary-btn { width: 100%; } .index-confirm-dialog { grid-template-columns: 1fr; } .index-confirm-actions { flex-direction: column-reverse; } .qr-list-container { grid-template-columns: 1fr; } .ops-actions { flex-direction: column; } .ops-body .item { flex-wrap: wrap; } .ops-body .item-right { width: 100%; justify-content: flex-end; margin-top: 4px; } }
 
-    #auth-overlay { position: fixed; top: 64px; right: 0; bottom: 0; left: 0; background: #f1f5f9; display: flex; justify-content: center; align-items: center; z-index: 90; }
+    #auth-overlay { position: fixed; top: 64px; right: 0; bottom: calc(44px + env(safe-area-inset-bottom)); left: 0; background: #f1f5f9; display: flex; justify-content: center; align-items: center; z-index: 90; }
     .auth-card { background: #fff; padding: 35px 30px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); width: 340px; text-align: center; box-sizing: border-box; border: 1px solid #e2e8f0; }
     .auth-icon { font-size: 32px; margin-bottom: 20px; }
     .auth-btn { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
