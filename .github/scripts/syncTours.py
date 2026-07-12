@@ -504,8 +504,8 @@ def run_sniff():
     )
     archive_removed = sorted(old_archive_map.keys() - new_archive_map.keys())
     migrated = sorted(set(removed) & set(archive_added))
-    active_removed = sorted(set(removed) - set(migrated))
-    archive_created = sorted(set(archive_added) - set(migrated))
+    active_removed = removed
+    archive_created = archive_added
     active_tournaments_changed = bool(added or removed)
 
     total_changes = (
@@ -515,15 +515,8 @@ def run_sniff():
         + len(archive_created)
         + len(archive_updated)
         + len(archive_removed)
-        + len(migrated)
     )
     elapsed = time.time() - start_time
-
-    log("")
-    log(f"📊 摘要 | {f'原始: {len(all_data)}':<10} | {f'最终: {len(unique_res)}':<10} | 耗时: {elapsed:.1f}s")
-    log(f"📝 Active | {f'新增: {len(added)}':<10} | {f'更新: {len(updated)}':<10} | {f'移除: {len(active_removed)}':<10}")
-    log(f"🗄️ Archive | {f'新增: {len(archive_created)}':<10} | {f'更新: {len(archive_updated)}':<10} | {f'移除: {len(archive_removed)}':<10}")
-    log(f"🚚 Migration | {f'迁移: {len(migrated)}':<10}")
 
     def format_change_parts(add_slugs, update_slugs, remove_slugs):
         parts = []
@@ -535,6 +528,14 @@ def run_sniff():
             parts.append(f"- {' / '.join(remove_slugs)}")
         return " | ".join(parts)
 
+    active_parts = format_change_parts(added, updated, active_removed)
+    archive_parts = format_change_parts(archive_created, archive_updated, archive_removed)
+
+    log("")
+    log(f"📊 Summary | {f'Candidates: {len(all_data)}':<14} | {f'Active: {len(unique_res)}':<10} | {f'Archive: {len(archive_output)}':<10} | Elapsed: {elapsed:.1f}s")
+    log(f"📝 {'Active':<7} | {active_parts or 'No changes'}")
+    log(f"🗄️ {'Archive':<7} | {archive_parts or 'No changes'}")
+
     if total_changes > 5:
         commit_msg = (
             f"🎯 Tour: active +{len(added)}, ~{len(updated)}, -{len(active_removed)}; "
@@ -543,8 +544,6 @@ def run_sniff():
         )
     elif total_changes > 0:
         sections = []
-        active_parts = format_change_parts(added, updated, active_removed)
-        archive_parts = format_change_parts(archive_created, archive_updated, archive_removed)
         if active_parts:
             sections.append(f"Active: {active_parts}")
         if archive_parts:
