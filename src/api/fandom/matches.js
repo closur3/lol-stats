@@ -1,6 +1,10 @@
 import { fetchDelayMs, fandomApi } from '../../constants/index.js';
 import { cargoStringLiteral } from './cargoQuery.js';
 
+function hasScheduledDateTime(match) {
+  return typeof match.DateTimeUTC === 'string' && match.DateTimeUTC.trim().length > 0;
+}
+
 export async function fetchAllMatches(fandomClient, slug, sourceInput) {
   const pages = Array.isArray(sourceInput) ? sourceInput : [sourceInput];
   if (pages.length === 0) throw new Error(`No source pages for ${slug}`);
@@ -9,6 +13,7 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput) {
   let offset = 0;
   const limit = 200;
   const seenIds = new Set();
+  let unscheduledCount = 0;
 
   while (true) {
     let whereClause = pages.length === 1
@@ -43,7 +48,9 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput) {
       throw new Error(`[FANDOM:MATCHES] ${slug} duplicate MatchId, aborting to prevent infinite loop`);
     }
 
-    all = all.concat(batch);
+    const scheduledBatch = batch.filter(hasScheduledDateTime);
+    unscheduledCount += batch.length - scheduledBatch.length;
+    all = all.concat(scheduledBatch);
     offset += batch.length;
 
     if (batch.length < limit) break;
@@ -52,7 +59,11 @@ export async function fetchAllMatches(fandomClient, slug, sourceInput) {
   }
 
   if (all.length === 0) {
-    throw new Error(`[FANDOM:MATCHES] ${slug} returned 0 records`);
+    throw new Error(`[FANDOM:MATCHES] ${slug} returned 0 scheduled records`);
+  }
+
+  if (unscheduledCount > 0) {
+    console.log(`[FANDOM:MATCHES] ${slug} skipped unscheduled=${unscheduledCount}`);
   }
 
   return all;
