@@ -6,6 +6,7 @@ import { handleBackup } from './routes/api/backup.js';
 import { handleForceUpdate } from './routes/api/force.js';
 import { handleDeleteActive } from './routes/api/activeActions.js';
 import { handleDeleteArchive, handleRebuildArchive } from './routes/api/archiveActions.js';
+import { handleRunCron } from './routes/api/runCron.js';
 import { runCron } from './core/cron/orchestrator.js';
 
 /**
@@ -42,6 +43,9 @@ export default {
       
       case "/delete-archive":
         return handleDeleteArchive(request, env);
+
+      case "/run-cron":
+        return handleRunCron(request, env);
       
       case "/logs":
         return LogsRouter.handleLogs(request, env);

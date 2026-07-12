@@ -8,6 +8,11 @@ on:
         required: true
         default: false
         type: boolean
+      run_worker_cron:
+        description: "Run the Worker cron after configs are persisted"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   persist:
@@ -81,3 +86,15 @@ jobs:
 
           put_config "ConfigActive" "config/ConfigActive.json"
           put_config "ConfigArchive" "config/ConfigArchive.json"
+
+      - name: Run Worker cron
+        if: inputs.run_worker_cron == true
+        env:
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+        run: |
+          set -euo pipefail
+          [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET."; exit 1; }
+          [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
+          curl -fsSL -X POST "${WORKER_URL}/run-cron" \
+            -H "Authorization: Bearer ${ADMIN_SECRET}"

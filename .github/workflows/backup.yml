@@ -23,10 +23,14 @@ jobs:
 
       - name: Export Markdown
         env:
-          WORKER_URL: "https://lol-stats.closur3.workers.dev/backup"
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           INCLUDE_ARCHIVE: ${{ inputs.include_archive || false }}
-        run: node .github/scripts/exportMarkdownBackup.js
+          WORKER_URL: ${{ vars.WORKER_URL }}
+        run: |
+          set -euo pipefail
+          [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
+          export WORKER_URL="${WORKER_URL}/backup"
+          node .github/scripts/exportMarkdownBackup.js
         shell: bash
 
       - name: Build Commit Message

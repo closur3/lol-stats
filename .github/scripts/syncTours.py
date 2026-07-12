@@ -506,6 +506,7 @@ def run_sniff():
     migrated = sorted(set(removed) & set(archive_added))
     active_removed = sorted(set(removed) - set(migrated))
     archive_created = sorted(set(archive_added) - set(migrated))
+    active_tournaments_changed = bool(added or removed)
 
     total_changes = (
         len(added)
@@ -557,6 +558,10 @@ def run_sniff():
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"commit_msg={commit_msg}\n")
+            f.write(
+                "active_tournaments_changed="
+                f"{'true' if active_tournaments_changed else 'false'}\n"
+            )
 
 if __name__ == "__main__":
     run_sniff()
