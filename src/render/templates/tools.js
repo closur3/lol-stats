@@ -26,7 +26,6 @@ const toolsAuthScript = `
       return;
     }
     authButton.disabled = true;
-    authButton.textContent = "Unlocking...";
     try {
       const response = await fetch("/tools/auth", {
         method: "POST",
@@ -42,7 +41,6 @@ const toolsAuthScript = `
       shakeAuthInput();
     } finally {
       authButton.disabled = false;
-      authButton.textContent = "Unlock";
     }
   });
 </script>`;
