@@ -80,6 +80,11 @@ function buildActiveUpdateLogs(rawMatchUpdate, authContext) {
   return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap);
 }
 
+function assertForceFetchSucceeded(force, rawMatchUpdate) {
+  if (!force || rawMatchUpdate.errorSlugs.size === 0) return;
+  throw new Error(`Force Fandom fetch failed: ${Array.from(rawMatchUpdate.errorSlugs).sort().join(",")}`);
+}
+
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
   const scopedRawMatches = buildScopedRawMatches(rawMatchesBySlug, writeScopeSlugs);
   return analyzeTournaments(scopedRawMatches, scopedTournaments);
@@ -94,6 +99,7 @@ export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force 
   const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
   const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
   if (!rawMatchUpdate) return;
+  assertForceFetchSucceeded(force, rawMatchUpdate);
 
   const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = rawMatchUpdate;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);

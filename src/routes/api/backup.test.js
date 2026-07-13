@@ -89,4 +89,28 @@ describe("handleBackup", () => {
       }
     });
   });
+
+  it("fails when a configured ActiveHome snapshot is missing", async () => {
+    const env = createEnv({
+      ConfigActive: [tournament("active-slug", "Active")]
+    });
+
+    const response = await handleBackup(createRequest("https://example.test/backup"), env);
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("Backup Error: ActiveHome missing: active-slug");
+  });
+
+  it("fails when a configured ArchiveSnapshot is missing from a full backup", async () => {
+    const env = createEnv({
+      ConfigActive: [tournament("active-slug", "Active")],
+      ConfigArchive: [tournament("archive-slug", "Archive")],
+      "ActiveHome_active-slug": snapshot("active-slug", "Active", { scheduleMap: {} })
+    });
+
+    const response = await handleBackup(createRequest("https://example.test/backup?includeArchive=true"), env);
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("Backup Error: ArchiveSnapshot missing: archive-slug");
+  });
 });

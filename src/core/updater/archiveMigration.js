@@ -19,6 +19,11 @@ async function readMigrationRawMatches(env, slug) {
   return rawMatches;
 }
 
+async function archiveSnapshotExists(env, slug) {
+  const snapshot = await env["lol-stats-kv"].get(kvKeys.archive(slug), { type: "json" });
+  return snapshot != null;
+}
+
 async function deleteActiveRuntimeFacts(env, slug) {
   const kv = env["lol-stats-kv"];
   await Promise.all([
@@ -32,7 +37,10 @@ async function deleteActiveRuntimeFacts(env, slug) {
 
 async function migrateArchiveTournament(env, tournament) {
   const rawMatches = await readMigrationRawMatches(env, tournament.slug);
-  if (rawMatches == null) return null;
+  if (rawMatches == null) {
+    if (await archiveSnapshotExists(env, tournament.slug)) return null;
+    throw new Error(`RawMatches missing for archive migration: ${tournament.slug}`);
+  }
 
   const archiveSnapshot = buildArchiveSnapshot(tournament, rawMatches);
   await env["lol-stats-kv"].put(kvKeys.archive(tournament.slug), JSON.stringify(archiveSnapshot));

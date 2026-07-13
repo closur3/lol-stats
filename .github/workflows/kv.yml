@@ -13,10 +13,24 @@ on:
         required: false
         default: false
         type: boolean
+      active_updated_slugs:
+        description: "JSON array of Active slugs requiring force rebuild"
+        required: false
+        default: "[]"
+        type: string
+      active_dropped_slugs:
+        description: "JSON array of non-archived Active slugs requiring runtime deletion"
+        required: false
+        default: "[]"
+        type: string
 
 jobs:
   persist:
     runs-on: ubuntu-latest
+    concurrency:
+      group: worker-runtime-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
@@ -87,14 +101,62 @@ jobs:
           put_config "ConfigActive" "config/ConfigActive.json"
           put_config "ConfigArchive" "config/ConfigArchive.json"
 
-      - name: Run Worker cron
-        if: inputs.run_worker_cron == true
+      - name: Apply Worker transition
+        if: >-
+          inputs.run_worker_cron == true
+          || inputs.active_updated_slugs != '[]'
+          || inputs.active_dropped_slugs != '[]'
         env:
+          ACTIVE_DROPPED_SLUGS: ${{ inputs.active_dropped_slugs }}
+          ACTIVE_UPDATED_SLUGS: ${{ inputs.active_updated_slugs }}
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           WORKER_URL: ${{ vars.WORKER_URL }}
         run: |
           set -euo pipefail
           [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET."; exit 1; }
           [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
-          curl -sSL --show-error --fail-with-body -X POST "${WORKER_URL}/run-cron" \
-            -H "Authorization: Bearer ${ADMIN_SECRET}"
+
+          validate_slugs() {
+            local value="$1"
+            echo "${value}" | jq -e 'type == "array" and all(.[]; type == "string" and length > 0)' > /dev/null
+          }
+          validate_slugs "${ACTIVE_UPDATED_SLUGS}"
+          validate_slugs "${ACTIVE_DROPPED_SLUGS}"
+
+          post_worker() {
+            local url="$1"
+            shift
+            local body_file
+            body_file="$(mktemp)"
+            local status
+            if ! status="$(curl -sSL --show-error -X POST "${url}" \
+              -H "Authorization: Bearer ${ADMIN_SECRET}" \
+              "$@" \
+              -o "${body_file}" \
+              -w '%{http_code}')"; then
+              cat "${body_file}"
+              rm -f "${body_file}"
+              return 1
+            fi
+            cat "${body_file}"
+            rm -f "${body_file}"
+            [[ "${status}" == "200" ]] || { echo "Worker returned HTTP ${status}."; return 1; }
+          }
+
+          if [[ "${{ inputs.run_worker_cron }}" == "true" ]]; then
+            post_worker "${WORKER_URL}/run-cron"
+          fi
+
+          if [[ "$(echo "${ACTIVE_UPDATED_SLUGS}" | jq 'length')" -gt 0 ]]; then
+            force_payload="$(jq -cn --argjson slugs "${ACTIVE_UPDATED_SLUGS}" '{slugs: $slugs}')"
+            post_worker "${WORKER_URL}/force" \
+              -H "Content-Type: application/json" \
+              -d "${force_payload}"
+          fi
+
+          while IFS= read -r slug; do
+            delete_payload="$(jq -cn --arg slug "${slug}" '{slug: $slug}')"
+            post_worker "${WORKER_URL}/delete-active" \
+              -H "Content-Type: application/json" \
+              -d "${delete_payload}"
+          done < <(echo "${ACTIVE_DROPPED_SLUGS}" | jq -r '.[]')

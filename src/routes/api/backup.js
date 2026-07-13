@@ -26,14 +26,14 @@ function assertHomeFields(slug, snapshot) {
   }
 }
 
-async function readSnapshotsBySlug(kv, slugs, buildKey, ...assertFns) {
+async function readSnapshotsBySlug(kv, label, slugs, buildKey, ...assertFns) {
   const entries = await Promise.all(slugs.map(async slug => {
     const snapshot = await kv.get(buildKey(slug), { type: "json" });
-    if (!snapshot) return null;
+    if (!snapshot) throw new Error(`${label} missing: ${slug}`);
     for (const fn of assertFns) fn(slug, snapshot);
     return [slug, snapshot];
   }));
-  return Object.fromEntries(entries.filter(Boolean));
+  return Object.fromEntries(entries);
 }
 
 function readIncludeArchive(request) {
@@ -45,25 +45,29 @@ function readIncludeArchive(request) {
 
 async function readHomeBackup(kv, env) {
   const tournaments = await readActiveConfig(env);
-  return readSnapshotsBySlug(kv, tournaments.map(tournament => tournament.slug), kvKeys.home, assertSnapshot, assertHomeFields);
+  return readSnapshotsBySlug(kv, "ActiveHome", tournaments.map(tournament => tournament.slug), kvKeys.home, assertSnapshot, assertHomeFields);
 }
 
 async function readArchiveBackup(kv, env) {
   const archiveTournaments = await readArchiveConfig(env);
-  return readSnapshotsBySlug(kv, archiveTournaments.map(tournament => tournament.slug), kvKeys.archive, assertSnapshot);
+  return readSnapshotsBySlug(kv, "ArchiveSnapshot", archiveTournaments.map(tournament => tournament.slug), kvKeys.archive, assertSnapshot);
 }
 
 export async function handleBackup(request, env) {
   const unauthorized = requireAdmin(request, env);
   if (unauthorized) return unauthorized;
 
-  const kv = env["lol-stats-kv"];
-  const includeArchive = readIncludeArchive(request);
-  const home = await readHomeBackup(kv, env);
-  const payload = { home };
-  if (includeArchive) payload.archive = await readArchiveBackup(kv, env);
+  try {
+    const kv = env["lol-stats-kv"];
+    const includeArchive = readIncludeArchive(request);
+    const home = await readHomeBackup(kv, env);
+    const payload = { home };
+    if (includeArchive) payload.archive = await readArchiveBackup(kv, env);
 
-  return new Response(JSON.stringify(payload), {
-    headers: { "content-type": "application/json" }
-  });
+    return new Response(JSON.stringify(payload), {
+      headers: { "content-type": "application/json" }
+    });
+  } catch (error) {
+    return new Response(`Backup Error: ${error.message}`, { status: 500 });
+  }
 }
