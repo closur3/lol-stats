@@ -6,12 +6,8 @@ import { migrateArchiveTournaments } from "./archiveMigration.js";
 import { forceActiveTournaments } from "./activeForceRunner.js";
 import { deleteActiveRuntimeFacts } from "./activeTournamentDeletion.js";
 import { deriveTournamentTransition } from "./tournamentTransition.js";
-import { assertTournamentRuntimeMatchesConfig } from "./tournamentRuntimeValidator.js";
+import { assertActiveRuntimeMatchesConfig } from "./activeRuntimeValidator.js";
 import { resolveTournamentApplyBaseline } from "./tournamentApplyBaseline.js";
-
-function transitionSlugs(transition) {
-  return [...transition.added, ...transition.updated, ...transition.archived, ...transition.dropped];
-}
 
 function logTransition(transition) {
   console.log(
@@ -35,7 +31,17 @@ export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleO
 
   const config = await readTournamentConfig(env);
   const desiredApplyState = await buildTournamentApplyState(config);
-  const previousApplyState = await resolveTournamentApplyBaseline(env, config, desiredApplyState);
+  const baseline = await resolveTournamentApplyBaseline(env, config, desiredApplyState);
+  if (baseline.applyState.configDigest === desiredApplyState.configDigest) {
+    const transition = { added: [], updated: [], archived: [], dropped: [] };
+    if (!baseline.checkpointPresent) {
+      await assertConfigUnchanged(env, desiredApplyState.configDigest);
+      await writeTournamentApplyState(env, desiredApplyState);
+    }
+    return { config, transition, configChanged: false };
+  }
+
+  const previousApplyState = baseline.applyState;
   const transition = deriveTournamentTransition(config.archive, desiredApplyState, previousApplyState);
   logTransition(transition);
 
@@ -44,8 +50,8 @@ export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleO
   await Promise.all(transition.dropped.map(slug => deleteActiveRuntimeFacts(env, slug)));
   await runScheduleMaintenance(env, config.active, scheduledTimeMs, scheduleOptions);
 
-  await assertTournamentRuntimeMatchesConfig(env, config);
+  await assertActiveRuntimeMatchesConfig(env, config.active);
   await assertConfigUnchanged(env, desiredApplyState.configDigest);
   await writeTournamentApplyState(env, desiredApplyState);
-  return { config, transition, changed: transitionSlugs(transition).length > 0 };
+  return { config, transition, configChanged: true };
 }

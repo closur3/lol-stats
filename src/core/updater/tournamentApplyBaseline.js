@@ -1,6 +1,6 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { readExistingTournamentApplyState } from "../facts/tournamentApplyState.js";
-import { assertTournamentRuntimeMatchesConfig } from "./tournamentRuntimeValidator.js";
+import { assertActiveRuntimeMatchesConfig } from "./activeRuntimeValidator.js";
 
 const ActiveRuntimePrefixes = [
   kvKeys.ActiveHomePrefix,
@@ -49,14 +49,17 @@ function assertKnownRuntimeSlugs(runtimeSlugs, activeTournaments) {
 
 export async function resolveTournamentApplyBaseline(env, config, desiredApplyState) {
   const existingApplyState = await readExistingTournamentApplyState(env);
-  if (existingApplyState) return existingApplyState;
+  if (existingApplyState) return { applyState: existingApplyState, checkpointPresent: true };
 
   const runtimeSlugs = await readActiveRuntimeSlugs(env);
   assertKnownRuntimeSlugs(runtimeSlugs, config.active);
   if (runtimeSlugs.size === 0) {
-    return { configDigest: "0".repeat(64), activeFingerprints: {} };
+    return {
+      applyState: { configDigest: "0".repeat(64), activeFingerprints: {} },
+      checkpointPresent: false
+    };
   }
 
-  await assertTournamentRuntimeMatchesConfig(env, config);
-  return desiredApplyState;
+  await assertActiveRuntimeMatchesConfig(env, config.active);
+  return { applyState: desiredApplyState, checkpointPresent: false };
 }

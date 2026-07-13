@@ -4,5 +4,6 @@ dist/
 .wrangler/
 .dev.vars
 *.log
-tests/
+# Local-only tests
+/tests/
 AGENTS.md

@@ -2,7 +2,7 @@ import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
-import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
+import { reconcileCurrentScheduleState, runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { reconcileTournamentRuntime } from "../updater/tournamentRuntimeReconciler.js";
@@ -39,11 +39,16 @@ async function runRevisionPath(env, tournaments, revisionResult) {
 
 export async function runCron(env, event) {
   const scheduleOptions = resolveScheduleOptions(env);
-  const { config } = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
+  const { config, configChanged } = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
   const tournaments = config.active;
 
   const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
-  if (target.type === 'none') return;
+  if (target.type === 'none') {
+    if (!configChanged) {
+      await reconcileCurrentScheduleState(env, tournaments, event.scheduledTime, scheduleOptions);
+    }
+    return;
+  }
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
   await runRevisionPath(env, tournaments, revisionResult);

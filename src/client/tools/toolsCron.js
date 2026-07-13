@@ -8,7 +8,7 @@ export const toolsCron = `
                       setTimeout(function() { location.reload(); }, redirectDelayMs);
                       return;
                   }
-                  return readActionMessage(res, 'Request failed.').then(function(message) {
+                  return readActionMessage(response, 'Request failed.').then(function(message) {
                       showResult(false, 'Cron failed: ' + message);
                   });
               }).catch(function() {

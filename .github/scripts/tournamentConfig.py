@@ -37,19 +37,29 @@ def is_whitelisted(name: str, overview_page: str, whitelist: list) -> bool:
     return any(keyword.strip().lower() in haystack for keyword in whitelist)
 
 
-def is_eligible_row(row: dict, regions: list, whitelist: list, blacklist: list) -> bool:
-    name = row.get("Name", "")
-    overview_page = row.get("OverviewPage", "")
+def classify_tournament_eligibility(row: dict, regions: list, whitelist: list, blacklist: list) -> str:
+    name = row["Name"]
+    overview_page = row["OverviewPage"]
     whitelisted = is_whitelisted(name, overview_page, whitelist)
     blacklisted = any(keyword.strip().lower() in name.lower() for keyword in blacklist)
-    if blacklisted and not whitelisted:
-        return False
+    if whitelisted:
+        return "eligible"
+    if blacklisted:
+        return "ineligible"
+
+    filter_fields = ("TournamentLevel", "IsQualifier", "Region")
+    if any(
+        not isinstance(row.get(field), str) or not row[field]
+        for field in filter_fields
+    ):
+        return "undetermined"
+
     region_eligible = (
-        row.get("TournamentLevel") == "Primary"
-        and row.get("IsQualifier") == "0"
-        and row.get("Region") in regions
+        row["TournamentLevel"] == "Primary"
+        and row["IsQualifier"] == "0"
+        and row["Region"] in regions
     )
-    return whitelisted or region_eligible
+    return "eligible" if region_eligible else "ineligible"
 
 
 def deduplicate_source_rows(rows: list) -> list:

@@ -12,6 +12,7 @@ export async function handleRunCron(request, env) {
     await runCron(env, { scheduledTime: Date.now(), cron: baselineCron });
     return new Response("OK", { status: 200 });
   } catch (error) {
+    console.error(`[CRON:ERROR] ${error.stack || error.message}`);
     return new Response(`Cron Error: ${error.message}`, { status: 500 });
   }
 }
