@@ -63,17 +63,18 @@ export function renderToolsAuthPage(time, sha) {
   });
 }
 
-export function renderToolsPage(time, sha, activeTournaments = [], archivedTournaments = [], archiveError = null, hasActiveCron = false) {
+export function renderToolsPage(time, sha, activeTournaments = [], archivedTournaments = [], configError = null, hasActiveCron = false) {
   const activeListHtml = renderActiveTournamentList(activeTournaments);
   const archiveListHtml = renderArchivedTournamentList(archivedTournaments);
-  const archiveErrorHtml = archiveError
-    ? `<div class="tools-error-alert"><strong>Archive index unavailable</strong><span>${escapeHtml(archiveError)}</span></div>`
+  const configErrorHtml = configError
+    ? `<div class="config-error-alert"><strong>TournamentConfig unavailable</strong><span>${escapeHtml(configError)}</span></div>`
     : "";
 
   const bodyContent = `
           <div class="wrapper">
               <div class="table-title"><span>⚙️ Operations</span></div>
               <div class="section-body ops-body">
+                  ${configErrorHtml}
 
                   <div class="group-header">
                       <input type="checkbox" class="group-chk" id="chk-active-all">
@@ -94,7 +95,6 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
                       <span class="group-label">Archived</span>
                   </div>
                   <div class="list">
-                      ${archiveErrorHtml}
                       ${archiveListHtml}
                   </div>
                   <div class="ops-actions">

@@ -13,25 +13,20 @@ jobs:
   discover:
     runs-on: ubuntu-latest
     outputs:
-      active_config_hash: ${{ steps.base_hashes.outputs.active_config_hash }}
-      active_dropped_slugs: ${{ steps.process_data.outputs.active_dropped_slugs }}
-      active_updated_slugs: ${{ steps.process_data.outputs.active_updated_slugs }}
-      archive_config_hash: ${{ steps.base_hashes.outputs.archive_config_hash }}
+      config_hash: ${{ steps.base_hash.outputs.config_hash }}
       commit_msg: ${{ steps.process_data.outputs.commit_msg }}
       membership_changed: ${{ steps.process_data.outputs.membership_changed }}
-      worker_cron_required: ${{ steps.process_data.outputs.worker_cron_required }}
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
 
-      - name: Capture Config base hashes
-        id: base_hashes
+      - name: Capture Config base hash
+        id: base_hash
         shell: bash
         run: |
           set -euo pipefail
-          echo "active_config_hash=$(sha256sum config/ConfigActive.json | awk '{print $1}')" >> "${GITHUB_OUTPUT}"
-          echo "archive_config_hash=$(sha256sum config/ConfigArchive.json | awk '{print $1}')" >> "${GITHUB_OUTPUT}"
+          echo "config_hash=$(sha256sum config/TournamentConfig.json | awk '{print $1}')" >> "${GITHUB_OUTPUT}"
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -86,17 +81,14 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
 
-      - name: Verify Config base hashes
+      - name: Verify Config base hash
         env:
-          EXPECTED_ACTIVE_HASH: ${{ needs.discover.outputs.active_config_hash }}
-          EXPECTED_ARCHIVE_HASH: ${{ needs.discover.outputs.archive_config_hash }}
+          EXPECTED_CONFIG_HASH: ${{ needs.discover.outputs.config_hash }}
         shell: bash
         run: |
           set -euo pipefail
-          current_active_hash="$(sha256sum config/ConfigActive.json | awk '{print $1}')"
-          current_archive_hash="$(sha256sum config/ConfigArchive.json | awk '{print $1}')"
-          [[ "${current_active_hash}" == "${EXPECTED_ACTIVE_HASH}" ]] || { echo "ConfigActive changed after discovery."; exit 1; }
-          [[ "${current_archive_hash}" == "${EXPECTED_ARCHIVE_HASH}" ]] || { echo "ConfigArchive changed after discovery."; exit 1; }
+          current_config_hash="$(sha256sum config/TournamentConfig.json | awk '{print $1}')"
+          [[ "${current_config_hash}" == "${EXPECTED_CONFIG_HASH}" ]] || { echo "TournamentConfig changed after discovery."; exit 1; }
 
       - name: Download Config candidate
         uses: actions/download-artifact@v8
@@ -108,25 +100,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ -s candidate-config/ConfigActive.json ]] || { echo "Missing candidate ConfigActive.json"; exit 1; }
-          [[ -s candidate-config/ConfigArchive.json ]] || { echo "Missing candidate ConfigArchive.json"; exit 1; }
-          cp candidate-config/ConfigActive.json config/ConfigActive.json
-          cp candidate-config/ConfigArchive.json config/ConfigArchive.json
+          [[ -s candidate-config/TournamentConfig.json ]] || { echo "Missing candidate TournamentConfig.json"; exit 1; }
+          cp candidate-config/TournamentConfig.json config/TournamentConfig.json
 
       - name: Commit and Push Config
         id: auto_commit
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "${{ needs.discover.outputs.commit_msg }}"
-          file_pattern: 'config/ConfigActive.json config/ConfigArchive.json'
+          file_pattern: 'config/TournamentConfig.json'
 
       - name: Persist Config and wait for runtime transition
         if: steps.auto_commit.outputs.changes_detected == 'true'
         env:
-          ACTIVE_DROPPED_SLUGS: ${{ needs.discover.outputs.active_dropped_slugs }}
-          ACTIVE_UPDATED_SLUGS: ${{ needs.discover.outputs.active_updated_slugs }}
           GH_TOKEN: ${{ github.token }}
-          WORKER_CRON_REQUIRED: ${{ needs.discover.outputs.worker_cron_required }}
         shell: bash
         run: |
           set -euo pipefail
@@ -134,9 +121,7 @@ jobs:
           gh workflow run kv.yml \
             --ref "${GITHUB_REF_NAME}" \
             -f clear=false \
-            -f run_worker_cron="${WORKER_CRON_REQUIRED}" \
-            -f active_updated_slugs="${ACTIVE_UPDATED_SLUGS}" \
-            -f active_dropped_slugs="${ACTIVE_DROPPED_SLUGS}"
+            -f reconcile=true
 
           run_id=""
           for _ in $(seq 1 30); do

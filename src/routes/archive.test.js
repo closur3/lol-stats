@@ -15,10 +15,10 @@ function tournament(slug) {
 
 describe("ArchiveRouter", () => {
   it("reports every unavailable ArchiveSnapshot in one error page", async () => {
-    const config = [tournament("missing-one"), tournament("missing-two")];
+    const config = { active: [], archive: [tournament("missing-one"), tournament("missing-two")] };
     const env = {
       "lol-stats-kv": {
-        get: async key => key === "ConfigArchive" ? config : null
+        get: async key => key === "TournamentConfig" ? config : null
       }
     };
 

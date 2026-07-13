@@ -1,4 +1,4 @@
-import { readActiveConfig, readArchiveConfig } from "../../core/facts/tournamentConfigReader.js";
+import { readTournamentConfig } from "../../core/facts/tournamentConfigReader.js";
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { requireAdmin } from "./auth.js";
 
@@ -43,13 +43,11 @@ function readIncludeArchive(request) {
   throw new Error("includeArchive must be true or false");
 }
 
-async function readHomeBackup(kv, env) {
-  const tournaments = await readActiveConfig(env);
+async function readHomeBackup(kv, tournaments) {
   return readSnapshotsBySlug(kv, "ActiveHome", tournaments.map(tournament => tournament.slug), kvKeys.home, assertSnapshot, assertHomeFields);
 }
 
-async function readArchiveBackup(kv, env) {
-  const archiveTournaments = await readArchiveConfig(env);
+async function readArchiveBackup(kv, archiveTournaments) {
   return readSnapshotsBySlug(kv, "ArchiveSnapshot", archiveTournaments.map(tournament => tournament.slug), kvKeys.archive, assertSnapshot);
 }
 
@@ -60,9 +58,10 @@ export async function handleBackup(request, env) {
   try {
     const kv = env["lol-stats-kv"];
     const includeArchive = readIncludeArchive(request);
-    const home = await readHomeBackup(kv, env);
+    const config = await readTournamentConfig(env);
+    const home = await readHomeBackup(kv, config.active);
     const payload = { home };
-    if (includeArchive) payload.archive = await readArchiveBackup(kv, env);
+    if (includeArchive) payload.archive = await readArchiveBackup(kv, config.archive);
 
     return new Response(JSON.stringify(payload), {
       headers: { "content-type": "application/json" }

@@ -1,23 +1,14 @@
-import { readActiveConfig } from "../facts/tournamentConfigReader.js";
 import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
-import { reconcileCurrentScheduleState, runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
+import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
-import { migrateArchiveSnapshotsFromActiveFacts } from "../updater/archiveMigration.js";
+import { reconcileTournamentRuntime } from "../updater/tournamentRuntimeReconciler.js";
 
 function filterTournaments(tournaments, slugs) {
   return tournaments.filter(tournament => slugs.has(tournament.slug));
-}
-
-async function resolveCronTarget(env, event, tournaments, scheduleOptions) {
-  const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
-  if (target.type === 'none') {
-    await reconcileCurrentScheduleState(env, tournaments, event.scheduledTime, scheduleOptions);
-  }
-  return target;
 }
 
 async function detectRevisionChangesForTarget(env, tournaments, target) {
@@ -48,13 +39,10 @@ async function runRevisionPath(env, tournaments, revisionResult) {
 
 export async function runCron(env, event) {
   const scheduleOptions = resolveScheduleOptions(env);
-  const tournaments = await readActiveConfig(env);
-  if (!Array.isArray(tournaments)) {
-    throw new Error("tournaments must be an array");
-  }
+  const { config } = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
+  const tournaments = config.active;
 
-  await migrateArchiveSnapshotsFromActiveFacts(env, tournaments);
-  const target = await resolveCronTarget(env, event, tournaments, scheduleOptions);
+  const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
   if (target.type === 'none') return;
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);

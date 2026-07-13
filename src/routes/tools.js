@@ -1,7 +1,15 @@
 import { createToolsAuthCookie, isAdminAuthorized, requirePost } from './api/auth.js';
 import { renderToolsAuthPage, renderToolsPage } from '../render/templates/tools.js';
-import { readActiveConfig, readArchiveConfig } from '../core/facts/tournamentConfigReader.js';
+import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
+
+async function readToolsConfig(env) {
+  try {
+    return { config: await readTournamentConfig(env), configError: null };
+  } catch (error) {
+    return { config: { active: [], archive: [] }, configError: error.message };
+  }
+}
 
 /**
  * 工具页面路由处理
@@ -19,17 +27,9 @@ export class ToolsRouter {
         });
       }
 
-      // 并行读取活跃赛事、归档赛事、CRON 状态
-      const [activeTournaments, archiveResult, hasActiveCron] = await Promise.all([
-      readActiveConfig(env),
-      (async () => {
-        try {
-          return { archivedTournaments: await readArchiveConfig(env), archiveError: null };
-        } catch (error) {
-          return { archivedTournaments: [], archiveError: error.message };
-        }
-      })(),
-      readHasActiveCron(env)
+      const [configResult, hasActiveCron] = await Promise.all([
+        readToolsConfig(env),
+        readHasActiveCron(env)
       ]);
 
       const time = env.GITHUB_TIME;
@@ -37,9 +37,9 @@ export class ToolsRouter {
       const html = renderToolsPage(
         time,
         sha,
-        activeTournaments,
-        archiveResult.archivedTournaments,
-        archiveResult.archiveError,
+        configResult.config.active,
+        configResult.config.archive,
+        configResult.configError,
         hasActiveCron
       );
 

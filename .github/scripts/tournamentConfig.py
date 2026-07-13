@@ -37,19 +37,19 @@ def is_whitelisted(name: str, overview_page: str, whitelist: list) -> bool:
     return any(keyword.strip().lower() in haystack for keyword in whitelist)
 
 
-def is_eligible_row(row: dict, default_regions: list, whitelist: list, blacklist: list) -> bool:
+def is_eligible_row(row: dict, regions: list, whitelist: list, blacklist: list) -> bool:
     name = row.get("Name", "")
     overview_page = row.get("OverviewPage", "")
     whitelisted = is_whitelisted(name, overview_page, whitelist)
     blacklisted = any(keyword.strip().lower() in name.lower() for keyword in blacklist)
     if blacklisted and not whitelisted:
         return False
-    default_eligible = (
+    region_eligible = (
         row.get("TournamentLevel") == "Primary"
         and row.get("IsQualifier") == "0"
-        and row.get("Region") in default_regions
+        and row.get("Region") in regions
     )
-    return whitelisted or default_eligible
+    return whitelisted or region_eligible
 
 
 def deduplicate_source_rows(rows: list) -> list:
@@ -92,10 +92,10 @@ def assert_configs_disjoint(active: list, archive: list) -> None:
         if tournament["slug"] in active_slugs
     )
     if overlap:
-        raise ValueError(f"ConfigActive and ConfigArchive overlap: {', '.join(overlap)}")
+        raise ValueError(f"TournamentConfig active/archive overlap: {', '.join(overlap)}")
 
     page_owners = {}
-    for label, tournaments in (("ConfigActive", active), ("ConfigArchive", archive)):
+    for label, tournaments in (("TournamentConfig.active", active), ("TournamentConfig.archive", archive)):
         for tournament in tournaments:
             for page in tournament["overviewPage"]:
                 owner = f"{label}:{tournament['slug']}"
@@ -134,7 +134,7 @@ def assign_stable_slugs(candidates: list, old_active: list, archive: list) -> li
         }
         if archived_matches:
             raise ValueError(
-                f"Current tournament matches ConfigArchive: {candidate['name']}:{','.join(sorted(archived_matches))}"
+                f"Current tournament matches TournamentConfig.archive: {candidate['name']}:{','.join(sorted(archived_matches))}"
             )
 
         old_matches = {old_by_page[page] for page in pages if page in old_by_page}
@@ -151,7 +151,7 @@ def assign_stable_slugs(candidates: list, old_active: list, archive: list) -> li
             if slug in old_slugs:
                 raise ValueError(f"Generated slug collides with unmatched Active tournament: {slug}")
             if slug in archive_slugs:
-                raise ValueError(f"Generated slug collides with ConfigArchive: {slug}")
+                raise ValueError(f"Generated slug collides with TournamentConfig.archive: {slug}")
 
         if slug in assigned_slugs:
             raise ValueError(f"Duplicate current tournament slug: {slug}")
@@ -253,9 +253,5 @@ def build_transition_manifest(
         active_added,
         archived_slugs,
         dropped_slugs,
-    ))
-    manifest["workerCronRequired"] = any((
-        active_added,
-        archived_slugs,
     ))
     return manifest

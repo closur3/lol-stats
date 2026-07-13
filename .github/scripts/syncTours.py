@@ -23,12 +23,13 @@ from tournamentConfig import (
 
 now = datetime.now()
 today_dt = now.date()
-TARGET_FILE = "config/ConfigActive.json"
-ARCHIVE_FILE = "config/ConfigArchive.json"
+CONFIG_FILE = "config/TournamentConfig.json"
 
 # ==================== 配置区 ====================
-PREHEAT_DAYS, EXPIRE_DAYS = 7, 0
-DEFAULT_REGIONS = ["International", "China", "Korea"]
+DISCOVERY_DAYS = 180
+PREHEAT_DAYS = 7
+EXPIRE_DAYS = 0
+REGIONS = ["International", "China", "Korea"]
 WHITELIST = []
 BLACKLIST = ["Opening"]
 
@@ -45,23 +46,21 @@ CARGO_ORDER_BY = "DateStart ASC"
 
 # ==================== 工具函数 ====================
 
-def load_required_json_array(path: str) -> list:
-    with open(path, "r", encoding="utf-8") as f:
-        value = json.load(f)
+def validate_tournament_list(value, label: str) -> list:
     if not isinstance(value, list):
-        raise ValueError(f"{path} must contain a JSON array")
+        raise ValueError(f"{label} must be a JSON array")
     schema_fields = set(TOURNAMENT_FIELDS)
     required = ("slug", "name", "startDate", "endDate")
     slugs = set()
     for index, item in enumerate(value):
         if not isinstance(item, dict):
-            raise ValueError(f"{path}[{index}] must be an object")
+            raise ValueError(f"{label}[{index}] must be an object")
         if set(item) != schema_fields:
-            raise ValueError(f"{path}[{index}] fields must match the tournament schema")
+            raise ValueError(f"{label}[{index}] fields must match the tournament schema")
         if any(not isinstance(item.get(field), str) or not item[field].strip() for field in required):
-            raise ValueError(f"{path}[{index}] fields missing")
+            raise ValueError(f"{label}[{index}] fields missing")
         if not isinstance(item.get("leagueShort"), str) or not item["leagueShort"].strip():
-            raise ValueError(f"{path}[{index}].leagueShort must be a non-empty string")
+            raise ValueError(f"{label}[{index}].leagueShort must be a non-empty string")
         team_map = item.get("teamMap")
         if (
             not isinstance(team_map, dict)
@@ -74,20 +73,33 @@ def load_required_json_array(path: str) -> list:
                 for source, target in team_map.items()
             )
         ):
-            raise ValueError(f"{path}[{index}].teamMap must be a non-empty string map")
+            raise ValueError(f"{label}[{index}].teamMap must be a non-empty string map")
         overviewPages = item.get("overviewPage")
         if not isinstance(overviewPages, list) or not overviewPages or any(not isinstance(page, str) or not page.strip() for page in overviewPages):
-            raise ValueError(f"{path}[{index}].overviewPage must be a non-empty string array")
+            raise ValueError(f"{label}[{index}].overviewPage must be a non-empty string array")
         if len(set(overviewPages)) != len(overviewPages):
-            raise ValueError(f"{path}[{index}].overviewPage contains duplicates")
+            raise ValueError(f"{label}[{index}].overviewPage contains duplicates")
         start_date = parse_date(item["startDate"])
         end_date = parse_date(item["endDate"])
         if start_date > end_date:
-            raise ValueError(f"{path}[{index}] date range invalid")
+            raise ValueError(f"{label}[{index}] date range invalid")
         if item["slug"] in slugs:
-            raise ValueError(f"Duplicate slug in {path}: {item['slug']}")
+            raise ValueError(f"Duplicate slug in {label}: {item['slug']}")
         slugs.add(item["slug"])
     return value
+
+
+def load_tournament_config(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as file:
+        value = json.load(file)
+    if not isinstance(value, dict) or set(value) != {"active", "archive"}:
+        raise ValueError(f"{path} fields must be active and archive")
+    config = {
+        "active": validate_tournament_list(value["active"], f"{path}.active"),
+        "archive": validate_tournament_list(value["archive"], f"{path}.archive"),
+    }
+    assert_configs_disjoint(config["active"], config["archive"])
+    return config
 
 def add_extra_ov(ev: dict, ov: str) -> None:
     if ov not in ev.setdefault("extraOvs", []):
@@ -127,7 +139,7 @@ def validate_filter_values(values: list, label: str, allow_empty: bool = False) 
         raise ValueError(f"{label} must contain non-empty strings")
 
 def validate_filters() -> None:
-    validate_filter_values(DEFAULT_REGIONS, "DEFAULT_REGIONS")
+    validate_filter_values(REGIONS, "REGIONS")
     validate_filter_values(WHITELIST, "WHITELIST", allow_empty=True)
     validate_filter_values(BLACKLIST, "BLACKLIST", allow_empty=True)
 
@@ -227,13 +239,12 @@ def tournament_query(where: str) -> dict:
         "order_by": CARGO_ORDER_BY,
     }
 
-def build_lifecycle_window_where() -> str:
-    earliest_end = today_dt - timedelta(days=EXPIRE_DAYS)
-    latest_start = today_dt + timedelta(days=PREHEAT_DAYS)
+def build_discovery_window_where() -> str:
+    latest_start = today_dt + timedelta(days=DISCOVERY_DAYS)
     return " AND ".join([
         "DateStart IS NOT NULL",
         "Date IS NOT NULL",
-        f"Date >= {cargo_string_literal(earliest_end, 'Date')}",
+        f"Date >= {cargo_string_literal(today_dt, 'Date')}",
         f"DateStart <= {cargo_string_literal(latest_start, 'DateStart')}",
     ])
 
@@ -242,7 +253,7 @@ def chunked(values: list, size: int):
         yield values[index:index + size]
 
 def fetch_tournament_source_rows(session, url: str, old_active: list) -> list:
-    discovery_rows = fetch_cargo(session, url, tournament_query(build_lifecycle_window_where()))
+    discovery_rows = fetch_cargo(session, url, tournament_query(build_discovery_window_where()))
     active_pages = sorted({page for tournament in old_active for page in tournament["overviewPage"]})
     reconciliation_rows = []
     for pages in chunked(active_pages, 40):
@@ -343,7 +354,7 @@ def group_tournament_rows(source_rows: list, league_short_map: dict) -> dict:
         if any(not isinstance(value, str) or not value for value in eligibility_values):
             raise ValueError(f"Invalid tournament row: {t}")
 
-        if not is_eligible_row(t, DEFAULT_REGIONS, WHITELIST, BLACKLIST):
+        if not is_eligible_row(t, REGIONS, WHITELIST, BLACKLIST):
             blocked_count += 1
             continue
 
@@ -546,14 +557,12 @@ def build_manifest(old_active: list, transition: dict) -> dict:
     )
 
 
-def write_configs(active: list, archive: list) -> None:
+def write_config(active: list, archive: list) -> None:
     ordered_active = [order_tournament_fields(tournament) for tournament in active]
     ordered_archive = [order_tournament_fields(tournament) for tournament in archive]
-    with open(TARGET_FILE, "w", encoding="utf-8") as file:
-        json.dump(ordered_active, file, indent=4, ensure_ascii=False)
-
-    with open(ARCHIVE_FILE, "w", encoding="utf-8") as file:
-        json.dump(ordered_archive, file, indent=4, ensure_ascii=False)
+    with open(CONFIG_FILE, "w", encoding="utf-8") as file:
+        json.dump({"active": ordered_active, "archive": ordered_archive}, file, indent=4, ensure_ascii=False)
+        file.write("\n")
 
 
 def format_change_group(symbol: str, slugs: list, summarize: bool) -> str:
@@ -649,18 +658,15 @@ def write_github_outputs(commit_message: str, manifest: dict) -> None:
     with open(output_path, "a", encoding="utf-8") as file:
         file.write(f"commit_msg={commit_message}\n")
         file.write(f"membership_changed={'true' if manifest['membershipChanged'] else 'false'}\n")
-        file.write(f"worker_cron_required={'true' if manifest['workerCronRequired'] else 'false'}\n")
-        file.write(f"active_updated_slugs={json.dumps(manifest['activeUpdatedSlugs'], separators=(',', ':'))}\n")
-        file.write(f"active_dropped_slugs={json.dumps(manifest['activeDroppedSlugs'], separators=(',', ':'))}\n")
 
 
 # ==================== 主流程 ====================
 
 def run_tournament_sync():
     start_time = time.time()
-    old_active = load_required_json_array(TARGET_FILE)
-    old_archive = load_required_json_array(ARCHIVE_FILE)
-    assert_configs_disjoint(old_active, old_archive)
+    old_config = load_tournament_config(CONFIG_FILE)
+    old_active = old_config["active"]
+    old_archive = old_config["archive"]
     validate_filters()
 
     url = "https://lol.fandom.com/api.php"
@@ -682,7 +688,7 @@ def run_tournament_sync():
     attach_transition_team_maps(session, url, transition)
     assert_configs_disjoint(transition["active"], transition["archive"])
     manifest = build_manifest(old_active, transition)
-    write_configs(transition["active"], transition["archive"])
+    write_config(transition["active"], transition["archive"])
 
     summary = build_change_summary(manifest)
     commit_message = build_commit_message(manifest, summary)

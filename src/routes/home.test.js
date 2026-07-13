@@ -15,10 +15,10 @@ function tournament(slug) {
 
 describe("HomeRouter", () => {
   it("reports every unavailable ActiveHome in the shared error page", async () => {
-    const config = [tournament("missing-one"), tournament("missing-two")];
+    const config = { active: [tournament("missing-one"), tournament("missing-two")], archive: [] };
     const response = await HomeRouter.handleHome({
       "lol-stats-kv": {
-        get: async key => key === "ConfigActive" ? config : null
+        get: async key => key === "TournamentConfig" ? config : null
       }
     });
     const html = await response.text();

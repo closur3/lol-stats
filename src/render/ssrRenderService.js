@@ -1,13 +1,13 @@
 import { renderArchiveContentFragment, renderContentFragment } from './templates/content.js';
 import { renderPageShell } from './templates/page.js';
-import { readActiveConfig, readArchiveConfig } from '../core/facts/tournamentConfigReader.js';
+import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { readActiveHomes } from '../core/updater/activeHomeReader.js';
 import { readArchiveSnapshots } from '../core/updater/archiveSnapshotReader.js';
 import { readScheduleMetaBySlug, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 export async function renderHomeFromFacts(env) {
-  const tournaments = await readActiveConfig(env);
+  const { active: tournaments } = await readTournamentConfig(env);
   const activeHomes = await readActiveHomes(env, tournaments.map(tournament => tournament.slug));
 
   const orderedTournaments = activeHomes.map(activeHome => activeHome.tournament);
@@ -29,7 +29,7 @@ export async function renderHomeFromFacts(env) {
 }
 
 export async function renderArchiveFromFacts(env) {
-  const tournaments = await readArchiveConfig(env);
+  const { archive: tournaments } = await readTournamentConfig(env);
 
   if (!tournaments.length) {
     const hasActiveCron = await readHasActiveCron(env);

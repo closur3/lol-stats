@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { readActiveConfig, readArchiveConfig } from "./tournamentConfigReader.js";
+import { readTournamentConfig } from "./tournamentConfigReader.js";
 
 function createEnv(value) {
   return {
@@ -22,37 +22,66 @@ function createTournament(slug, name) {
 }
 
 describe("tournamentConfigReader", () => {
-  it("reads ConfigArchive without changing GitHub-defined order", async () => {
-    const config = [createTournament("z-tournament", "Z Tournament"), createTournament("a-tournament", "A Tournament")];
+  it("reads both lists without changing GitHub-defined order", async () => {
+    const archive = [createTournament("z-tournament", "Z Tournament"), createTournament("a-tournament", "A Tournament")];
 
-    const result = await readArchiveConfig(createEnv(config));
+    const result = await readTournamentConfig(createEnv({ active: [], archive }));
 
-    expect(result.map(tournament => tournament.slug)).toEqual(["z-tournament", "a-tournament"]);
+    expect(result.archive.map(tournament => tournament.slug)).toEqual(["z-tournament", "a-tournament"]);
   });
 
-  it("uses the same strict schema for ConfigActive", async () => {
+  it("uses the same strict schema for active", async () => {
     const tournament = createTournament("active-tournament", "Active Tournament");
 
-    await expect(readActiveConfig(createEnv([{ ...tournament, overviewPage: ["Valid/2026", ""] }])))
-      .rejects.toThrow("Invalid ConfigActive overviewPage: active-tournament");
+    await expect(readTournamentConfig(createEnv({ active: [{ ...tournament, overviewPage: ["Valid/2026", ""] }], archive: [] })))
+      .rejects.toThrow("Invalid TournamentConfig.active overviewPage: active-tournament");
   });
 
-  it("fails when ConfigArchive is missing", async () => {
-    await expect(readArchiveConfig(createEnv(null))).rejects.toThrow("ConfigArchive missing");
+  it("fails when TournamentConfig is missing", async () => {
+    await expect(readTournamentConfig(createEnv(null))).rejects.toThrow("TournamentConfig missing");
   });
 
   it("rejects duplicate slugs", async () => {
     const tournament = createTournament("duplicate", "Duplicate");
 
-    await expect(readArchiveConfig(createEnv([tournament, tournament])))
-      .rejects.toThrow("Duplicate ConfigArchive slug: duplicate");
+    await expect(readTournamentConfig(createEnv({ active: [], archive: [tournament, tournament] })))
+      .rejects.toThrow("Duplicate TournamentConfig.archive slug: duplicate");
   });
 
   it("rejects missing required tournament fields", async () => {
     const tournament = createTournament("missing-league-short", "Missing League Short");
     delete tournament.leagueShort;
 
-    await expect(readArchiveConfig(createEnv([tournament])))
-      .rejects.toThrow("Invalid ConfigArchive tournament: missing-league-short");
+    await expect(readTournamentConfig(createEnv({ active: [], archive: [tournament] })))
+      .rejects.toThrow("TournamentConfig.archive tournament fields must match the schema");
+  });
+
+  it("rejects active/archive overlap", async () => {
+    const tournament = createTournament("overlap", "Overlap");
+
+    await expect(readTournamentConfig(createEnv({ active: [tournament], archive: [tournament] })))
+      .rejects.toThrow("TournamentConfig active/archive overlap: overlap");
+  });
+
+  it("rejects extra tournament fields", async () => {
+    const tournament = { ...createTournament("extra", "Extra"), legacyLeague: "TEST" };
+
+    await expect(readTournamentConfig(createEnv({ active: [tournament], archive: [] })))
+      .rejects.toThrow("TournamentConfig.active tournament fields must match the schema");
+  });
+
+  it("rejects overviewPage identity conflicts across groups", async () => {
+    const active = createTournament("active", "Shared");
+    const archive = createTournament("archive", "Shared");
+
+    await expect(readTournamentConfig(createEnv({ active: [active], archive: [archive] })))
+      .rejects.toThrow("TournamentConfig overviewPage identity conflict: Shared/2026");
+  });
+
+  it("rejects impossible calendar dates", async () => {
+    const tournament = { ...createTournament("bad-date", "Bad Date"), startDate: "2026-02-30" };
+
+    await expect(readTournamentConfig(createEnv({ active: [tournament], archive: [] })))
+      .rejects.toThrow("Invalid TournamentConfig.active date range: bad-date");
   });
 });

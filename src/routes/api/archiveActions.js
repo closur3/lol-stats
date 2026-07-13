@@ -1,5 +1,5 @@
 import { deleteArchiveSnapshot } from "../../core/updater/archiveSnapshotDeletion.js";
-import { readArchiveConfig } from "../../core/facts/tournamentConfigReader.js";
+import { readTournamentConfig } from "../../core/facts/tournamentConfigReader.js";
 import { rebuildArchiveSnapshot } from "../../core/updater/archiveSnapshotRebuilder.js";
 import { requireAdmin, requirePost } from "./auth.js";
 import { readJsonPayload } from "./requestPayload.js";
@@ -20,9 +20,9 @@ export async function handleRebuildArchive(request, env) {
   if (!slug) return new Response("Missing required field: slug", { status: 400 });
 
   try {
-    const archiveConfig = await readArchiveConfig(env);
+    const { archive: archiveConfig } = await readTournamentConfig(env);
     const tournament = archiveConfig.find(item => item.slug === slug);
-    if (!tournament) return new Response(`ConfigArchive tournament missing: ${slug}`, { status: 404 });
+    if (!tournament) return new Response(`TournamentConfig.archive tournament missing: ${slug}`, { status: 404 });
     await rebuildArchiveSnapshot(env, tournament);
     return new Response("OK", { status: 200 });
   } catch (error) {

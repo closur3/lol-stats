@@ -2,6 +2,7 @@ import importlib.util
 import pathlib
 import sys
 import unittest
+from datetime import date
 from unittest.mock import Mock, patch
 
 
@@ -49,17 +50,23 @@ class FetchCargoTest(unittest.TestCase):
 
 
 class QueryScopeTest(unittest.TestCase):
-    def test_uses_lifecycle_dates_without_a_year_filter(self):
-        where = sync_tours.build_lifecycle_window_where()
+    def test_uses_an_independent_discovery_window_without_a_year_filter(self):
+        with (
+            patch.object(sync_tours, "today_dt", date(2026, 7, 14)),
+            patch.object(sync_tours, "DISCOVERY_DAYS", 30),
+            patch.object(sync_tours, "PREHEAT_DAYS", 1),
+            patch.object(sync_tours, "EXPIRE_DAYS", 99),
+        ):
+            where = sync_tours.build_discovery_window_where()
 
-        self.assertIn("Date >=", where)
-        self.assertIn("DateStart <=", where)
+        self.assertIn("Date >= '2026-07-14'", where)
+        self.assertIn("DateStart <= '2026-08-13'", where)
         self.assertNotIn("Year", where)
         self.assertNotIn("TournamentLevel", where)
         self.assertNotIn("Region", where)
 
     @patch.object(sync_tours, "fetch_cargo")
-    def test_reconciles_every_old_active_page_outside_the_lifecycle_query(self, fetch_cargo):
+    def test_reconciles_every_old_active_page_outside_the_discovery_query(self, fetch_cargo):
         source_row = {"title": {"OverviewPage": "Old/2025"}}
         fetch_cargo.side_effect = [[], [source_row]]
         old_active = [{"slug": "old", "overviewPage": ["Old/2025"]}]

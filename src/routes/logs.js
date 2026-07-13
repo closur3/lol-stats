@@ -1,5 +1,5 @@
 import { updateConfig } from '../core/updater/updateConfig.js';
-import { readActiveConfig } from '../core/facts/tournamentConfigReader.js';
+import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { renderLogPage } from '../render/templates/logs.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
@@ -70,7 +70,7 @@ function buildActiveLogItems(tournaments, logsBySlug, homeBySlug) {
 export class LogsRouter {
   static async handleLogs(_request, env) {
     const kv = env["lol-stats-kv"];
-    const tournaments = await readActiveConfig(env);
+    const { active: tournaments } = await readTournamentConfig(env);
     const slugs = tournaments.map(tournament => tournament.slug);
     const logsBySlug = await readLogsBySlug(kv, slugs);
     const logSlugs = Array.from(logsBySlug.keys());

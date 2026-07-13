@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run dev:kv && wrangler dev",
-    "dev:kv": "wrangler kv key put ConfigActive --path config/ConfigActive.json --binding=lol-stats-kv --local && wrangler kv key put ConfigArchive --path config/ConfigArchive.json --binding=lol-stats-kv --local",
+    "dev:kv": "wrangler kv key put TournamentConfig --path config/TournamentConfig.json --binding=lol-stats-kv --local",
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "lint": "eslint src/"

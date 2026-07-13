@@ -6,6 +6,9 @@ export default `${baseCSS}
     .table-title { padding: 15px 20px; font-weight: 600; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; background: #fff; color: #0f172a; font-size: 15px; box-sizing: border-box; }
     .section-body { padding: 25px 20px; box-sizing: border-box; }
     .section-body-compact { padding-top: 20px; padding-bottom: 20px; }
+    .config-error-alert { box-sizing: border-box; width: calc(100% - 24px); margin: 0 12px 12px; padding: 12px 14px; border: 1px solid #fdba74; border-left: 4px solid #f97316; border-radius: 12px; color: #9a3412; background: #fff7ed; font-size: 13px; line-height: 1.55; }
+    .config-error-alert strong { display: block; color: #c2410c; font-size: 13px; margin-bottom: 4px; }
+    .config-error-alert span { color: #9a3412; overflow-wrap: anywhere; }
 
     .flex-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
     .tool-info-title { font-weight: 600; color: #0f172a; margin-bottom: 4px; }
@@ -24,9 +27,6 @@ export default `${baseCSS}
     .ops-body .group-label { font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
     .ops-body .item-sep { height: 1px; background: #f1f5f9; margin: 4px 0; }
     .ops-body .ops-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px; }
-    .tools-error-alert { box-sizing: border-box; width: calc(100% - 24px); margin: 0 12px 12px; padding: 12px 14px; border: 1px solid #fdba74; border-left: 4px solid #f97316; border-radius: 12px; color: #9a3412; background: #fff7ed; font-size: 13px; line-height: 1.55; }
-    .tools-error-alert strong { display: block; color: #c2410c; font-size: 13px; margin-bottom: 4px; }
-    .tools-error-alert span { color: #9a3412; overflow-wrap: anywhere; }
 
     .index-confirm-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.38); z-index: 1001; padding: 20px; }
     .index-confirm-overlay.open { display: flex; }

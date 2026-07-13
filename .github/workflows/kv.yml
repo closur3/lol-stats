@@ -8,21 +8,11 @@ on:
         required: true
         default: false
         type: boolean
-      run_worker_cron:
-        description: "Run the Worker cron after configs are persisted"
+      reconcile:
+        description: "Reconcile Worker runtime after TournamentConfig is persisted"
         required: false
         default: false
         type: boolean
-      active_updated_slugs:
-        description: "JSON array of Active slugs requiring force rebuild"
-        required: false
-        default: "[]"
-        type: string
-      active_dropped_slugs:
-        description: "JSON array of non-archived Active slugs requiring runtime deletion"
-        required: false
-        default: "[]"
-        type: string
 
 jobs:
   persist:
@@ -35,15 +25,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v7
 
-      - name: Validate inputs
-        run: |
-          set -euo pipefail
-          if [[ "${{ inputs.clear }}" == "true" && "${{ inputs.run_worker_cron }}" == "true" ]]; then
-            echo "clear and run_worker_cron cannot both be true. After clearing KV, rebuild Active with Force and Archive with Archive Rebuild."
-            exit 1
-          fi
-
-      - name: Persist KV configs
+      - name: Persist TournamentConfig
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -106,30 +88,17 @@ jobs:
             clear_all_keys
           fi
 
-          put_config "ConfigActive" "config/ConfigActive.json"
-          put_config "ConfigArchive" "config/ConfigArchive.json"
+          put_config "TournamentConfig" "config/TournamentConfig.json"
 
-      - name: Apply Worker transition
-        if: >-
-          inputs.run_worker_cron == true
-          || inputs.active_updated_slugs != '[]'
-          || inputs.active_dropped_slugs != '[]'
+      - name: Reconcile Worker runtime
+        if: inputs.reconcile == true
         env:
-          ACTIVE_DROPPED_SLUGS: ${{ inputs.active_dropped_slugs }}
-          ACTIVE_UPDATED_SLUGS: ${{ inputs.active_updated_slugs }}
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           WORKER_URL: ${{ vars.WORKER_URL }}
         run: |
           set -euo pipefail
           [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET."; exit 1; }
           [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
-
-          validate_slugs() {
-            local value="$1"
-            echo "${value}" | jq -e 'type == "array" and all(.[]; type == "string" and length > 0)' > /dev/null
-          }
-          validate_slugs "${ACTIVE_UPDATED_SLUGS}"
-          validate_slugs "${ACTIVE_DROPPED_SLUGS}"
 
           print_worker_body() {
             local body_file="$1"
@@ -159,20 +128,4 @@ jobs:
             [[ "${status}" == "200" ]] || { echo "Worker returned HTTP ${status}."; return 1; }
           }
 
-          if [[ "${{ inputs.run_worker_cron }}" == "true" ]]; then
-            post_worker "${WORKER_URL}/run-cron"
-          fi
-
-          if [[ "$(echo "${ACTIVE_UPDATED_SLUGS}" | jq 'length')" -gt 0 ]]; then
-            force_payload="$(jq -cn --argjson slugs "${ACTIVE_UPDATED_SLUGS}" '{slugs: $slugs}')"
-            post_worker "${WORKER_URL}/force" \
-              -H "Content-Type: application/json" \
-              -d "${force_payload}"
-          fi
-
-          while IFS= read -r slug; do
-            delete_payload="$(jq -cn --arg slug "${slug}" '{slug: $slug}')"
-            post_worker "${WORKER_URL}/delete-active" \
-              -H "Content-Type: application/json" \
-              -d "${delete_payload}"
-          done < <(echo "${ACTIVE_DROPPED_SLUGS}" | jq -r '.[]')
+          post_worker "${WORKER_URL}/reconcile-tournaments"

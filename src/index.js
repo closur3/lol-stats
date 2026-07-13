@@ -7,6 +7,7 @@ import { handleForceUpdate } from './routes/api/force.js';
 import { handleDeleteActive } from './routes/api/activeActions.js';
 import { handleDeleteArchive, handleRebuildArchive } from './routes/api/archiveActions.js';
 import { handleRunCron } from './routes/api/runCron.js';
+import { handleReconcileTournaments } from './routes/api/reconcileTournaments.js';
 import { runCron } from './core/cron/orchestrator.js';
 
 /**
@@ -46,7 +47,10 @@ export default {
 
       case "/run-cron":
         return handleRunCron(request, env);
-      
+
+      case "/reconcile-tournaments":
+        return handleReconcileTournaments(request, env);
+
       case "/logs":
         return LogsRouter.handleLogs(request, env);
       

@@ -50,9 +50,9 @@ function createEnv(values) {
 }
 
 describe("handleBackup", () => {
-  it("exports active snapshots by default without reading archive config", async () => {
+  it("exports active snapshots by default without reading archive snapshots", async () => {
     const env = createEnv({
-      ConfigActive: [tournament("active-slug", "Active")],
+      TournamentConfig: { active: [tournament("active-slug", "Active")], archive: [] },
       "ActiveHome_active-slug": snapshot("active-slug", "Active", { scheduleMap: {} })
     });
 
@@ -65,13 +65,15 @@ describe("handleBackup", () => {
         "active-slug": snapshot("active-slug", "Active", { scheduleMap: {} })
       }
     });
-    expect(env["lol-stats-kv"].get).not.toHaveBeenCalledWith("ConfigArchive", { type: "json" });
+    expect(env["lol-stats-kv"].get).not.toHaveBeenCalledWith(expect.stringMatching(/^ArchiveSnapshot_/), { type: "json" });
   });
 
   it("exports archive snapshots when includeArchive is true", async () => {
     const env = createEnv({
-      ConfigActive: [tournament("active-slug", "Active")],
-      ConfigArchive: [tournament("archive-slug", "Archive")],
+      TournamentConfig: {
+        active: [tournament("active-slug", "Active")],
+        archive: [tournament("archive-slug", "Archive")]
+      },
       "ActiveHome_active-slug": snapshot("active-slug", "Active", { scheduleMap: {} }),
       "ArchiveSnapshot_archive-slug": snapshot("archive-slug", "Archive")
     });
@@ -92,7 +94,7 @@ describe("handleBackup", () => {
 
   it("fails when a configured ActiveHome snapshot is missing", async () => {
     const env = createEnv({
-      ConfigActive: [tournament("active-slug", "Active")]
+      TournamentConfig: { active: [tournament("active-slug", "Active")], archive: [] }
     });
 
     const response = await handleBackup(createRequest("https://example.test/backup"), env);
@@ -103,8 +105,10 @@ describe("handleBackup", () => {
 
   it("fails when a configured ArchiveSnapshot is missing from a full backup", async () => {
     const env = createEnv({
-      ConfigActive: [tournament("active-slug", "Active")],
-      ConfigArchive: [tournament("archive-slug", "Archive")],
+      TournamentConfig: {
+        active: [tournament("active-slug", "Active")],
+        archive: [tournament("archive-slug", "Archive")]
+      },
       "ActiveHome_active-slug": snapshot("active-slug", "Active", { scheduleMap: {} })
     });
 

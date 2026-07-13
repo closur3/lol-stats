@@ -38,7 +38,7 @@ def candidate(name: str, overview_page: str, start_date="2026-01-01", end_date="
 
 
 class EligibilityTest(unittest.TestCase):
-    def test_applies_default_filters_locally(self):
+    def test_applies_region_filters_locally(self):
         row = {
             "Name": "LCK 2026",
             "OverviewPage": "LCK/2026",
@@ -100,7 +100,7 @@ class StableIdentityTest(unittest.TestCase):
     def test_rejects_a_current_tournament_matching_archive(self):
         archive = [tournament("archived", "Archived/2026")]
 
-        with self.assertRaisesRegex(ValueError, "matches ConfigArchive"):
+        with self.assertRaisesRegex(ValueError, "matches TournamentConfig.archive"):
             assign_stable_slugs([candidate("Archived", "Archived/2026")], [], archive)
 
 
@@ -173,7 +173,6 @@ class TransitionManifestTest(unittest.TestCase):
 
         self.assertEqual(manifest["activeUpdatedSlugs"], ["updated"])
         self.assertFalse(manifest["membershipChanged"])
-        self.assertFalse(manifest["workerCronRequired"])
 
     def test_membership_change_tracks_dropped_active(self):
         old_active = [tournament("dropped", "Dropped/2026")]
@@ -182,9 +181,8 @@ class TransitionManifestTest(unittest.TestCase):
 
         self.assertEqual(manifest["activeDroppedSlugs"], ["dropped"])
         self.assertTrue(manifest["membershipChanged"])
-        self.assertFalse(manifest["workerCronRequired"])
 
-    def test_requires_cron_for_active_addition_or_archive_migration(self):
+    def test_manifest_describes_config_change_without_worker_commands(self):
         new_active = [tournament("added", "Added/2026")]
 
         added_manifest = build_transition_manifest([], new_active, [], [])
@@ -195,8 +193,10 @@ class TransitionManifestTest(unittest.TestCase):
             [],
         )
 
-        self.assertTrue(added_manifest["workerCronRequired"])
-        self.assertTrue(archived_manifest["workerCronRequired"])
+        self.assertEqual(
+            set(added_manifest),
+            {"activeAddedSlugs", "activeUpdatedSlugs", "activeArchivedSlugs", "activeDroppedSlugs", "archiveAddedSlugs", "membershipChanged"},
+        )
         self.assertEqual(archived_manifest["archiveAddedSlugs"], ["archived"])
 
 

@@ -23,8 +23,7 @@ describe("deleteActiveRuntimeState", () => {
   it("persists slug removal when the desired cron list is unchanged", async () => {
     const slug = "tournament-2026";
     const kv = createKv({
-      ConfigActive: [{ slug }],
-      ConfigArchive: [{ slug: "archive-2026" }],
+      TournamentConfig: { active: [{ slug }], archive: [{ slug: "archive-2026" }] },
       ArchiveSnapshot_archive_2026: { slug: "archive-2026" },
       ScheduleState: {
         date: "2026-07-05",
@@ -45,8 +44,7 @@ describe("deleteActiveRuntimeState", () => {
 
     expect(kv.values.get("ScheduleState").slugStates).toEqual({});
     expect(kv.values.get("ScheduleState").schedules).toEqual([baselineCron]);
-    expect(kv.values.get("ConfigActive")).toEqual([{ slug }]);
-    expect(kv.values.get("ConfigArchive")).toEqual([{ slug: "archive-2026" }]);
+    expect(kv.values.get("TournamentConfig")).toEqual({ active: [{ slug }], archive: [{ slug: "archive-2026" }] });
     expect(kv.values.get("ArchiveSnapshot_archive_2026")).toEqual({ slug: "archive-2026" });
   });
 });

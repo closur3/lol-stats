@@ -34,10 +34,10 @@ export const kvKeys = {
   scheduleState() {
     return "ScheduleState";
   },
-  configActive() {
-    return "ConfigActive";
+  tournamentConfig() {
+    return "TournamentConfig";
   },
-  configArchive() {
-    return "ConfigArchive";
+  tournamentApplyState() {
+    return "TournamentApplyState";
   }
 };
