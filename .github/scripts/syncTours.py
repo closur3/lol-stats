@@ -102,9 +102,22 @@ def load_tournament_config(path: str) -> dict:
     assert_configs_disjoint(config["active"], config["archive"])
     return config
 
-def add_extra_ov(ev: dict, ov: str) -> None:
-    if ov not in ev.setdefault("extraOvs", []):
-        ev["extraOvs"].append(ov)
+def add_overview_page(event: dict, overview_page: str, start_date, end_date) -> None:
+    dates = (start_date, end_date)
+    existing = event["overviewPageDates"].get(overview_page)
+    if existing is not None and existing != dates:
+        raise ValueError(f"Tournament overviewPage dates conflict: {overview_page}")
+    event["overviewPageDates"][overview_page] = dates
+
+
+def project_overview_pages(event: dict) -> list:
+    return [
+        overview_page
+        for overview_page, _ in sorted(
+            event["overviewPageDates"].items(),
+            key=lambda item: (*item[1], item[0]),
+        )
+    ]
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -415,7 +428,7 @@ def group_tournament_rows(source_rows: list, league_short_map: dict, active_over
             name = mapped_name
 
         ev = {
-            "ov": ov,
+            "overviewPageDates": {ov: (start_date, end_date)},
             "year": y,
             "name": name,
             "region": region,
@@ -429,11 +442,11 @@ def group_tournament_rows(source_rows: list, league_short_map: dict, active_over
         else:
             key = f"INTL_{name}_{y}" if region == "International" else (f"{name}_{y}" if mapped_name else f"{ov}_{y}")
             if key not in main_events:
-                main_events[key] = {**ev, "extraOvs": [ov]}
+                main_events[key] = ev
             else:
                 main_events[key]["startDate"] = min(main_events[key]["startDate"], start_date)
                 main_events[key]["endDate"] = max(main_events[key]["endDate"], end_date)
-                add_extra_ov(main_events[key], ov)
+                add_overview_page(main_events[key], ov, start_date, end_date)
 
     return {
         "mainEvents": main_events,
@@ -471,22 +484,31 @@ def merge_playoff_events(main_events: dict, playoff_events: list) -> dict:
     independent_playoffs = []
 
     for p in playoff_events:
+        playoff_overview_page = project_overview_pages(p)[0]
         m_key = next((
             k for k, m in main_events.items()
             if m["region"] != "International"
             and m["year"] == p["year"]
-            and (m["name"] in p["name"] or p["ov"].startswith(m["ov"]))
+            and (
+                m["name"] in p["name"]
+                or playoff_overview_page.startswith(project_overview_pages(m)[0])
+            )
         ), None)
 
         if m_key:
             old_end = main_events[m_key]["endDate"]
             new_end = max(old_end, p["endDate"])
             main_events[m_key]["endDate"] = new_end
-            add_extra_ov(main_events[m_key], p["ov"])
+            add_overview_page(
+                main_events[m_key],
+                playoff_overview_page,
+                p["startDate"],
+                p["endDate"],
+            )
             merged_playoffs.append((main_events[m_key]["name"], p["name"], str(new_end)))
         else:
             independent_playoffs.append(p["name"])
-            main_events[f"{p['ov']}_{p['year']}_PO"] = p
+            main_events[f"{playoff_overview_page}_{p['year']}_PO"] = p
 
     return {
         "merged": merged_playoffs,
@@ -514,7 +536,7 @@ def project_tournament_candidates(main_events: dict) -> list:
         {
             "name": event["name"],
             "leagueShort": event["leagueShort"],
-            "overviewPage": event.get("extraOvs", [event["ov"]]),
+            "overviewPage": project_overview_pages(event),
             "startDate": str(event["startDate"]),
             "endDate": str(event["endDate"]),
         }
@@ -692,9 +714,9 @@ def build_commit_message(manifest: dict, summary: dict) -> str:
     return f"🎯 Tour: {' | '.join(sections)}"
 
 
-def log_change_summary(source_count: int, active_count: int, archive_count: int, elapsed: float, summary: dict) -> None:
+def log_change_summary(source_count: int, active_count: int, archive_count: int, summary: dict) -> None:
     log("")
-    log(f"📊 Summary | {f'Candidates: {source_count}':<14} | {f'Active: {active_count}':<10} | {f'Archive: {archive_count}':<10} | Elapsed: {elapsed:.1f}s")
+    log(f"📊 Summary | {f'Candidates: {source_count}':<14} | {f'Active: {active_count}':<10} | {f'Archive: {archive_count}':<10}")
     log(f"📝 {'Active':<7} | {summary['activeParts'] or 'No changes'}")
     log(f"🗄️ {'Archive':<7} | {summary['archiveParts'] or 'No changes'}")
 
@@ -749,7 +771,6 @@ def run_tournament_sync():
         len(source_rows),
         len(transition["active"]),
         len(transition["archive"]),
-        time.time() - start_time,
         summary,
     )
     write_github_outputs(commit_message, manifest)
