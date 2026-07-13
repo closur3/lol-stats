@@ -10,23 +10,18 @@ permissions:
   contents: write
 
 jobs:
-  discover:
+  sync:
     runs-on: ubuntu-latest
-    outputs:
-      config_hash: ${{ steps.base_hash.outputs.config_hash }}
-      commit_msg: ${{ steps.process_data.outputs.commit_msg }}
-      membership_changed: ${{ steps.process_data.outputs.membership_changed }}
+    concurrency:
+      group: repository-write-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
-
-      - name: Capture Config base hash
-        id: base_hash
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "config_hash=$(sha256sum config/TournamentConfig.json | awk '{print $1}')" >> "${GITHUB_OUTPUT}"
+        with:
+          ref: ${{ github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -45,69 +40,18 @@ jobs:
           FANDOM_BOT_PASSWORD: ${{ secrets.FANDOM_BOT_PASSWORD }}
         run: python .github/scripts/syncTours.py
 
-      - name: Upload Config candidate
-        uses: actions/upload-artifact@v7
+      - name: Backup before membership transition
+        if: steps.process_data.outputs.membership_changed == 'true'
+        uses: ./.github/actions/markdown-backup
         with:
-          name: tournament-config-candidate
-          path: config
-          if-no-files-found: error
-          retention-days: 1
-
-  backup_before_transition:
-    needs: discover
-    if: needs.discover.outputs.membership_changed == 'true'
-    uses: ./.github/workflows/backup.yml
-    secrets: inherit
-    permissions:
-      contents: write
-
-  commit_config:
-    needs:
-      - discover
-      - backup_before_transition
-    if: >-
-      always()
-      && needs.discover.result == 'success'
-      && (needs.backup_before_transition.result == 'success' || needs.backup_before_transition.result == 'skipped')
-    runs-on: ubuntu-latest
-    concurrency:
-      group: repository-write-${{ github.ref }}
-      cancel-in-progress: false
-      queue: max
-
-    steps:
-      - name: Checkout latest branch
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref_name }}
-
-      - name: Verify Config base hash
-        env:
-          EXPECTED_CONFIG_HASH: ${{ needs.discover.outputs.config_hash }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          current_config_hash="$(sha256sum config/TournamentConfig.json | awk '{print $1}')"
-          [[ "${current_config_hash}" == "${EXPECTED_CONFIG_HASH}" ]] || { echo "TournamentConfig changed after discovery."; exit 1; }
-
-      - name: Download Config candidate
-        uses: actions/download-artifact@v8
-        with:
-          name: tournament-config-candidate
-          path: candidate-config
-
-      - name: Install Config candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          [[ -s candidate-config/TournamentConfig.json ]] || { echo "Missing candidate TournamentConfig.json"; exit 1; }
-          cp candidate-config/TournamentConfig.json config/TournamentConfig.json
+          adminSecret: ${{ secrets.ADMIN_SECRET }}
+          workerUrl: ${{ vars.WORKER_URL }}
 
       - name: Commit and Push Config
         id: auto_commit
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "${{ needs.discover.outputs.commit_msg }}"
+          commit_message: "${{ steps.process_data.outputs.commit_msg }}"
           file_pattern: 'config/TournamentConfig.json'
 
       - name: Persist Config and wait for runtime transition

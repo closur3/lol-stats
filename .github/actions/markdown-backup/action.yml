@@ -1,0 +1,74 @@
+name: Export Markdown Backup
+description: Export Worker snapshots to Markdown and commit changed files
+
+inputs:
+  adminSecret:
+    description: Worker admin secret
+    required: true
+  workerUrl:
+    description: Worker base URL
+    required: true
+  includeArchive:
+    description: Include archive snapshots
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Export Markdown
+      env:
+        ADMIN_SECRET: ${{ inputs.adminSecret }}
+        INCLUDE_ARCHIVE: ${{ inputs.includeArchive }}
+        WORKER_URL: ${{ inputs.workerUrl }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET secret."; exit 1; }
+        [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
+        export WORKER_URL="${WORKER_URL}/backup"
+        node .github/scripts/exportMarkdownBackup.js
+
+    - name: Build Commit Message
+      id: commit_meta
+      shell: bash
+      run: |
+        commit_msg=$(git status --porcelain -- 'markdown' | awk '
+          {
+            code=$1; f=$2;
+            if (code=="R" || code=="RM" || code=="RD") f=$3;
+            sub(".*/","",f); sub(/\.[^.]+$/, "", f);
+            s=substr(code,1,1);
+            if (code=="??" || s=="A") a[++na]=f;
+            else if (s=="M") m[++nm]=f;
+            else if (s=="D") d[++nd]=f;
+            else m[++nm]=f;
+          }
+          END {
+            n=na+nm+nd
+            if (n==0) { print "📁 Dump: no changes"; exit }
+            out=""
+            if (na>0) {
+              add=""
+              for (i=1;i<=na;i++) add=add (i>1?", ":"") "+" a[i]
+              out=add
+            }
+            if (nm>0) {
+              mod=""
+              for (i=1;i<=nm;i++) mod=mod (i>1?", ":"") "~" m[i]
+              out=out (length(out)>0?"; ":"") mod
+            }
+            if (nd>0) {
+              del=""
+              for (i=1;i<=nd;i++) del=del (i>1?", ":"") "-" d[i]
+              out=out (length(out)>0?"; ":"") del
+            }
+            print "📁 Dump: (" out ")"
+          }')
+        echo "commit_msg=$commit_msg" >> "$GITHUB_OUTPUT"
+
+    - name: Commit and Push
+      uses: stefanzweifel/git-auto-commit-action@v7
+      with:
+        commit_message: "${{ steps.commit_meta.outputs.commit_msg }}"
+        file_pattern: "markdown/*.md"
