@@ -40,7 +40,7 @@ jobs:
           FANDOM_BOT_PASSWORD: ${{ secrets.FANDOM_BOT_PASSWORD }}
         run: python .github/scripts/syncTours.py
 
-      - name: Backup before membership transition
+      - name: Export Active Backup
         if: steps.process_data.outputs.membership_changed == 'true'
         uses: ./.github/actions/markdown-backup
         with:
@@ -54,7 +54,7 @@ jobs:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
           file_pattern: 'config/TournamentConfig.json'
 
-      - name: Persist Config and wait for runtime transition
+      - name: Apply Config
         if: steps.auto_commit.outputs.changes_detected == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
