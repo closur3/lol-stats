@@ -394,7 +394,15 @@ def group_tournament_rows(source_rows: list, league_short_map: dict, active_over
         is_playoffs = t["IsPlayoffs"]
         league_short = league_short_map.get(fandom_league)
         if not league_short:
-            raise ValueError(f"Tournament League Short missing: {fandom_league}")
+            if ov in active_overview_pages:
+                raise ValueError(
+                    f"Active tournament League Short missing: {ov} | league: {fandom_league}"
+                )
+            deferred_rows.append({
+                "overviewPage": ov,
+                "missingFields": [f"LeagueShort:{fandom_league}"],
+            })
+            continue
 
         start_date = parse_date(t["startDate"])
         end_date = parse_date(t["endDate"])
