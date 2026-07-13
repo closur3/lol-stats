@@ -111,6 +111,12 @@ class TournamentGroupingTest(unittest.TestCase):
 
 
 class CommitMessageTest(unittest.TestCase):
+    def test_change_parts_repeat_symbols_for_each_slug(self):
+        self.assertEqual(
+            sync_tours.format_change_parts(["added-a", "added-b"], ["updated"], ["removed"]),
+            "+added-a, +added-b; ~updated; -removed",
+        )
+
     def test_archive_transition_is_not_repeated_as_migration(self):
         manifest = {
             "activeAddedSlugs": [],
@@ -123,7 +129,7 @@ class CommitMessageTest(unittest.TestCase):
 
         self.assertEqual(
             sync_tours.build_commit_message(manifest, summary),
-            "🎯 Tour: Active: - msi-2026; Archive: + msi-2026",
+            "🎯 Tour: Active (-msi-2026) | Archive (+msi-2026)",
         )
 
     def test_large_summary_has_no_migration_counter(self):
@@ -138,7 +144,7 @@ class CommitMessageTest(unittest.TestCase):
 
         self.assertEqual(
             sync_tours.build_commit_message(manifest, summary),
-            "🎯 Tour: active +6, ~0, -0; archive +0",
+            "🎯 Tour: Active (+6)",
         )
 
 

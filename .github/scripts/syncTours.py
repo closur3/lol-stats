@@ -556,15 +556,28 @@ def write_configs(active: list, archive: list) -> None:
         json.dump(ordered_archive, file, indent=4, ensure_ascii=False)
 
 
-def format_change_parts(add_slugs: list, update_slugs: list, remove_slugs: list) -> str:
+def format_change_group(symbol: str, slugs: list, summarize: bool) -> str:
+    if not slugs:
+        raise ValueError("Change group slugs must be non-empty")
+    if summarize:
+        return f"{symbol}{len(slugs)}"
+    return ", ".join(f"{symbol}{slug}" for slug in slugs)
+
+
+def format_change_parts(
+    add_slugs: list,
+    update_slugs: list,
+    remove_slugs: list,
+    summarize: bool = False,
+) -> str:
     parts = []
     if add_slugs:
-        parts.append(f"+ {' / '.join(add_slugs)}")
+        parts.append(format_change_group("+", add_slugs, summarize))
     if update_slugs:
-        parts.append(f"~ {' / '.join(update_slugs)}")
+        parts.append(format_change_group("~", update_slugs, summarize))
     if remove_slugs:
-        parts.append(f"- {' / '.join(remove_slugs)}")
-    return " | ".join(parts)
+        parts.append(format_change_group("-", remove_slugs, summarize))
+    return "; ".join(parts)
 
 
 def build_change_summary(manifest: dict) -> dict:
@@ -595,20 +608,31 @@ def build_change_summary(manifest: dict) -> dict:
 def build_commit_message(manifest: dict, summary: dict) -> str:
     active_removed = manifest["activeArchivedSlugs"] + manifest["activeDroppedSlugs"]
     if summary["totalChanges"] > 5:
-        return (
-            f"🎯 Tour: active +{len(manifest['activeAddedSlugs'])}, "
-            f"~{len(manifest['activeUpdatedSlugs'])}, -{len(active_removed)}; "
-            f"archive +{len(manifest['archiveAddedSlugs'])}"
+        active_parts = format_change_parts(
+            manifest["activeAddedSlugs"],
+            manifest["activeUpdatedSlugs"],
+            active_removed,
+            summarize=True,
         )
-    if summary["totalChanges"] == 0:
+        archive_parts = format_change_parts(
+            manifest["archiveAddedSlugs"],
+            [],
+            [],
+            summarize=True,
+        )
+    else:
+        active_parts = summary["activeParts"]
+        archive_parts = summary["archiveParts"]
+
+    if not active_parts and not archive_parts:
         return "🎯 Tour: no changes"
 
     sections = []
-    if summary["activeParts"]:
-        sections.append(f"Active: {summary['activeParts']}")
-    if summary["archiveParts"]:
-        sections.append(f"Archive: {summary['archiveParts']}")
-    return f"🎯 Tour: {'; '.join(sections)}"
+    if active_parts:
+        sections.append(f"Active ({active_parts})")
+    if archive_parts:
+        sections.append(f"Archive ({archive_parts})")
+    return f"🎯 Tour: {' | '.join(sections)}"
 
 
 def log_change_summary(source_count: int, active_count: int, archive_count: int, elapsed: float, summary: dict) -> None:

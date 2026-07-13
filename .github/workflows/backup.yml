@@ -61,21 +61,21 @@ jobs:
               if (n==0) { print "📁 Dump: no changes"; exit }
               out=""
               if (na>0) {
-                add="+ "
-                for (i=1;i<=na;i++) add=add (i>1?" / ":"") a[i]
+                add=""
+                for (i=1;i<=na;i++) add=add (i>1?", ":"") "+" a[i]
                 out=add
               }
               if (nm>0) {
-                mod="~ "
-                for (i=1;i<=nm;i++) mod=mod (i>1?" / ":"") m[i]
-                out=out (length(out)>0?" | ":"") mod
+                mod=""
+                for (i=1;i<=nm;i++) mod=mod (i>1?", ":"") "~" m[i]
+                out=out (length(out)>0?"; ":"") mod
               }
               if (nd>0) {
-                del="- "
-                for (i=1;i<=nd;i++) del=del (i>1?" / ":"") d[i]
-                out=out (length(out)>0?" | ":"") del
+                del=""
+                for (i=1;i<=nd;i++) del=del (i>1?", ":"") "-" d[i]
+                out=out (length(out)>0?"; ":"") del
               }
-              print "📁 Dump: " out
+              print "📁 Dump: (" out ")"
             }')
           echo "commit_msg=$commit_msg" >> "$GITHUB_OUTPUT"
 
