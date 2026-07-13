@@ -55,8 +55,8 @@
             "name": "LCK 2026 Rounds 1-4",
             "leagueShort": "LCK",
             "overviewPage": [
-                "LCK/2026 Season/Rounds 1-2",
-                "LCK/2026 Season/Rounds 3-4"
+                "LCK/2026 Season/Rounds 3-4",
+                "LCK/2026 Season/Rounds 1-2"
             ],
             "startDate": "2026-04-01",
             "endDate": "2026-08-23",
@@ -214,4 +214,3 @@
         }
     ]
 }
-
