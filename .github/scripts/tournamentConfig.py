@@ -2,8 +2,27 @@ import re
 from datetime import datetime, timedelta
 
 
+TOURNAMENT_FIELDS = (
+    "slug",
+    "name",
+    "leagueShort",
+    "overviewPage",
+    "startDate",
+    "endDate",
+    "teamMap",
+)
+
+
 def parse_date(value: str):
     return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def order_tournament_fields(tournament: dict) -> dict:
+    if set(tournament) != set(TOURNAMENT_FIELDS):
+        raise ValueError("Tournament fields must match the Config schema")
+    ordered = {field: tournament[field] for field in TOURNAMENT_FIELDS}
+    ordered["teamMap"] = dict(sorted(ordered["teamMap"].items()))
+    return ordered
 
 
 def slugify_name(name: str) -> str:
@@ -137,7 +156,7 @@ def assign_stable_slugs(candidates: list, old_active: list, archive: list) -> li
         if slug in assigned_slugs:
             raise ValueError(f"Duplicate current tournament slug: {slug}")
         assigned_slugs.add(slug)
-        assigned.append({**candidate, "slug": slug})
+        assigned.append({"slug": slug, **candidate})
 
     return assigned
 

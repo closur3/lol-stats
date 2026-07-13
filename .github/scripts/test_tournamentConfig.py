@@ -2,6 +2,7 @@ import unittest
 from datetime import date
 
 from tournamentConfig import (
+    TOURNAMENT_FIELDS,
     assert_active_source_complete,
     assert_configs_disjoint,
     assign_stable_slugs,
@@ -10,6 +11,7 @@ from tournamentConfig import (
     classify_lifecycle,
     deduplicate_source_rows,
     is_eligible_row,
+    order_tournament_fields,
 )
 
 
@@ -93,12 +95,27 @@ class StableIdentityTest(unittest.TestCase):
         )
 
         self.assertEqual(result[0]["slug"], "stable-slug")
+        self.assertEqual(next(iter(result[0])), "slug")
 
     def test_rejects_a_current_tournament_matching_archive(self):
         archive = [tournament("archived", "Archived/2026")]
 
         with self.assertRaisesRegex(ValueError, "matches ConfigArchive"):
             assign_stable_slugs([candidate("Archived", "Archived/2026")], [], archive)
+
+
+class ConfigFieldOrderTest(unittest.TestCase):
+    def test_orders_fields_and_team_map_deterministically(self):
+        value = tournament(
+            "ordered",
+            "Ordered/2026",
+            teamMap={"Zulu": "Z", "Alpha": "A"},
+        )
+
+        ordered = order_tournament_fields(value)
+
+        self.assertEqual(tuple(ordered), TOURNAMENT_FIELDS)
+        self.assertEqual(list(ordered["teamMap"]), ["Alpha", "Zulu"])
 
 
 class LifecycleTest(unittest.TestCase):

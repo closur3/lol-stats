@@ -110,5 +110,37 @@ class TournamentGroupingTest(unittest.TestCase):
         self.assertEqual(len(result["mainEvents"]), 2)
 
 
+class CommitMessageTest(unittest.TestCase):
+    def test_archive_transition_is_not_repeated_as_migration(self):
+        manifest = {
+            "activeAddedSlugs": [],
+            "activeUpdatedSlugs": [],
+            "activeArchivedSlugs": ["msi-2026"],
+            "activeDroppedSlugs": [],
+            "archiveAddedSlugs": ["msi-2026"],
+        }
+        summary = sync_tours.build_change_summary(manifest)
+
+        self.assertEqual(
+            sync_tours.build_commit_message(manifest, summary),
+            "🎯 Tour: Active: - msi-2026; Archive: + msi-2026",
+        )
+
+    def test_large_summary_has_no_migration_counter(self):
+        manifest = {
+            "activeAddedSlugs": [f"active-{index}" for index in range(6)],
+            "activeUpdatedSlugs": [],
+            "activeArchivedSlugs": [],
+            "activeDroppedSlugs": [],
+            "archiveAddedSlugs": [],
+        }
+        summary = sync_tours.build_change_summary(manifest)
+
+        self.assertEqual(
+            sync_tours.build_commit_message(manifest, summary),
+            "🎯 Tour: active +6, ~0, -0; archive +0",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

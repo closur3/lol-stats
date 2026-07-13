@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import requests
 
 from tournamentConfig import (
+    TOURNAMENT_FIELDS,
     assert_active_source_complete,
     assert_configs_disjoint,
     assign_stable_slugs,
@@ -16,6 +17,7 @@ from tournamentConfig import (
     build_transition_manifest,
     deduplicate_source_rows,
     is_eligible_row,
+    order_tournament_fields,
     parse_date,
 )
 
@@ -48,15 +50,7 @@ def load_required_json_array(path: str) -> list:
         value = json.load(f)
     if not isinstance(value, list):
         raise ValueError(f"{path} must contain a JSON array")
-    schema_fields = {
-        "slug",
-        "name",
-        "leagueShort",
-        "overviewPage",
-        "startDate",
-        "endDate",
-        "teamMap",
-    }
+    schema_fields = set(TOURNAMENT_FIELDS)
     required = ("slug", "name", "startDate", "endDate")
     slugs = set()
     for index, item in enumerate(value):
@@ -553,11 +547,13 @@ def build_manifest(old_active: list, transition: dict) -> dict:
 
 
 def write_configs(active: list, archive: list) -> None:
+    ordered_active = [order_tournament_fields(tournament) for tournament in active]
+    ordered_archive = [order_tournament_fields(tournament) for tournament in archive]
     with open(TARGET_FILE, "w", encoding="utf-8") as file:
-        json.dump(active, file, indent=4, ensure_ascii=False)
+        json.dump(ordered_active, file, indent=4, ensure_ascii=False)
 
     with open(ARCHIVE_FILE, "w", encoding="utf-8") as file:
-        json.dump(archive, file, indent=4, ensure_ascii=False)
+        json.dump(ordered_archive, file, indent=4, ensure_ascii=False)
 
 
 def format_change_parts(add_slugs: list, update_slugs: list, remove_slugs: list) -> str:
@@ -602,8 +598,7 @@ def build_commit_message(manifest: dict, summary: dict) -> str:
         return (
             f"🎯 Tour: active +{len(manifest['activeAddedSlugs'])}, "
             f"~{len(manifest['activeUpdatedSlugs'])}, -{len(active_removed)}; "
-            f"archive +{len(manifest['archiveAddedSlugs'])}; "
-            f"migrate {len(manifest['activeArchivedSlugs'])}"
+            f"archive +{len(manifest['archiveAddedSlugs'])}"
         )
     if summary["totalChanges"] == 0:
         return "🎯 Tour: no changes"
@@ -613,8 +608,6 @@ def build_commit_message(manifest: dict, summary: dict) -> str:
         sections.append(f"Active: {summary['activeParts']}")
     if summary["archiveParts"]:
         sections.append(f"Archive: {summary['archiveParts']}")
-    if manifest["activeArchivedSlugs"]:
-        sections.append(f"Migration: {' / '.join(manifest['activeArchivedSlugs'])}")
     return f"🎯 Tour: {'; '.join(sections)}"
 
 
