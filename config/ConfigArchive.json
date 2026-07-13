@@ -1,5 +1,28 @@
 [
     {
+        "slug": "msi-2026",
+        "name": "MSI 2026",
+        "leagueShort": "MSI",
+        "overviewPage": [
+            "2026 Mid-Season Invitational"
+        ],
+        "startDate": "2026-06-28",
+        "endDate": "2026-07-12",
+        "teamMap": {
+            "Bilibili Gaming": "BLG",
+            "Deep Cross Gaming": "DCG",
+            "FURIA": "FUR",
+            "G2 Esports": "G2",
+            "Hanwha Life Esports": "HLE",
+            "Karmine Corp": "KC",
+            "LYON (2024 American Team)": "LYON",
+            "T1": "T1",
+            "Team Liquid": "TL",
+            "Team Secret Whales": "TSW",
+            "Top Esports": "TES"
+        }
+    },
+    {
         "slug": "lck-2026-road-to-msi",
         "name": "LCK 2026 Road to MSI",
         "leagueShort": "LCK",

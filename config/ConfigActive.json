@@ -1,5 +1,27 @@
 [
     {
+        "slug": "kespa-cup-2026",
+        "name": "KeSPA Cup 2026",
+        "leagueShort": "KeSPA",
+        "overviewPage": [
+            "2026 LoL KeSPA Cup"
+        ],
+        "startDate": "2026-07-20",
+        "endDate": "2026-08-18",
+        "teamMap": {
+            "BNK FEARX": "BFX",
+            "DN SOOPers": "DNS",
+            "Dplus Kia": "DK",
+            "Gen.G": "GEN",
+            "HANJIN BRION": "BRO",
+            "Hanwha Life Esports": "HLE",
+            "KT Rolster": "KT",
+            "Kiwoom DRX": "KRX",
+            "Nongshim RedForce": "NS",
+            "T1": "T1"
+        }
+    },
+    {
         "slug": "esports-world-cup-2026",
         "name": "Esports World Cup 2026",
         "leagueShort": "EWC",
@@ -25,29 +47,6 @@
             "Sentinels": "SEN",
             "T1": "T1",
             "Team Secret (Vietnamese Team)": "TS"
-        }
-    },
-    {
-        "slug": "msi-2026",
-        "name": "MSI 2026",
-        "leagueShort": "MSI",
-        "overviewPage": [
-            "2026 Mid-Season Invitational"
-        ],
-        "startDate": "2026-06-28",
-        "endDate": "2026-07-12",
-        "teamMap": {
-            "Bilibili Gaming": "BLG",
-            "Deep Cross Gaming": "DCG",
-            "FURIA": "FUR",
-            "G2 Esports": "G2",
-            "Hanwha Life Esports": "HLE",
-            "Karmine Corp": "KC",
-            "LYON (2024 American Team)": "LYON",
-            "T1": "T1",
-            "Team Liquid": "TL",
-            "Team Secret Whales": "TSW",
-            "Top Esports": "TES"
         }
     },
     {
