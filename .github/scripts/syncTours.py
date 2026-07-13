@@ -204,32 +204,60 @@ def make_session(url: str, bot_user: str, bot_pass: str) -> requests.Session:
     print("::error::Fandom API login failed after max retries", flush=True)
     sys.exit(1)
 
+def calculate_cargo_retry_delay(attempt: int, response=None) -> float:
+    retry_after = 0
+    if response is not None:
+        value = response.headers.get("Retry-After")
+        if isinstance(value, str) and value.isdigit():
+            retry_after = int(value)
+    return max(30 * (2 ** (attempt - 1)), retry_after) + random.uniform(0, 5)
+
+
 def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> list:
-    all_data, offset, limit, MAX_ATTEMPTS = [], 0, 100, 5
+    all_data, offset, limit, max_attempts = [], 0, 100, 4
 
     while True:
         params = {**base_params, "limit": str(limit), "offset": str(offset)}
         page_data = None
+        last_error = None
 
-        for attempt in range(1, MAX_ATTEMPTS + 1):
+        for attempt in range(1, max_attempts + 1):
+            time.sleep(1)
             try:
                 resp = session.get(url, params=params, timeout=30)
                 resp.raise_for_status()
                 resp_json = resp.json()
-                if "error" in resp_json:
-                    print(f"⚠️ API受限 | 重试 {attempt}/{MAX_ATTEMPTS} | {resp_json['error']}", flush=True)
-                    time.sleep(15 * attempt + random.uniform(0, 5))
-                    continue
-                page_data = resp_json.get("cargoquery")
-                if not isinstance(page_data, list):
-                    raise ValueError("Cargo response cargoquery must be an array")
-                break
-            except Exception as e:
-                print(f"⚠️ 网络异常 | 重试 {attempt}/{MAX_ATTEMPTS} | {e}", flush=True)
-                time.sleep(15 * attempt + random.uniform(0, 5))
+            except requests.exceptions.RequestException as error:
+                last_error = error
+                if attempt == max_attempts:
+                    break
+                delay = calculate_cargo_retry_delay(attempt, getattr(error, "response", None))
+                print(f"⚠️ 网络异常 | {delay:.0f}s 后重试 {attempt}/{max_attempts} | {error}", flush=True)
+                time.sleep(delay)
+                continue
+
+            if not isinstance(resp_json, dict):
+                raise ValueError("Cargo response must be an object")
+            api_error = resp_json.get("error")
+            if api_error is not None:
+                code = api_error.get("code") if isinstance(api_error, dict) else None
+                if code not in {"ratelimited", "maxlag"}:
+                    raise RuntimeError(f"Cargo API error: {api_error}")
+                last_error = api_error
+                if attempt == max_attempts:
+                    break
+                delay = calculate_cargo_retry_delay(attempt, resp)
+                print(f"⚠️ API受限 | {delay:.0f}s 后重试 {attempt}/{max_attempts} | {api_error}", flush=True)
+                time.sleep(delay)
+                continue
+
+            page_data = resp_json.get("cargoquery")
+            if not isinstance(page_data, list):
+                raise ValueError("Cargo response cargoquery must be an array")
+            break
 
         if page_data is None:
-            raise RuntimeError(f"Cargo page failed after retries: offset={offset}")
+            raise RuntimeError(f"Cargo page failed after retries: offset={offset} | {last_error}")
 
         if not page_data:
             break
@@ -239,7 +267,6 @@ def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> list:
             break
 
         offset += limit
-        time.sleep(1)
 
     return all_data
 
@@ -265,10 +292,18 @@ def chunked(values: list, size: int):
         yield values[index:index + size]
 
 def fetch_tournament_source_rows(session, url: str, old_active: list) -> list:
-    discovery_rows = fetch_cargo(session, url, tournament_query(build_discovery_window_where()))
-    active_pages = sorted({page for tournament in old_active for page in tournament["overviewPage"]})
+    discovery_rows = deduplicate_source_rows(
+        fetch_cargo(session, url, tournament_query(build_discovery_window_where()))
+    )
+    discovery_pages = {item["title"]["OverviewPage"] for item in discovery_rows}
+    active_pages = {
+        page
+        for tournament in old_active
+        for page in tournament["overviewPage"]
+    }
+    missing_active_pages = sorted(active_pages - discovery_pages)
     reconciliation_rows = []
-    for pages in chunked(active_pages, 40):
+    for pages in chunked(missing_active_pages, 40):
         where = build_field_condition("OverviewPage", pages)
         reconciliation_rows.extend(fetch_cargo(session, url, tournament_query(where)))
 
@@ -315,20 +350,33 @@ def attach_team_maps(session, url: str, tournaments: list) -> None:
                 team_map[team] = short
         tournament["teamMap"] = dict(sorted(team_map.items()))
 
-def read_league_short_map(session, url: str) -> dict:
+def collect_fandom_leagues(source_rows: list) -> list:
+    leagues = set()
+    for item in source_rows:
+        row = item.get("title")
+        if not isinstance(row, dict):
+            raise ValueError("Cargo tournament row missing title")
+        league = row.get("League")
+        if isinstance(league, str) and league:
+            leagues.add(league)
+    return sorted(leagues)
+
+
+def read_league_short_map(session, url: str, fandom_leagues: list) -> dict:
+    validate_filter_values(fandom_leagues, "Fandom leagues")
     league_short_rows = fetch_cargo(session, url, {
         "action": "cargoquery",
         "format": "json",
         "tables": "Leagues",
-        "fields": "League,League_Short",
-        "where": "League IS NOT NULL AND League_Short IS NOT NULL",
+        "fields": "League,League_Short=leagueShort",
+        "where": build_field_condition("League", fandom_leagues),
         "order_by": "League ASC",
     })
     league_short_by_fandom_league = {}
     for item in league_short_rows:
         row = item.get("title", {})
         fandom_league = row.get("League", "")
-        league_short = row.get("League Short", "")
+        league_short = row.get("leagueShort", "")
         if not fandom_league or not league_short:
             raise ValueError(f"Invalid League row: {row}")
         existing = league_short_by_fandom_league.get(fandom_league)
@@ -741,8 +789,9 @@ def run_tournament_sync():
 
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
-    league_short_map = read_league_short_map(session, url)
     source_rows = fetch_tournament_source_rows(session, url, old_active)
+    fandom_leagues = collect_fandom_leagues(source_rows)
+    league_short_map = read_league_short_map(session, url, fandom_leagues) if fandom_leagues else {}
     log(f"📥 抓取完成 | 原始: {len(source_rows)} 条 | 耗时: {time.time() - start_time:.1f}s")
 
     active_overview_pages = {
