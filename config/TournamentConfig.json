@@ -1,6 +1,30 @@
 {
     "active": [
         {
+            "slug": "lpl-2026-split-3",
+            "name": "LPL 2026 Split 3",
+            "leagueShort": "LPL",
+            "overviewPage": [
+                "LPL/2026 Season/Split 3"
+            ],
+            "startDate": "2026-07-22",
+            "endDate": "2026-08-23",
+            "teamMap": {
+                "Anyone's Legend": "AL",
+                "Bilibili Gaming": "BLG",
+                "EDward Gaming": "EDG",
+                "Invictus Gaming": "iG",
+                "JD Gaming": "JDG",
+                "LGD Gaming": "LGD",
+                "LNG Esports": "LNG",
+                "Ninjas in Pyjamas.CN": "NIP",
+                "Team WE": "WE",
+                "ThunderTalk Gaming": "TT",
+                "Top Esports": "TES",
+                "Weibo Gaming": "WBG"
+            }
+        },
+        {
             "slug": "kespa-cup-2026",
             "name": "KeSPA Cup 2026",
             "leagueShort": "KeSPA",
