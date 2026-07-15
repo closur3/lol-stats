@@ -27,8 +27,9 @@ async function runRevisionPath(env, tournaments, revisionResult) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
     const rawMatchesBySlug = await readExistingRawMatchesBySlug(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runActiveUpdate(env, tournaments, rawMatchesBySlug, false, changedSlugs, {
-      forceWrite: false,
+    await runActiveUpdate(env, tournaments, rawMatchesBySlug, changedSlugs, {
+      reasonsBySlug: new Map(Array.from(changedSlugs, slug => [slug, "revision"])),
+      rebuild: false,
       revidChanges,
       pendingRevisionWrites
     });

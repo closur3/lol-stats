@@ -1,13 +1,13 @@
-export function selectFetchCandidates(tournaments, forceSlugs = null) {
+export function selectFetchCandidates(tournaments, targetSlugs) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
+  if (!(targetSlugs instanceof Set)) throw new Error("targetSlugs must be a Set");
   const candidates = [];
-  const hasScope = !!(forceSlugs && forceSlugs.size > 0);
 
   tournaments.forEach(tournament => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
 
-    if (hasScope && !forceSlugs.has(slug)) {
+    if (!targetSlugs.has(slug)) {
       return;
     }
 

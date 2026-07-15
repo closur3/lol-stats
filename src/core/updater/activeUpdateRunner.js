@@ -25,7 +25,7 @@ function buildScopedRawMatches(rawMatches, scopeSlugs) {
   }));
 }
 
-function buildFandomOptions(force, options) {
+function buildUpdateOptions(targetSlugs, options) {
   if (!options || typeof options !== "object" || Array.isArray(options)) {
     throw new Error("fandom options must be a JSON object");
   }
@@ -37,8 +37,22 @@ function buildFandomOptions(force, options) {
   if (!pendingRevisionWrites || typeof pendingRevisionWrites !== "object" || Array.isArray(pendingRevisionWrites)) {
     throw new Error("pendingRevisionWrites must be a JSON object");
   }
+  if (!(targetSlugs instanceof Set)) throw new Error("targetSlugs must be a Set");
+  if (!(options.reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
+  if (options.reasonsBySlug.size !== targetSlugs.size) throw new Error("Active update reasons do not match target slugs");
+  const rebuild = options.rebuild === true;
+  const allowedReasons = new Set(["added", "updated", "force", "revision"]);
+  for (const slug of targetSlugs) {
+    const reason = options.reasonsBySlug.get(slug);
+    if (!reason) throw new Error(`Active update reason missing: ${slug}`);
+    if (!allowedReasons.has(reason)) throw new Error(`Invalid active update reason: ${slug}:${reason}`);
+    if (rebuild ? reason === "revision" : reason !== "revision") {
+      throw new Error(`Active update reason does not match execution mode: ${slug}:${reason}`);
+    }
+  }
   return {
-    forceWrite: options.forceWrite === undefined ? force : !!options.forceWrite,
+    reasonsBySlug: options.reasonsBySlug,
+    rebuild,
     revidChanges,
     pendingRevisionWrites
   };
@@ -52,8 +66,8 @@ async function createFandomClient(env) {
   };
 }
 
-async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs) {
-  const candidates = selectFetchCandidates(tournaments, forceSlugs);
+async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSlugs, rebuild, reasonsBySlug) {
+  const candidates = selectFetchCandidates(tournaments, targetSlugs);
   if (candidates.length === 0) {
     console.log(`[FANDOM:SKIP] no-candidates`);
     return null;
@@ -61,7 +75,7 @@ async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, f
 
   const { authContext, fandomClient } = await createFandomClient(env);
   const fetchOutcomes = await fetchRawMatchesForCandidates(fandomClient, candidates);
-  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, force, tournaments);
+  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug, tournaments);
   const { syncItems, skipItems, dropBreakers, fetchErrors } = rawMatchUpdate;
   console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
   return { authContext, ...rawMatchUpdate };
@@ -80,9 +94,9 @@ function buildActiveUpdateLogs(rawMatchUpdate, authContext) {
   return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap);
 }
 
-function assertForceFetchSucceeded(force, rawMatchUpdate) {
-  if (!force || rawMatchUpdate.errorSlugs.size === 0) return;
-  throw new Error(`Force Fandom fetch failed: ${Array.from(rawMatchUpdate.errorSlugs).sort().join(",")}`);
+function assertRebuildFetchSucceeded(rebuild, rawMatchUpdate) {
+  if (!rebuild || rawMatchUpdate.errorSlugs.size === 0) return;
+  throw new Error(`Active rebuild fetch failed: ${Array.from(rawMatchUpdate.errorSlugs).sort().join(",")}`);
 }
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
@@ -95,17 +109,17 @@ async function writeActiveProjections(env, scopedTournaments, analysis, writeSco
   await writeHomeProjections(env, scopedTournaments, analysis, writeScopeSlugs);
 }
 
-export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, force = false, forceSlugs = null, options = {}) {
-  const { forceWrite, revidChanges, pendingRevisionWrites } = buildFandomOptions(force, options);
-  const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, force, forceSlugs);
+export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, targetSlugs, options = {}) {
+  const { reasonsBySlug, rebuild, revidChanges, pendingRevisionWrites } = buildUpdateOptions(targetSlugs, options);
+  const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSlugs, rebuild, reasonsBySlug);
   if (!rawMatchUpdate) return;
-  assertForceFetchSucceeded(force, rawMatchUpdate);
+  assertRebuildFetchSucceeded(rebuild, rawMatchUpdate);
 
   const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = rawMatchUpdate;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
   const activeLogEntries = buildActiveUpdateLogs(rawMatchUpdate, authContext);
 
-  const writeScopeSlugs = buildWriteScopeSlugs(tournaments, syncItems, forceWrite, forceSlugs);
+  const writeScopeSlugs = buildWriteScopeSlugs(syncItems, rebuild ? targetSlugs : new Set());
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
   let analysis = null;
   if (writeScopeSlugs.size > 0) {

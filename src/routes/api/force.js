@@ -1,7 +1,7 @@
 import { rebuildSchedule } from "../../core/scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { readTournamentConfig } from "../../core/facts/tournamentConfigReader.js";
-import { forceActiveTournaments } from "../../core/updater/activeForceRunner.js";
+import { rebuildActiveTournaments } from "../../core/updater/activeRebuildRunner.js";
 import { requireAdmin } from "./auth.js";
 
 function parseForceSlugs(body) {
@@ -37,7 +37,7 @@ export async function handleForceUpdate(request, env) {
     const now = Date.now();
     const forcedTournaments = tournaments.filter(tournament => forceSlugs.has(tournament.slug));
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
-    await forceActiveTournaments(env, tournaments, forceSlugs);
+    await rebuildActiveTournaments(env, tournaments, new Map(Array.from(forceSlugs, slug => [slug, "force"])));
 
     const scheduleWarnings = [];
     const scheduleOptions = resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings });

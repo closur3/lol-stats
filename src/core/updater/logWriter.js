@@ -13,6 +13,13 @@ function pickLatestRevisionTrigger(revidChanges) {
   );
 }
 
+function readUpdateReason(value) {
+  if (!["added", "updated", "force", "revision"].includes(value)) {
+    throw new Error(`Invalid ActiveLog update reason: ${value}`);
+  }
+  return value;
+}
+
 export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap) {
   const loggedAt = timePolicy.getCurrentAppDateTime().fullDateTimeString;
   const isAnon = (!authContext || authContext.isAnonymous);
@@ -38,7 +45,7 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
       added: syncItem.added,
       updated: syncItem.updated,
       trigger: pickLatestRevisionTrigger(syncItem.revidChanges),
-      isForce: syncItem.isForce === true,
+      updateReason: readUpdateReason(syncItem.updateReason),
       isAnon
     });
   });
@@ -52,7 +59,7 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
       added: skipItem.added,
       updated: skipItem.updated,
       trigger: pickLatestRevisionTrigger(skipItem.revidChanges),
-      isForce: skipItem.isForce === true,
+      updateReason: readUpdateReason(skipItem.updateReason),
       isAnon
     });
   });

@@ -44,7 +44,8 @@ function calcChangedCount(currentRawMatches, fetchedRawMatches) {
   return { added, updated, deleted, changed: added + updated };
 }
 
-export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, force, tournaments) {
+export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug, tournaments) {
+  if (!(reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
   const brokenSlugs = new Set();
   const errorSlugs = new Set();
   const syncItems = [];
@@ -59,7 +60,8 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, forc
       const slug = fetchOutcome.slug;
       const fetchedRawMatches = fetchOutcome.rawMatches;
       const currentRawMatches = rawMatchesBySlug[slug];
-      const isForce = force;
+      const updateReason = reasonsBySlug.get(slug);
+      if (!updateReason) throw new Error(`Active update reason missing: ${slug}`);
 
       if (currentRawMatches === null) {
         rawMatchesBySlug[slug] = fetchedRawMatches;
@@ -68,24 +70,24 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, forc
           displayName: getDisplayName(displayNameMap, slug),
           added: fetchedRawMatches.length,
           updated: 0,
-          isForce
+          updateReason
         });
         return;
       }
       if (!Array.isArray(currentRawMatches)) throw new Error(`RawMatches invalid in active update scope: ${slug}`);
 
-      if (!isForce && currentRawMatches.length > 10 && fetchedRawMatches.length < currentRawMatches.length * updateConfig.dropThreshold) {
+      if (!rebuild && currentRawMatches.length > 10 && fetchedRawMatches.length < currentRawMatches.length * updateConfig.dropThreshold) {
         dropBreakers.push(`${slug}(Drop ${currentRawMatches.length}->${fetchedRawMatches.length})`);
         brokenSlugs.add(slug);
       } else {
         const changedCount = calcChangedCount(currentRawMatches, fetchedRawMatches);
         if (changedCount.changed === 0 && changedCount.deleted > 0) {
-          if (isForce) {
+          if (rebuild) {
             rawMatchesBySlug[slug] = fetchedRawMatches;
-            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
+            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, updateReason });
           } else {
             console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${currentRawMatches.length}->${fetchedRawMatches.length} (deleted=${changedCount.deleted}), preserving previous RawMatches`);
-            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
+            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, updateReason });
           }
         } else {
           rawMatchesBySlug[slug] = fetchedRawMatches;
@@ -95,10 +97,10 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, forc
               displayName: getDisplayName(displayNameMap, slug),
               added: changedCount.added,
               updated: changedCount.updated,
-              isForce
+              updateReason
             });
           } else {
-            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, isForce });
+            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, updateReason });
           }
         }
       }

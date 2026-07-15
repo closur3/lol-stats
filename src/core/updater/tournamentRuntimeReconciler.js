@@ -3,7 +3,7 @@ import { buildTournamentApplyState } from "../facts/tournamentConfigFingerprint.
 import { writeTournamentApplyState } from "../facts/tournamentApplyState.js";
 import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
 import { migrateArchiveTournaments } from "./archiveMigration.js";
-import { forceActiveTournaments } from "./activeForceRunner.js";
+import { rebuildActiveTournaments } from "./activeRebuildRunner.js";
 import { deleteActiveRuntimeFacts } from "./activeTournamentDeletion.js";
 import { deriveTournamentTransition } from "./tournamentTransition.js";
 import { assertActiveRuntimeMatchesConfig } from "./activeRuntimeValidator.js";
@@ -46,7 +46,11 @@ export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleO
   logTransition(transition);
 
   await migrateArchiveTournaments(env, config.archive, new Set(transition.archived));
-  await forceActiveTournaments(env, config.active, new Set([...transition.added, ...transition.updated]));
+  const rebuildReasons = new Map([
+    ...transition.added.map(slug => [slug, "added"]),
+    ...transition.updated.map(slug => [slug, "updated"])
+  ]);
+  await rebuildActiveTournaments(env, config.active, rebuildReasons);
   await Promise.all(transition.dropped.map(slug => deleteActiveRuntimeFacts(env, slug)));
   await runScheduleMaintenance(env, config.active, scheduledTimeMs, scheduleOptions);
 

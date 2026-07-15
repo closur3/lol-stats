@@ -7,27 +7,16 @@ function requireObject(value, label) {
   return value;
 }
 
-export function buildWriteScopeSlugs(tournaments, syncItems, force, forceSlugs) {
-  if (!Array.isArray(tournaments)) {
-    throw new Error("tournaments must be an array");
-  }
+export function buildWriteScopeSlugs(syncItems, rebuildSlugs) {
   if (!Array.isArray(syncItems)) throw new Error("syncItems must be an array");
+  if (!(rebuildSlugs instanceof Set)) throw new Error("rebuildSlugs must be a Set");
   const scope = new Set();
   for (const syncItem of syncItems) {
     if (!syncItem || typeof syncItem !== "object" || !syncItem.slug) throw new Error("write scope sync item slug missing");
     scope.add(syncItem.slug);
   }
 
-  if (!force) return scope;
-  if (forceSlugs && forceSlugs.size > 0) {
-    for (const slug of forceSlugs) scope.add(slug);
-    return scope;
-  }
-
-  for (const tournament of tournaments) {
-    if (!tournament?.slug) throw new Error("Tournament slug missing");
-    scope.add(tournament.slug);
-  }
+  for (const slug of rebuildSlugs) scope.add(slug);
   return scope;
 }
 

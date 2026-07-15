@@ -27,7 +27,10 @@ function formatDelta(entry) {
 }
 
 function renderTrigger(entry, icon) {
-  if (entry.isForce) return ` | ${icon} Force`;
+  if (entry.updateReason === "added") return ` | ${icon} Added`;
+  if (entry.updateReason === "updated") return ` | ${icon} Updated`;
+  if (entry.updateReason === "force") return ` | ${icon} Force`;
+  if (entry.updateReason !== "revision") throw new Error(`Invalid ActiveLog updateReason: ${entry.updateReason}`);
   const trigger = entry.trigger;
   if (!trigger?.diffUrl || trigger.revid == null) return "";
   return ` | ${icon} <a class="log-trigger-link" href="${escapeUrl(trigger.diffUrl)}" target="_blank" rel="noopener">${escapeHtml(trigger.revid)}</a>`;
