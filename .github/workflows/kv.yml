@@ -9,7 +9,7 @@ on:
         default: false
         type: boolean
       reconcile:
-        description: "Reconcile Worker runtime after TournamentConfig is persisted"
+        description: "Reconcile Worker runtime after persist (always runs after clear)"
         required: false
         default: false
         type: boolean
@@ -24,6 +24,16 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
+
+      - name: Validate runtime reconcile config
+        if: inputs.clear == true || inputs.reconcile == true
+        env:
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+        run: |
+          set -euo pipefail
+          [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET."; exit 1; }
+          [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
 
       - name: Persist TournamentConfig
         env:
@@ -91,7 +101,7 @@ jobs:
           put_config "TournamentConfig" "config/TournamentConfig.json"
 
       - name: Reconcile Worker runtime
-        if: inputs.reconcile == true
+        if: inputs.clear == true || inputs.reconcile == true
         env:
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           WORKER_URL: ${{ vars.WORKER_URL }}
