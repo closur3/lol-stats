@@ -1,118 +1,43 @@
-import { timePolicy } from "../../utils/timePolicy.js";
-import { rebuildMissingScheduleMetaFromRawMatches, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
-import {
-  alignStateSlugsWithTournaments,
-  areSchedulesApplied,
-  assertSlugScheduleState,
-  readScheduleState,
-  recordAppliedSchedules,
-  writeScheduleState
-} from "./scheduleState.js";
+import { ensureScheduleMeta, rebuildScheduleMetaFromRawMatches } from "../facts/scheduleMetaStore.js";
 import { buildCronsFromScheduleState } from "./cronBuckets.js";
 import { runScheduleApply } from "./scheduleApplyRunner.js";
-import {
-  buildDailyScheduleState,
-  buildNextSlugScheduleState,
-  requireScheduleMeta
-} from "./schedulePlanBuilder.js";
+import { buildScheduleState } from "./schedulePlanBuilder.js";
+import { areCronsApplied, readScheduleState, recordAppliedCrons, writeScheduleState } from "./scheduleState.js";
 
-async function rebuildScheduleMetasForTournaments(env, tournaments) {
-  return Promise.all(
-    tournaments.map(async (tournament) => {
-      const slug = tournament?.slug;
-      if (!slug) throw new Error("Tournament slug missing");
-      return rebuildScheduleMetaFromRawMatches(env, slug);
-    })
-  );
-}
-
-async function restoreMissingScheduleMetasForTournaments(env, tournaments) {
-  return Promise.all(
-    tournaments.map(async (tournament) => {
-      const slug = tournament?.slug;
-      if (!slug) throw new Error("Tournament slug missing");
-      return rebuildMissingScheduleMetaFromRawMatches(env, slug);
-    })
-  );
-}
-
-async function planNewScheduleDay(env, tournaments, now, lastDay, options) {
-  const rebuiltMetas = await rebuildScheduleMetasForTournaments(env, tournaments);
-  const metasBySlug = new Map(rebuiltMetas.map(meta => [meta.slug, meta]));
-  const today = timePolicy.getAppDateKey(now);
-  console.log(`[SCHED:DAY] ${lastDay || "none"} -> ${today}`);
-  const state = buildDailyScheduleState(tournaments, metasBySlug, now);
-  const schedules = buildCronsFromScheduleState(state);
-  const applyResult = await runScheduleApply(env, schedules, "PLAN", options);
-  if (applyResult === "applied") recordAppliedSchedules(state, schedules);
-  await writeScheduleState(env, state);
-  console.log(`[SCHED:PLAN] date=${state.date} schedules=${schedules.join(",")} apply=${applyResult}`);
-}
-
-async function reconcileCurrentScheduleDay(env, tournaments, state, now, options) {
-  const alignmentChanged = alignStateSlugsWithTournaments(state, tournaments);
-  const metas = await restoreMissingScheduleMetasForTournaments(env, tournaments);
-  const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
-  const reconciled = [];
-
-  for (const tournament of tournaments) {
+async function readScheduleMetas(env, tournaments, rebuild) {
+  return Promise.all(tournaments.map(async tournament => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
-    const slugState = state.slugStates[slug];
-    assertSlugScheduleState(slug, slugState);
-
-    const nextSlugState = buildNextSlugScheduleState(slug, slugState, requireScheduleMeta(metasBySlug, slug), now);
-    if (JSON.stringify(slugState) !== JSON.stringify(nextSlugState)) {
-      state.slugStates[slug] = nextSlugState;
-      reconciled.push(`${slug}:${slugState.phase}->${nextSlugState.phase}`);
-    }
-  }
-
-  const hasChanges = alignmentChanged || reconciled.length > 0;
-  if (!hasChanges) {
-    const schedules = buildCronsFromScheduleState(state);
-    if (areSchedulesApplied(state, schedules)) return;
-    const applyResult = await runScheduleApply(env, schedules, "REAPPLY", options);
-    if (applyResult === "applied") recordAppliedSchedules(state, schedules);
-    await writeScheduleState(env, state);
-    return;
-  }
-
-  if (reconciled.length > 0) {
-    const today = timePolicy.getAppDateKey(now);
-    console.log(`[SCHED:STATE] date=${today} ${reconciled.join(",")}`);
-  }
-
-  const schedules = buildCronsFromScheduleState(state);
-  if (!areSchedulesApplied(state, schedules)) {
-    const applyResult = await runScheduleApply(env, schedules, "RECONCILE", options);
-    if (applyResult === "applied") recordAppliedSchedules(state, schedules);
-  }
-  await writeScheduleState(env, state);
+    return rebuild
+      ? rebuildScheduleMetaFromRawMatches(env, slug)
+      : ensureScheduleMeta(env, slug);
+  }));
 }
 
-export async function reconcileCurrentScheduleState(env, tournaments, scheduledTimeMs, options = {}) {
+async function deriveAndApplySchedule(env, tournaments, scheduledTimeMs, options, rebuildMetas) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const now = new Date(scheduledTimeMs);
-  const today = timePolicy.getAppDateKey(now);
-  const state = await readScheduleState(env);
-  if (!state || state.date !== today) return false;
-  await reconcileCurrentScheduleDay(env, tournaments, state, now, options);
-  return true;
+  if (Number.isNaN(now.getTime())) throw new Error(`Invalid scheduledTimeMs: ${scheduledTimeMs}`);
+  const previousState = rebuildMetas ? null : await readScheduleState(env);
+  const metas = await readScheduleMetas(env, tournaments, rebuildMetas);
+  const metasBySlug = new Map(metas.map(meta => [meta.slug, meta]));
+  const previousAppliedCrons = previousState?.appliedCrons || [];
+  const state = buildScheduleState(tournaments, metasBySlug, now, previousAppliedCrons);
+  const desiredCrons = buildCronsFromScheduleState(state);
+
+  let applyResult = "unchanged";
+  if (!areCronsApplied(state, desiredCrons)) {
+    applyResult = await runScheduleApply(env, desiredCrons, rebuildMetas ? "REBUILD" : "RECONCILE", options);
+    if (applyResult === "applied") recordAppliedCrons(state, desiredCrons);
+  }
+  await writeScheduleState(env, state);
+  console.log(`[SCHED:${rebuildMetas ? "REBUILD" : "STATE"}] date=${state.date} crons=${desiredCrons.join(",")} apply=${applyResult}`);
 }
 
 export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, options = {}) {
-  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  const now = new Date(scheduledTimeMs);
-  const today = timePolicy.getAppDateKey(now);
+  await deriveAndApplySchedule(env, tournaments, scheduledTimeMs, options, false);
+}
 
-  const state = await readScheduleState(env);
-  const lastDay = state?.date || null;
-
-  if (lastDay !== today) {
-    await planNewScheduleDay(env, tournaments, now, lastDay, options);
-    return;
-  }
-
-  await reconcileCurrentScheduleDay(env, tournaments, state, now, options);
+export async function rebuildSchedule(env, tournaments, scheduledTimeMs = Date.now(), options = {}) {
+  await deriveAndApplySchedule(env, tournaments, scheduledTimeMs, options, true);
 }

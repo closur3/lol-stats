@@ -2,6 +2,7 @@ import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 import { readScheduleMeta } from '../facts/scheduleMetaStore.js';
 import { updateConfig } from './updateConfig.js';
+import { collectRetainedPastScheduleDates } from '../analysis/scheduleMeta.js';
 
 export async function readScheduleMetaBySlug(env, orderedTournaments) {
   const scheduleMetas = await Promise.all(orderedTournaments.map(async (tournament) => {
@@ -74,15 +75,16 @@ export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMe
 }
 
 export function pruneHomeSchedule(scheduleMap, scheduleMetaBySlug) {
-  const historyUnfinished = {};
+  const today = timePolicy.getCurrentAppDateTime().dateString;
+  const retainedPastDatesBySlug = {};
   for (const [slug, meta] of Object.entries(scheduleMetaBySlug)) {
-    if (meta.hasHistoryUnfinished) historyUnfinished[slug] = true;
+    retainedPastDatesBySlug[slug] = Array.from(collectRetainedPastScheduleDates(meta, today));
   }
 
   return dateUtils.pruneScheduleMapByDayStatus(
     scheduleMap,
     updateConfig.maxScheduleDays,
-    timePolicy.getCurrentAppDateTime().dateString,
-    historyUnfinished
+    today,
+    retainedPastDatesBySlug
   );
 }

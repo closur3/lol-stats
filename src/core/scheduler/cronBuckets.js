@@ -1,4 +1,4 @@
-import { assertSlugScheduleState, hasPlayWindow, isNowInPlayWindow } from "./scheduleState.js";
+import { assertSlugScheduleState, isNowInCronWindow } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
 export const baselineCron = "0 */2 * * *";
@@ -55,8 +55,8 @@ export function buildActiveBucketCronsFromState(state) {
   const intervals = [];
   for (const [slug, slugState] of Object.entries(state.slugStates)) {
     assertSlugScheduleState(slug, slugState);
-    if (!hasPlayWindow(slugState)) continue;
-    intervals.push(...timePolicy.appWindowToUtcCronSegments(state.date, slugState.playStartHour, slugState.playEndHour));
+    if (slugState.cronWindow === null) continue;
+    intervals.push(...timePolicy.appWindowToUtcCronSegments(state.date, slugState.cronWindow.startHour, slugState.cronWindow.endHour));
   }
 
   const buckets = mergeIntervals(intervals);
@@ -72,7 +72,6 @@ export function buildCronsFromScheduleState(state) {
   return schedules;
 }
 
-export function shouldRunPlaySlugAt(slugState, nowUtc) {
-  if (!hasPlayWindow(slugState)) return false;
-  return isNowInPlayWindow(slugState, nowUtc);
+export function shouldRunScheduledSlugAt(slugState, nowUtc) {
+  return isNowInCronWindow(slugState, nowUtc);
 }

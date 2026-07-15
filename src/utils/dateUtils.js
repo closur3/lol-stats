@@ -9,14 +9,14 @@ export const dateUtils = {
     return "hsl(215, 40%, 60%)";
   },
 
-  pruneScheduleMapByDayStatus: (scheduleMap, maxDays, todayStr, hasHistoryUnfinished) => {
+  pruneScheduleMapByDayStatus: (scheduleMap, maxDays, todayStr, retainedPastDatesBySlug) => {
     if (!todayStr) throw new Error("todayStr is required");
     if (!scheduleMap || typeof scheduleMap !== "object" || Array.isArray(scheduleMap)) {
       throw new Error("scheduleMap must be a JSON object");
     }
     if (!Number.isInteger(maxDays) || maxDays < 1) throw new Error("maxDays must be a positive integer");
-    if (!hasHistoryUnfinished || typeof hasHistoryUnfinished !== "object" || Array.isArray(hasHistoryUnfinished)) {
-      throw new Error("hasHistoryUnfinished must be a JSON object");
+    if (!retainedPastDatesBySlug || typeof retainedPastDatesBySlug !== "object" || Array.isArray(retainedPastDatesBySlug)) {
+      throw new Error("retainedPastDatesBySlug must be a JSON object");
     }
     const today = todayStr;
     const kept = {};
@@ -28,8 +28,8 @@ export const dateUtils = {
         kept[date] = matches;
         return;
       }
-      const slugHasUnfinished = matches.some(match => hasHistoryUnfinished[match?.slug]);
-      if (slugHasUnfinished) kept[date] = matches;
+      const shouldRetainDate = matches.some(match => retainedPastDatesBySlug[match?.slug]?.includes(date));
+      if (shouldRetainDate) kept[date] = matches;
     });
 
     const limited = {};

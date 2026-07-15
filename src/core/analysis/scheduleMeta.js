@@ -1,34 +1,122 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchOutcome } from './matchFields.js';
 
+function readPositiveInteger(value, label) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 1 || String(value).trim() === "") {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return number;
+}
+
+function readText(value, label, allowEmpty = false) {
+  if (typeof value !== "string" || (!allowEmpty && value.trim() === "")) {
+    throw new Error(`${label} must be a string`);
+  }
+  return value;
+}
+
+function sessionKey(overviewPage, tab, matchDay) {
+  return JSON.stringify([overviewPage, tab, matchDay]);
+}
+
+function buildSession(overviewPage, tab, matchDay, matchNumber, timestamp, dateKey, unfinished) {
+  return {
+    overviewPage,
+    tab,
+    matchDay,
+    firstMatchNumber: matchNumber,
+    lastMatchNumber: matchNumber,
+    startTimestamp: timestamp,
+    lastMatchTimestamp: timestamp,
+    matchCount: 1,
+    unfinishedCount: unfinished ? 1 : 0,
+    matchDates: [dateKey],
+    unfinishedDates: unfinished ? [dateKey] : []
+  };
+}
+
+function appendMatch(session, matchNumber, timestamp, dateKey, unfinished) {
+  session.firstMatchNumber = Math.min(session.firstMatchNumber, matchNumber);
+  session.lastMatchNumber = Math.max(session.lastMatchNumber, matchNumber);
+  session.startTimestamp = Math.min(session.startTimestamp, timestamp);
+  session.lastMatchTimestamp = Math.max(session.lastMatchTimestamp, timestamp);
+  session.matchCount++;
+  if (!session.matchDates.includes(dateKey)) session.matchDates.push(dateKey);
+  if (unfinished) {
+    session.unfinishedCount++;
+    if (!session.unfinishedDates.includes(dateKey)) session.unfinishedDates.push(dateKey);
+  }
+}
+
+function finalizeSession(session) {
+  session.matchDates.sort();
+  session.unfinishedDates.sort();
+  return session;
+}
+
 export function computeScheduleMetaFromRawMatches(rawMatches) {
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
-  const todayStr = timePolicy.getCurrentAppDateTime().dateString;
-  let todayEarliest = 0;
-  let todayUnfinished = 0;
-  let hasHistoryUnfinished = false;
+  const sessions = new Map();
+  const matchNumbersByTab = new Map();
 
-  for (const match of rawMatches) {
-    const { winner, isNullified } = parseMatchOutcome(match, `ScheduleMeta.${match.MatchId}`);
-    if (isNullified) continue;
-
-    const matchTime = timePolicy.deriveMatchTime(match.DateTimeUTC);
-    const dateStr = matchTime.matchDateStr;
-    const ts = matchTime.timestamp;
-
-    if (dateStr === todayStr && ts && (!todayEarliest || ts < todayEarliest)) {
-      todayEarliest = ts;
+  rawMatches.forEach((rawMatch, sourceIndex) => {
+    if (!rawMatch || typeof rawMatch !== "object" || Array.isArray(rawMatch)) {
+      throw new Error(`RawMatches[${sourceIndex}] must be a JSON object`);
     }
+    const label = `RawMatches.${rawMatch.MatchId || sourceIndex}`;
+    const { winner, isNullified } = parseMatchOutcome(rawMatch, label);
+    if (isNullified) return;
 
-    const isFinished = winner !== null;
-    if (isFinished) continue;
+    const overviewPage = readText(rawMatch.OverviewPage, `${label}.OverviewPage`);
+    const tab = readText(rawMatch.Tab, `${label}.Tab`, true);
+    const matchDay = readPositiveInteger(rawMatch.matchDay, `${label}.matchDay`);
+    const matchNumber = readPositiveInteger(rawMatch.nMatchInTab, `${label}.nMatchInTab`);
+    const matchTime = timePolicy.deriveMatchTime(rawMatch.DateTimeUTC);
+    const tabKey = JSON.stringify([overviewPage, tab]);
+    if (!matchNumbersByTab.has(tabKey)) matchNumbersByTab.set(tabKey, new Set());
+    const usedNumbers = matchNumbersByTab.get(tabKey);
+    if (usedNumbers.has(matchNumber)) {
+      throw new Error(`${label}.nMatchInTab duplicates ${matchNumber} in ${overviewPage}/${tab}`);
+    }
+    usedNumbers.add(matchNumber);
 
-    if (dateStr === todayStr) {
-      todayUnfinished++;
-    } else if (dateStr < todayStr) {
-      hasHistoryUnfinished = true;
+    const key = sessionKey(overviewPage, tab, matchDay);
+    const unfinished = winner === null;
+    if (!sessions.has(key)) {
+      sessions.set(key, buildSession(overviewPage, tab, matchDay, matchNumber, matchTime.timestamp, matchTime.matchDateStr, unfinished));
+      return;
+    }
+    appendMatch(sessions.get(key), matchNumber, matchTime.timestamp, matchTime.matchDateStr, unfinished);
+  });
+
+  return {
+    sessions: Array.from(sessions.values())
+      .sort((left, right) => left.startTimestamp - right.startTimestamp || left.overviewPage.localeCompare(right.overviewPage) || left.tab.localeCompare(right.tab) || left.matchDay - right.matchDay)
+      .map(finalizeSession)
+  };
+}
+
+export function collectRetainedPastScheduleDates(meta, today) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta) || !Array.isArray(meta.sessions)) {
+    throw new Error("ScheduleMeta.sessions must be an array");
+  }
+  if (typeof today !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(today)) {
+    throw new Error("today must be an app date key");
+  }
+  const retainedDates = new Set();
+  for (const [index, session] of meta.sessions.entries()) {
+    if (!Array.isArray(session.matchDates) || !Array.isArray(session.unfinishedDates)) {
+      throw new Error(`ScheduleMeta.sessions[${index}] dates missing`);
+    }
+    for (const date of session.unfinishedDates) {
+      if (date < today) retainedDates.add(date);
+    }
+    if (session.matchDates.includes(today)) {
+      for (const date of session.matchDates) {
+        if (date < today) retainedDates.add(date);
+      }
     }
   }
-
-  return { todayEarliestTimestamp: todayEarliest, todayUnfinished, hasHistoryUnfinished };
+  return retainedDates;
 }

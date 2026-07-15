@@ -1,7 +1,7 @@
 import { getFirstOverviewPage } from '../../../utils/data/overviewPages.js';
 import { sortTeams } from '../../../utils/data/teamSort.js';
 import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
-import { resolveScheduleMetaPhase } from '../../../utils/scheduleMetaPhase.js';
+import { resolveSchedulePhase } from '../../../core/scheduler/schedulePlanBuilder.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { summarizeFullRate } from '../../../core/analysis/fullRateSummary.js';
 import { renderTeamRow } from '../../components/teamRow.js';
@@ -58,7 +58,7 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
   let phaseIcon = "";
   let phase = null;
   if (!isArchive) {
-    phase = resolveScheduleMetaPhase(meta);
+    phase = resolveSchedulePhase(meta);
     phaseIcon = renderSchedulePhaseIcon(phase);
   }
   const mainPage = getFirstOverviewPage(tournament.overviewPage);

@@ -1,4 +1,4 @@
-import { buildActiveBucketCronsFromState, shouldRunPlaySlugAt } from "./cronBuckets.js";
+import { buildActiveBucketCronsFromState, shouldRunScheduledSlugAt } from "./cronBuckets.js";
 import { assertSlugScheduleState, readScheduleState } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
@@ -14,7 +14,7 @@ export async function resolveScheduledExecutionScope(env, scheduledTimeMs, event
   const slugs = new Set();
   for (const [slug, slugState] of Object.entries(state.slugStates)) {
     assertSlugScheduleState(slug, slugState);
-    if (shouldRunPlaySlugAt(slugState, now)) slugs.add(slug);
+    if (shouldRunScheduledSlugAt(slugState, now)) slugs.add(slug);
   }
 
   if (slugs.size === 0) return { type: "none" };

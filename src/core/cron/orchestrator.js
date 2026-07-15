@@ -2,7 +2,7 @@ import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
 import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
-import { reconcileCurrentScheduleState, runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
+import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { reconcileTournamentRuntime } from "../updater/tournamentRuntimeReconciler.js";
@@ -45,7 +45,7 @@ export async function runCron(env, event) {
   const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
   if (target.type === 'none') {
     if (!configChanged) {
-      await reconcileCurrentScheduleState(env, tournaments, event.scheduledTime, scheduleOptions);
+      await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
     }
     return;
   }

@@ -31,9 +31,7 @@ async function readLogMetaBySlug(env, slugs) {
     ]);
     return [slug, {
       totalMatchCount: rawMatches.length,
-      todayEarliestTimestamp: meta.todayEarliestTimestamp,
-      todayUnfinished: meta.todayUnfinished,
-      hasHistoryUnfinished: meta.hasHistoryUnfinished
+      scheduleMeta: meta
     }];
   }));
   return new Map(metaPairs);
@@ -46,9 +44,7 @@ function buildActiveLogItem(name, slug, logs, homeMeta) {
     name,
     logs,
     totalMatches: homeMeta.totalMatchCount,
-    todayEarliestTimestamp: homeMeta.todayEarliestTimestamp,
-    todayUnfinished: homeMeta.todayUnfinished,
-    hasHistoryUnfinished: homeMeta.hasHistoryUnfinished
+    scheduleMeta: homeMeta.scheduleMeta
   };
 }
 

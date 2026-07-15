@@ -1,123 +1,83 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { timePolicy } from "../../utils/timePolicy.js";
-import { assertScheduleMetaFields } from "../facts/scheduleMetaStore.js";
 
-export async function readScheduleState(env) {
-  const kv = env["lol-stats-kv"];
-  const state = await kv.get(kvKeys.scheduleState(), { type: "json" });
-  if (state == null) return null;
-  if (typeof state !== "object" || Array.isArray(state)) throw new Error("ScheduleState must be a JSON object");
-  if (!state.slugStates || typeof state.slugStates !== "object" || Array.isArray(state.slugStates)) {
-    throw new Error("ScheduleState.slugStates must be a JSON object");
+const phases = new Set(["offday", "idle", "play", "done"]);
+
+function assertCronWindow(slug, window) {
+  if (window === null) return;
+  if (!window || typeof window !== "object" || Array.isArray(window)) {
+    throw new Error(`ScheduleState.slugStates.${slug}.cronWindow must be a JSON object or null`);
   }
-  return state;
-}
-
-export async function writeScheduleState(env, state) {
-  await env["lol-stats-kv"].put(kvKeys.scheduleState(), JSON.stringify(state));
-}
-
-export function recordAppliedSchedules(state, schedules) {
-  state.schedules = schedules;
-  return state;
-}
-
-export function areSchedulesApplied(state, schedules) {
-  if (state.schedules === undefined) return false;
-  if (!Array.isArray(state.schedules)) throw new Error("ScheduleState.schedules must be an array");
-  return JSON.stringify(state.schedules) === JSON.stringify(schedules);
-}
-
-export function buildSlugScheduleState(phase = "idle", window = null) {
-  return {
-    phase,
-    playStartHour: window?.startHour ?? null,
-    playEndHour: window?.endHour ?? null
-  };
-}
-
-export function hasPlayWindow(slugState) {
-  return slugState.playStartHour !== null || slugState.playEndHour !== null;
-}
-
-function assertPlayWindow(slug, slugState) {
-  const startHour = slugState.playStartHour;
-  const endHour = slugState.playEndHour;
-  if (!Number.isInteger(startHour) || !Number.isInteger(endHour)) {
-    throw new Error(`ScheduleState.slugStates.${slug} play window missing`);
-  }
-  if (startHour < 0 || startHour > 23 || endHour < 0 || endHour > 23) {
-    throw new Error(`ScheduleState.slugStates.${slug} play window out of range: ${startHour}-${endHour}`);
-  }
-  if (startHour > endHour) {
-    throw new Error(`ScheduleState.slugStates.${slug} play window invalid: ${startHour}-${endHour}`);
+  const { startHour, endHour } = window;
+  if (!Number.isInteger(startHour) || !Number.isInteger(endHour) || startHour < 0 || endHour > 23 || startHour > endHour) {
+    throw new Error(`ScheduleState.slugStates.${slug}.cronWindow is invalid`);
   }
 }
 
-export function isNowInPlayWindow(slugState, nowUtc) {
-  const hour = timePolicy.getAppHour(nowUtc);
-  return hour >= slugState.playStartHour && hour <= slugState.playEndHour;
-}
-
-export function derivePhase(slugState, meta, nowUtc) {
-  if (!hasPlayWindow(slugState)) return "idle";
-  const fields = assertScheduleMetaFields("ScheduleMeta", meta);
-  const hasUnfinished = fields.hasHistoryUnfinished || fields.todayUnfinished > 0;
-  return hasUnfinished && isNowInPlayWindow(slugState, nowUtc) ? "play" : "idle";
-}
-
-export function buildIdleState(today, tournaments) {
-  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  const slugStates = {};
-  for (const tournament of tournaments) {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    slugStates[slug] = buildSlugScheduleState();
+function assertTargetSession(slug, target) {
+  if (target === null) return;
+  if (!target || typeof target !== "object" || Array.isArray(target)) {
+    throw new Error(`ScheduleState.slugStates.${slug}.targetSession must be a JSON object or null`);
   }
-  return { date: today, slugStates };
+  if (typeof target.overviewPage !== "string" || target.overviewPage.trim() === "") throw new Error(`ScheduleState ${slug} target overviewPage missing`);
+  if (typeof target.tab !== "string") throw new Error(`ScheduleState ${slug} target tab missing`);
+  if (!Number.isInteger(target.matchDay) || target.matchDay < 1) throw new Error(`ScheduleState ${slug} target matchDay invalid`);
+  if (!Number.isInteger(target.startTimestamp) || target.startTimestamp < 1) throw new Error(`ScheduleState ${slug} target startTimestamp invalid`);
 }
 
 export function assertSlugScheduleState(slug, slugState) {
   if (!slugState || typeof slugState !== "object" || Array.isArray(slugState)) {
     throw new Error(`ScheduleState.slugStates.${slug} must be a JSON object`);
   }
-  if (!["idle", "play"].includes(slugState.phase)) {
-    throw new Error(`Invalid scheduler phase for ${slug}: ${slugState.phase}`);
+  if (!phases.has(slugState.phase)) throw new Error(`Invalid scheduler phase for ${slug}: ${slugState.phase}`);
+  assertTargetSession(slug, slugState.targetSession);
+  assertCronWindow(slug, slugState.cronWindow);
+  if ((slugState.phase === "idle" || slugState.phase === "play") && slugState.cronWindow === null) {
+    throw new Error(`ScheduleState ${slug} ${slugState.phase} phase requires cronWindow`);
   }
-  if (slugState.playStartHour === null && slugState.playEndHour === null) {
-    if (slugState.phase === "play") {
-      throw new Error(`ScheduleState.slugStates.${slug} play phase requires a window`);
-    }
-    return;
+  if ((slugState.phase === "done" || slugState.phase === "offday") && slugState.cronWindow !== null) {
+    throw new Error(`ScheduleState ${slug} ${slugState.phase} phase cannot have cronWindow`);
   }
-  if (slugState.playStartHour === null || slugState.playEndHour === null) {
-    throw new Error(`ScheduleState.slugStates.${slug} play window incomplete`);
-  }
-  assertPlayWindow(slug, slugState);
+  return slugState;
 }
 
-export function alignStateSlugsWithTournaments(state, tournaments) {
-  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  const expectedSlugs = new Set();
-  for (const tournament of tournaments) {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    expectedSlugs.add(slug);
+function normalizeScheduleState(state) {
+  if (!state || typeof state !== "object" || Array.isArray(state)) throw new Error("ScheduleState must be a JSON object");
+  if (typeof state.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(state.date)) throw new Error("ScheduleState.date is invalid");
+  if (!state.slugStates || typeof state.slugStates !== "object" || Array.isArray(state.slugStates)) {
+    throw new Error("ScheduleState.slugStates must be a JSON object");
   }
-
-  let changed = false;
-  for (const slug of expectedSlugs) {
-    if (!Object.prototype.hasOwnProperty.call(state.slugStates, slug)) {
-      state.slugStates[slug] = buildSlugScheduleState();
-      changed = true;
-    }
+  if (!Array.isArray(state.appliedCrons) || state.appliedCrons.some(cron => typeof cron !== "string")) {
+    throw new Error("ScheduleState.appliedCrons must be an array of strings");
   }
+  for (const [slug, slugState] of Object.entries(state.slugStates)) assertSlugScheduleState(slug, slugState);
+  return state;
+}
 
-  for (const existingSlug of Object.keys(state.slugStates)) {
-    if (expectedSlugs.has(existingSlug)) continue;
-    delete state.slugStates[existingSlug];
-    changed = true;
-  }
+export async function readScheduleState(env) {
+  const state = await env["lol-stats-kv"].get(kvKeys.scheduleState(), { type: "json" });
+  if (state == null) return null;
+  return normalizeScheduleState(state);
+}
 
-  return changed;
+export async function writeScheduleState(env, state) {
+  const normalized = normalizeScheduleState(state);
+  await env["lol-stats-kv"].put(kvKeys.scheduleState(), JSON.stringify(normalized));
+}
+
+export function recordAppliedCrons(state, crons) {
+  if (!Array.isArray(crons) || crons.some(cron => typeof cron !== "string")) throw new Error("crons must be an array of strings");
+  state.appliedCrons = [...crons];
+  return state;
+}
+
+export function areCronsApplied(state, crons) {
+  return JSON.stringify(state.appliedCrons) === JSON.stringify(crons);
+}
+
+export function isNowInCronWindow(slugState, nowUtc) {
+  assertSlugScheduleState("scope", slugState);
+  if (slugState.cronWindow === null) return false;
+  const hour = timePolicy.getAppHour(nowUtc);
+  return hour >= slugState.cronWindow.startHour && hour <= slugState.cronWindow.endHour;
 }

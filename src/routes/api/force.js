@@ -1,4 +1,4 @@
-import { runScheduleMaintenance } from "../../core/scheduler/scheduleMaintenanceRunner.js";
+import { rebuildSchedule } from "../../core/scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { readTournamentConfig } from "../../core/facts/tournamentConfigReader.js";
 import { forceActiveTournaments } from "../../core/updater/activeForceRunner.js";
@@ -41,7 +41,7 @@ export async function handleForceUpdate(request, env) {
 
     const scheduleWarnings = [];
     const scheduleOptions = resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings });
-    await runScheduleMaintenance(env, tournaments, now, scheduleOptions);
+    await rebuildSchedule(env, tournaments, now, scheduleOptions);
     if (scheduleWarnings.length > 0) {
       return new Response(`PARTIAL scheduleWarnings=${scheduleWarnings.join(" | ")}`, { status: 207 });
     }

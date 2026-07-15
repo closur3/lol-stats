@@ -2,13 +2,9 @@ import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFields.js';
 import { analyzeGameSequence, applyTurnaroundStats } from './gameSequence.js';
 
-export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
+export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, retainedPastScheduleDates, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
+  if (!(retainedPastScheduleDates instanceof Set)) throw new Error("retainedPastScheduleDates must be a Set");
   const timeGridMatches = [];
-  const scheduleMeta = {
-    todayEarliestTimestamp: 0,
-    todayUnfinished: 0,
-    hasHistoryUnfinished: false
-  };
   const allStatsInit = {
     bestOf3FullMatchCount: 0, bestOf3TotalMatchCount: 0,
     bestOf5FullMatchCount: 0, bestOf5TotalMatchCount: 0,
@@ -60,11 +56,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       roundedMinutes
     } = matchTime;
 
-    if (matchDateStr === currentDate && timestamp && (!scheduleMeta.todayEarliestTimestamp || timestamp < scheduleMeta.todayEarliestTimestamp)) {
-      scheduleMeta.todayEarliestTimestamp = timestamp;
-    }
-
-    if (matchDateStr !== "-" && (matchDateStr >= currentDate || !isFinished)) {
+    if (matchDateStr !== "-" && (matchDateStr >= currentDate || !isFinished || retainedPastScheduleDates.has(matchDateStr))) {
       if (!allFutureMatches[matchDateStr]) allFutureMatches[matchDateStr] = [];
       const tabName = match.Tab || "";
       allFutureMatches[matchDateStr].push({
@@ -91,14 +83,6 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
           dateDisplay, fullDateDisplay,
           timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
         });
-      }
-    }
-
-    if (!isFinished) {
-      if (matchDateStr === currentDate) {
-        scheduleMeta.todayUnfinished++;
-      } else if (matchDateStr < currentDate) {
-        scheduleMeta.hasHistoryUnfinished = true;
       }
     }
 
@@ -198,5 +182,5 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
 
   Object.values(stats).forEach(team => team.history.sort((leftHistory, rightHistory) => rightHistory.timestamp - leftHistory.timestamp));
 
-  return { stats, timeGridMatches, scheduleMeta };
+  return { stats, timeGridMatches };
 }

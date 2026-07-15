@@ -32,11 +32,11 @@ async function fetchMatchSchedule(fandomClient, slug, pages) {
       action: "cargoquery",
       format: "json",
       tables: "MatchSchedule",
-      fields: "Team1,Team2,Winner,Team1Score,Team2Score,FF,IsNullified,DateTime_UTC=DateTimeUTC,OverviewPage,BestOf,Tab,MatchId",
+      fields: "Team1,Team2,Winner,Team1Score,Team2Score,FF,IsNullified,DateTime_UTC=DateTimeUTC,OverviewPage,BestOf,Tab,MatchDay=matchDay,N_MatchInTab=nMatchInTab,MatchId",
       where: whereClause,
       limit: limit.toString(),
       offset: offset.toString(),
-      order_by: "DateTime_UTC ASC",
+      order_by: "OverviewPage ASC,Tab ASC,N_MatchInTab ASC,DateTime_UTC ASC,MatchId ASC",
       maxlag: "1"
     });
 

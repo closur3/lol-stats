@@ -84,8 +84,8 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
                       ${activeListHtml}
                   </div>
                   <div class="ops-actions">
-                      <button class="secondary-btn" onclick="runWorkerCron(this)">Run Cron</button>
                       <button class="primary-btn" onclick="forceSelected(this)">Force Update</button>
+                      <button class="secondary-btn" onclick="runWorkerCron(this)">Run Cron</button>
                   </div>
 
                   <div class="item-sep"></div>

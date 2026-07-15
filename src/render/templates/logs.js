@@ -1,6 +1,6 @@
 import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
-import { resolveScheduleMetaPhase } from '../../utils/scheduleMetaPhase.js';
+import { resolveSchedulePhase } from '../../core/scheduler/schedulePlanBuilder.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 import { padLogCount } from '../../core/updater/logWriter.js';
 import { getSchedulePhaseLabel, renderSchedulePhaseIcon } from '../components/schedulePhaseIcon.js';
@@ -91,7 +91,7 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     const safeName = escapeHtml(name);
     const entries = normalizeLogEntries(activeLogItem);
     const lastEntry = entries[0];
-    const phase = resolveScheduleMetaPhase(activeLogItem);
+    const phase = resolveSchedulePhase(activeLogItem.scheduleMeta);
     const phaseCls = `phase-${phase}`;
 
     const syncCount = entries.filter(isSyncEntry).length;
