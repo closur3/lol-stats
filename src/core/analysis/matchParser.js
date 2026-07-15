@@ -2,7 +2,7 @@ import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFields.js';
 
 export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
-  const parsedMatches = [];
+  const timeGridMatches = [];
   const scheduleMeta = {
     todayEarliestTimestamp: 0,
     todayUnfinished: 0,
@@ -81,11 +81,13 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       if (timestamp > stats[team1Name].last) stats[team1Name].last = timestamp;
       if (timestamp > stats[team2Name].last) stats[team2Name].last = timestamp;
 
-      parsedMatches.push({
-        team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
-        dateDisplay, fullDateDisplay,
-        timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
-      });
+      if (bestOf === 3 || bestOf === 5) {
+        timeGridMatches.push({
+          team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
+          dateDisplay, fullDateDisplay,
+          timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
+        });
+      }
     }
 
     if (!isFinished) {
@@ -168,5 +170,5 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
 
   Object.values(stats).forEach(team => team.history.sort((leftHistory, rightHistory) => rightHistory.timestamp - leftHistory.timestamp));
 
-  return { stats, parsedMatches, scheduleMeta };
+  return { stats, timeGridMatches, scheduleMeta };
 }

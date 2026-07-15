@@ -8,11 +8,10 @@ import { renderTeamRow } from '../../components/teamRow.js';
 import { renderTimeTable } from '../../components/timeTable.js';
 import { renderSchedulePhaseIcon } from '../../components/schedulePhaseIcon.js';
 
-function buildTournamentSummary(stats) {
+function renderTournamentSummary(stats) {
   const summary = summarizeFullRate(stats);
   const parts = summary.parts.map(part => `${part.label}: ${part.fullMatchCount}/${part.totalMatchCount} <span class="tournament-summary-rate">(${part.percentText})</span>`);
-  const html = parts.length ? `<div class="tournament-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
-  return { html, hasNoData: summary.hasNoData };
+  return parts.length ? `<div class="tournament-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
 }
 
 function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {
@@ -46,7 +45,7 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
     bo3PriorMean: sortPolicy.getBestOfPriorMean(stats, 3),
     bo5PriorMean: sortPolicy.getBestOfPriorMean(stats, 5)
   };
-  const summary = buildTournamentSummary(stats);
+  const summaryHtml = renderTournamentSummary(stats);
   const tableBody = buildTournamentTable(tournament, stats, sortMeta);
   const timeTableHtml = renderTimeTable(tournamentTimeGrid);
 
@@ -60,13 +59,12 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
   const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
   const jumpBtn = `<a class="tournament-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
-  const headerRight = `<div class="title-right-area">${summary.html}</div>`;
+  const headerRight = `<div class="title-right-area">${summaryHtml}</div>`;
 
   if (isArchive) {
     return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
   }
 
-  const isSleepCollapsed = phase === "offday";
-  const openAttr = (isSleepCollapsed || summary.hasNoData) ? "" : " open";
+  const openAttr = phase === "offday" ? "" : " open";
   return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
 }

@@ -21,11 +21,11 @@ export function analyzeTournaments(rawMatchesBySlug, tournaments) {
       if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in analyzer input: ${tournament.slug}`);
 
       const resolveTeamName = buildTeamNameResolver(tournament.teamMap);
-      const { stats, parsedMatches, scheduleMeta } = parseTournamentMatches(rawMatches, resolveTeamName, todayStr, tournament.slug, tournament.leagueShort, tournamentIndex, allFutureMatches);
+      const { stats, timeGridMatches, scheduleMeta } = parseTournamentMatches(rawMatches, resolveTeamName, todayStr, tournament.slug, tournament.leagueShort, tournamentIndex, allFutureMatches);
 
       globalStats[tournament.slug] = stats;
 
-      buildTournamentTimeGrid(tournament.slug, parsedMatches, timeGrid);
+      buildTournamentTimeGrid(tournament.slug, timeGridMatches, timeGrid);
 
       scheduleMetaBySlug[tournament.slug] = scheduleMeta;
     });

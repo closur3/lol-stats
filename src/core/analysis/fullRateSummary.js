@@ -37,8 +37,5 @@ export function summarizeFullRate(stats) {
     parts.push(createFullRatePart("BO5", bo5FullMatchCount, bo5TotalMatchCount));
   }
 
-  return {
-    hasNoData: parts.length === 0,
-    parts
-  };
+  return { parts };
 }
