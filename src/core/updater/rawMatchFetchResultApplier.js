@@ -15,7 +15,8 @@ const canonicalMatch = (match) => [
   match.OverviewPage,
   match.BestOf,
   match.Tab,
-  match.MatchId
+  match.MatchId,
+  JSON.stringify(match.games)
 ].join("\u001f");
 
 function calcChangedCount(currentRawMatches, fetchedRawMatches) {

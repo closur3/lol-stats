@@ -6,6 +6,7 @@ import { timePolicy } from '../../utils/timePolicy.js';
 import { escapeHtml, escapeJsArg } from '../../utils/htmlEscape.js';
 
 export function renderTeamRow(teamStats, slug, sortMeta = {}) {
+  validateTurnaroundStats(teamStats);
   const bo3Rate = rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount);
   const bo5Rate = rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount);
   const winRate = rate(teamStats.seriesWinCount, teamStats.seriesTotalMatchCount);
@@ -19,7 +20,7 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
   const streak = teamStats.winStreakCount > 0
     ? `<span class="badge badge-win">${teamStats.winStreakCount}W</span>`
     : (teamStats.lossStreakCount > 0 ? `<span class="badge badge-loss">${teamStats.lossStreakCount}L</span>` : "-");
-  const lastMatch = teamStats.last ? timePolicy.formatDateTime(teamStats.last) : "-";
+  const lastMatch = teamStats.last ? timePolicy.formatMonthDayTime(teamStats.last) : "-";
   const lastMatchColor = dateUtils.colorDate(teamStats.last);
 
   const slugArgument = escapeJsArg(slug);
@@ -28,6 +29,21 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
 
   const getClass = (baseClass, count) => count > 0 ? `${baseClass} team-clickable` : baseClass;
   const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${slugArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
+  const gameHistoryCount = teamStats.history.filter(match => Array.isArray(match.gameResults)).length;
+  const comebackText = renderTurnaroundCell(
+    teamStats.comebackCount,
+    teamStats.seriesTrailedCount,
+    "col-series-trailed",
+    sortMeta.comebackPriorMean,
+    getClickHandler('seriesTrailed', teamStats.seriesTrailedCount)
+  );
+  const lostLeadText = renderTurnaroundCell(
+    teamStats.lostLeadCount,
+    teamStats.seriesLedCount,
+    "col-series-led",
+    sortMeta.lostLeadPriorMean,
+    getClickHandler('seriesLed', teamStats.seriesLedCount)
+  );
   const emptyClass = (count) => count === 0 ? " is-empty-stat" : "";
   const percentStyle = (value, strong = false) => `style="background:${color(value, strong)};color:${value !== null ? 'white' : '#cbd5e1'}"`;
   const lastClass = teamStats.last ? "col-last" : "col-last is-empty-stat";
@@ -42,8 +58,45 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
     `<td class="col-bo5-pct rate-cell" data-bayes-tie="${bo5BayesTieBreakRate}" data-sample-size="${teamStats.bestOf5TotalMatchCount || 0}" ${percentStyle(bo5Rate, true)}>${pct(bo5Rate)}</td>` +
     `<td class="${getClass('col-series', teamStats.seriesTotalMatchCount)}${emptyClass(teamStats.seriesTotalMatchCount)}" ${getClickHandler('series', teamStats.seriesTotalMatchCount)}>${seriesText}</td>` +
     `<td class="col-series-wr rate-cell" ${percentStyle(winRate)}>${pct(winRate)}</td>` +
-    `<td class="col-game${emptyClass(teamStats.gameTotalCount)}">${gameText}</td>` +
+    `<td class="${getClass('col-game', gameHistoryCount)}${emptyClass(teamStats.gameTotalCount)}" ${getClickHandler('games', gameHistoryCount)}>${gameText}</td>` +
     `<td class="col-game-wr rate-cell" ${percentStyle(gameRate)}>${pct(gameRate)}</td>` +
+    comebackText +
+    lostLeadText +
     `<td class="${streakClass}">${streak}</td>` +
     `<td class="${lastClass}" ${lastStyle}>${lastMatch}</td></tr>`;
+}
+
+function renderTurnaroundCell(count, opportunityCount, className, priorMean, clickHandler) {
+  if (opportunityCount === 0) {
+    return `<td class="${className} turnaround-cell is-empty-stat" data-rate="" data-bayes-sort="" data-sample-size="0">-</td>`;
+  }
+  const turnaroundRate = rate(count, opportunityCount);
+  const bayesSortRate = sortPolicy.bayesPosteriorRate(count, opportunityCount, priorMean, sortPolicy.bayesPriorStrength);
+  const clickableClass = opportunityCount > 0 ? " team-clickable" : "";
+  const cellStyle = `style="background:${color(turnaroundRate, true)};color:white"`;
+  return `<td class="${className} turnaround-cell${clickableClass}" data-rate="${turnaroundRate}" data-bayes-sort="${bayesSortRate}" data-sample-size="${opportunityCount}" ${cellStyle} ${clickHandler}>` +
+    `<div class="turnaround-content"><span class="turnaround-sample">${count}/${opportunityCount}</span>` +
+    `<span class="turnaround-rate">${pct(turnaroundRate)}</span></div></td>`;
+}
+
+function validateTurnaroundStats(teamStats) {
+  const fields = [
+    "seriesTrailedCount",
+    "comebackCount",
+    "seriesLedCount",
+    "lostLeadCount",
+    "reverseSweepCount",
+    "reverseSweptCount"
+  ];
+  for (const field of fields) {
+    if (!Number.isInteger(teamStats[field]) || teamStats[field] < 0) {
+      throw new Error(`Invalid team turnaround field: ${teamStats.name}.${field}`);
+    }
+  }
+  if (teamStats.comebackCount > teamStats.seriesTrailedCount || teamStats.lostLeadCount > teamStats.seriesLedCount) {
+    throw new Error(`Invalid team turnaround totals: ${teamStats.name}`);
+  }
+  if (teamStats.reverseSweepCount > teamStats.comebackCount || teamStats.reverseSweptCount > teamStats.lostLeadCount) {
+    throw new Error(`Invalid team reverse sweep totals: ${teamStats.name}`);
+  }
 }

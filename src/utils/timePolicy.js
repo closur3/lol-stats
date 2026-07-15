@@ -107,6 +107,11 @@ export const timePolicy = {
     return `${parts.year}-${parts.month}-${parts.dayOfMonth} ${parts.hour}:${parts.minute}`;
   },
 
+  formatMonthDayTime(timestamp) {
+    if (!timestamp) return "(Pending)";
+    return getAppTimeParts(timestamp).dateDisplay;
+  },
+
   getWeekdayName(dateKey) {
     const { year, month, day } = parseAppDateKey(dateKey);
     const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();

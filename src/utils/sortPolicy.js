@@ -38,11 +38,21 @@ export const sortPolicy = {
     const isBo5 = Number(bestOf) === 5;
     const fullKey = isBo5 ? "bestOf5FullMatchCount" : "bestOf3FullMatchCount";
     const totalKey = isBo5 ? "bestOf5TotalMatchCount" : "bestOf3TotalMatchCount";
+    return sortPolicy.getRatePriorMean(statsArray, fullKey, totalKey);
+  },
+
+  getRatePriorMean: (statsArray, numeratorField, denominatorField) => {
+    if (!Array.isArray(statsArray)) throw new Error("statsArray must be an array");
     let totalFullMatchCount = 0;
     let totalMatchCount = 0;
     statsArray.forEach(teamStats => {
-      totalFullMatchCount += teamStats[fullKey] ?? 0;
-      totalMatchCount += teamStats[totalKey] ?? 0;
+      const numerator = teamStats[numeratorField];
+      const denominator = teamStats[denominatorField];
+      if (!Number.isInteger(numerator) || !Number.isInteger(denominator) || numerator < 0 || denominator < numerator) {
+        throw new Error(`Invalid rate fields: ${teamStats.name}.${numeratorField}/${denominatorField}`);
+      }
+      totalFullMatchCount += numerator;
+      totalMatchCount += denominator;
     });
     return totalMatchCount > 0 ? (totalFullMatchCount / totalMatchCount) : 0.5;
   },

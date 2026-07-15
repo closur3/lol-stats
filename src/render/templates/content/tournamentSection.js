@@ -26,7 +26,11 @@ function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {
 function buildTournamentTable(tournament, stats, sortMeta) {
   const tableId = `t_${String(tournament.slug).replace(/[^A-Za-z0-9_-]/g, '_')}`;
   const rows = stats.map(teamStats => renderTeamRow(teamStats, tournament.slug, sortMeta)).join("");
-  const tableBody = `<table id="${tableId}" data-sort-col="2" data-sort-dir-2="asc"><thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th class="col-streak" onclick="doSort(9, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(10, '${tableId}')">LAST DATE</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const columnWidths = `<colgroup><col class="width-team"><col span="8" class="width-stat"><col span="2" class="width-turnaround"><col class="width-streak"><col class="width-last"></colgroup>`;
+  const turnaroundHeader = `<th colspan="2" class="turnaround-header"><span class="turnaround-header-label">TURNAROUND</span>` +
+    `<button type="button" class="turnaround-sort-target turnaround-sort-left" onclick="doSort(9, '${tableId}')" aria-label="Sort by come back"></button>` +
+    `<button type="button" class="turnaround-sort-target turnaround-sort-right" onclick="doSort(10, '${tableId}')" aria-label="Sort by lost lead"></button></th>`;
+  const tableBody = `<table id="${tableId}" data-sort-col="2" data-sort-dir-2="asc">${columnWidths}<thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th>${turnaroundHeader}<th class="col-streak" onclick="doSort(11, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(12, '${tableId}')">LAST DATE</th></tr></thead><tbody>${rows}</tbody></table>`;
   return tableBody;
 }
 
@@ -43,7 +47,9 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
   const stats = sortTeams(rawStats);
   const sortMeta = {
     bo3PriorMean: sortPolicy.getBestOfPriorMean(stats, 3),
-    bo5PriorMean: sortPolicy.getBestOfPriorMean(stats, 5)
+    bo5PriorMean: sortPolicy.getBestOfPriorMean(stats, 5),
+    comebackPriorMean: sortPolicy.getRatePriorMean(stats, "comebackCount", "seriesTrailedCount"),
+    lostLeadPriorMean: sortPolicy.getRatePriorMean(stats, "lostLeadCount", "seriesLedCount")
   };
   const summaryHtml = renderTournamentSummary(stats);
   const tableBody = buildTournamentTable(tournament, stats, sortMeta);

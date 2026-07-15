@@ -1,10 +1,10 @@
 export const modalCore = `
-const resultIconMap = {
-  'WIN': '\\u2705', 
-  'LOSS': '\\u274c', 
-  'DRAW': '&#8722;',
-  'LIVE': '\\ud83d\\udd35', 
-  'NEXT': '\\ud83d\\udd52' 
+const resultLabelMap = {
+  'WIN': 'WIN',
+  'LOSS': 'LOSS',
+  'DRAW': 'DRAW',
+  'LIVE': 'LIVE',
+  'NEXT': 'NEXT'
 };
 const styleDateTime = 'style="font-weight:700;color:#475569"';
 const styleScoreDash = 'style="opacity:0.4;margin:0 1px"';
@@ -22,7 +22,7 @@ function escapeModalHtml(value) {
       .replace(/'/g, '&#39;');
 }
 
-function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode, isForfeit) {
+function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2Name, isFullLength, scoreDisplay, matchResultCode, isForfeit, detailsHtml = '') {
     const dateParts = String(dateDisplay ?? '').split(' ');
     const dateHtml = dateParts.length === 2 
       ? escapeModalHtml(dateParts[0]) + '<br><span ' + styleDateTime + '>' + escapeModalHtml(dateParts[1]) + '</span>'
@@ -49,7 +49,7 @@ function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2N
     const team1Style = team1Name === 'TBD' ? 'style="padding-right:5px;color:#9ca3af !important;"' : 'style="padding-right:5px;"';
     const team2Style = team2Name === 'TBD' ? 'style="padding-left:5px;color:#9ca3af !important;"' : 'style="padding-left:5px;"';
 
-    return '<div class="' + matchItemClass + '">' +
+    return '<div class="' + matchItemClass + '"><div class="match-main">' +
            '<div class="col-date">' + dateHtml + '</div>' +
            '<div class="modal-divider"></div>' +
            '<div class="col-vs-area"><div class="spine-row">' +
@@ -59,7 +59,7 @@ function renderMatchItem(viewType, dateDisplay, resultTagHtml, team1Name, team2N
            '</div></div>' +
            '<div class="modal-divider"></div>' +
            '<div class="col-res">' + resultTagHtml + '</div>' +
-           '</div>';
+           '</div>' + detailsHtml + '</div>';
 }
 
 function renderListHTML(htmlArray) {

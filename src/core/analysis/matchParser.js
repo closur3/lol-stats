@@ -1,5 +1,6 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFields.js';
+import { analyzeGameSequence, applyTurnaroundStats } from './gameSequence.js';
 
 export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   const timeGridMatches = [];
@@ -13,6 +14,9 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     bestOf5FullMatchCount: 0, bestOf5TotalMatchCount: 0,
     seriesWinCount: 0, seriesTotalMatchCount: 0,
     gameWinCount: 0, gameTotalCount: 0,
+    seriesTrailedCount: 0, comebackCount: 0,
+    seriesLedCount: 0, lostLeadCount: 0,
+    reverseSweepCount: 0, reverseSweptCount: 0,
     winStreakCount: 0, lossStreakCount: 0,
     last: 0, history: []
   };
@@ -107,19 +111,41 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       team2MatchResultCode = winner === 2 ? 'WIN' : winner === 1 ? 'LOSS' : 'DRAW';
     }
 
+    const gameSequence = analyzeGameSequence(match, {
+      resolveTeamName,
+      team1Name,
+      team2Name,
+      team1Score,
+      team2Score,
+      bestOf,
+      isFinished,
+      isForfeit,
+      team1MatchResultCode,
+      team2MatchResultCode,
+      label: matchLabel
+    });
+    const team1GameHistory = gameSequence.team1GameResults.length > 0 ? { gameResults: gameSequence.team1GameResults } : {};
+    const team2GameHistory = gameSequence.team2GameResults.length > 0 ? { gameResults: gameSequence.team2GameResults } : {};
+    const team1TurnaroundHistory = gameSequence.team1Turnaround === null ? {} : gameSequence.team1Turnaround;
+    const team2TurnaroundHistory = gameSequence.team2Turnaround === null ? {} : gameSequence.team2Turnaround;
+
     stats[team1Name].history.push({
       dateDisplay, fullDateDisplay,
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
-      bestOf, isForfeit, isFullLength, timestamp
+      bestOf, isForfeit, isFullLength, timestamp,
+      ...team1GameHistory,
+      ...team1TurnaroundHistory
     });
     stats[team2Name].history.push({
       dateDisplay, fullDateDisplay,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,
-      bestOf, isForfeit, isFullLength, timestamp
+      bestOf, isForfeit, isFullLength, timestamp,
+      ...team2GameHistory,
+      ...team2TurnaroundHistory
     });
 
     if (!isFinished) { return; }
@@ -135,6 +161,8 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     if (winnerName) stats[winnerName].seriesWinCount++;
     stats[team1Name].gameWinCount += team1Score;
     stats[team2Name].gameWinCount += team2Score;
+    applyTurnaroundStats(stats[team1Name], gameSequence.team1Turnaround, team1MatchResultCode);
+    applyTurnaroundStats(stats[team2Name], gameSequence.team2Turnaround, team2MatchResultCode);
 
     if (bestOf === 3) {
       stats[team1Name].bestOf3TotalMatchCount++;

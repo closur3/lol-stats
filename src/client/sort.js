@@ -1,6 +1,6 @@
 export const sortScript = `
 (function(){
-const columnTeam=0, columnBo3=1, columnBo3Percent=2, columnBo5=3, columnBo5Percent=4, columnSeries=5, columnSeriesWinRate=6, columnGame=7, columnGameWinRate=8, columnStreak=9, columnLastDate=10;
+const columnTeam=0, columnBo3=1, columnBo3Percent=2, columnBo5=3, columnBo5Percent=4, columnSeries=5, columnSeriesWinRate=6, columnGame=7, columnGameWinRate=8, columnSeriesTrailed=9, columnSeriesLed=10, columnStreak=11, columnLastDate=12;
 
 function doSort(columnIndex, tableId) {
     const table = document.getElementById(tableId);
@@ -8,7 +8,7 @@ function doSort(columnIndex, tableId) {
     const rows = Array.from(tbody.rows);
     const sortDirKey = 'data-sort-dir-' + columnIndex;
     const currentDir = table.getAttribute(sortDirKey);
-    const defaultAscCols = [columnTeam, columnBo3Percent, columnBo5Percent];
+    const defaultAscCols = [columnTeam, columnBo3Percent, columnBo5Percent, columnSeriesTrailed, columnSeriesLed];
     const nextDir = (!currentDir) ? (defaultAscCols.includes(columnIndex) ? 'asc' : 'desc') : (currentDir === 'desc' ? 'asc' : 'desc');
 
     rows.sort((rowA, rowB) => {
@@ -54,6 +54,9 @@ function doSort(columnIndex, tableId) {
         if (columnIndex === columnLastDate) {
           valueA = valueA === "-" ? "" : valueA; 
           valueB = valueB === "-" ? "" : valueB; 
+        } else if (columnIndex === columnSeriesTrailed || columnIndex === columnSeriesLed) {
+          valueA = rowA.cells[columnIndex].dataset.bayesSort === "" ? Number.POSITIVE_INFINITY : parseFloat(rowA.cells[columnIndex].dataset.bayesSort);
+          valueB = rowB.cells[columnIndex].dataset.bayesSort === "" ? Number.POSITIVE_INFINITY : parseFloat(rowB.cells[columnIndex].dataset.bayesSort);
         } else if (columnIndex === columnStreak) {
           const parseStreak = (streak) => streak === "-" ? 0 : (streak.includes('W') ? parseInt(streak) : -parseInt(streak)); 
           valueA = parseStreak(valueA); 
@@ -64,6 +67,12 @@ function doSort(columnIndex, tableId) {
         }
 
         if (valueA !== valueB) return nextDir === 'asc' ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
+
+        if (columnIndex === columnSeriesTrailed || columnIndex === columnSeriesLed) {
+          const sampleA = parseInt(rowA.cells[columnIndex].dataset.sampleSize || "0", 10);
+          const sampleB = parseInt(rowB.cells[columnIndex].dataset.sampleSize || "0", 10);
+          if (sampleA !== sampleB) return sampleB - sampleA;
+        }
         
         if (columnIndex === columnBo3Percent || columnIndex === columnBo5Percent) {
           const tieA = parseFloat(rowA.cells[columnIndex].dataset.bayesTie || "0");
