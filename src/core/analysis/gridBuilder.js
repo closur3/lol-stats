@@ -17,8 +17,8 @@ function readGameResults(match, tournamentSlug) {
   return [...match.gameResults];
 }
 
-export function buildTournamentTimeGrid(tournamentSlug, timeGridMatches, timeGrid) {
-  const { clusters, assignmentByMatch } = buildTimeSlotLayout(timeGridMatches);
+export function buildTournamentTimeGrid(tournamentSlug, timeGridLayoutMatches, timeGridMatches, timeGrid) {
+  const { clusters, assignmentByMatch } = buildTimeSlotLayout(timeGridLayoutMatches);
 
   const createSlot = () => {
     const slot = {};
@@ -30,11 +30,18 @@ export function buildTournamentTimeGrid(tournamentSlug, timeGridMatches, timeGri
 
   if (!timeGrid[tournamentSlug]) timeGrid[tournamentSlug] = { "Total": createSlot() };
 
-  for (const cluster of clusters) {
+  const usedClusterIndexes = new Set(timeGridMatches.map(match => {
+    const clusterIndex = assignmentByMatch.get(match);
+    if (clusterIndex == null) throw new Error(`Time cluster assignment missing: ${tournamentSlug}.${match.matchDateStr}`);
+    return clusterIndex;
+  }));
+
+  clusters.forEach((cluster, clusterIndex) => {
+    if (!usedClusterIndexes.has(clusterIndex)) return;
     if (!timeGrid[tournamentSlug][cluster.label]) {
       timeGrid[tournamentSlug][cluster.label] = createSlot();
     }
-  }
+  });
 
   for (const timeGridMatchInput of timeGridMatches) {
     const gameResults = readGameResults(timeGridMatchInput, tournamentSlug);

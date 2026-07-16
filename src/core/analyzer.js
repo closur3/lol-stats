@@ -24,11 +24,11 @@ export function analyzeTournaments(rawMatchesBySlug, tournaments) {
       const resolveTeamName = buildTeamNameResolver(tournament.teamMap);
       const scheduleMeta = computeScheduleMetaFromRawMatches(rawMatches);
       const retainedPastScheduleDates = collectRetainedPastScheduleDates(scheduleMeta, todayStr);
-      const { stats, timeGridMatches } = parseTournamentMatches(rawMatches, resolveTeamName, todayStr, retainedPastScheduleDates, tournament.slug, tournament.leagueShort, tournamentIndex, allFutureMatches);
+      const { stats, timeGridLayoutMatches, timeGridMatches } = parseTournamentMatches(rawMatches, resolveTeamName, todayStr, retainedPastScheduleDates, tournament.slug, tournament.leagueShort, tournamentIndex, allFutureMatches);
 
       globalStats[tournament.slug] = stats;
 
-      buildTournamentTimeGrid(tournament.slug, timeGridMatches, timeGrid);
+      buildTournamentTimeGrid(tournament.slug, timeGridLayoutMatches, timeGridMatches, timeGrid);
 
       scheduleMetaBySlug[tournament.slug] = scheduleMeta;
     });

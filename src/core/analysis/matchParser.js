@@ -5,6 +5,7 @@ import { readScheduleIdentity } from '../scheduleIdentity.js';
 
 export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, retainedPastScheduleDates, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   if (!(retainedPastScheduleDates instanceof Set)) throw new Error("retainedPastScheduleDates must be a Set");
+  const timeGridLayoutMatches = [];
   const timeGridMatches = [];
   const allStatsInit = {
     bestOf3FullMatchCount: 0, bestOf3TotalMatchCount: 0,
@@ -27,23 +28,12 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
   };
 
   rawMatches.forEach(match => {
-    const team1Name = resolveTeamName(match.Team1);
-    const team2Name = resolveTeamName(match.Team2);
-    if (!team1Name || !team2Name) { return; }
-
     const matchLabel = `${tournamentSlug}.${match.MatchId}`;
     const team1Score = parseMatchScore(match.Team1Score, `${tournamentSlug}.${match.MatchId}.Team1Score`);
     const team2Score = parseMatchScore(match.Team2Score, `${tournamentSlug}.${match.MatchId}.Team2Score`);
     const bestOf = parseMatchBestOf(match.BestOf, `${tournamentSlug}.${match.MatchId}.BestOf`);
     const { winner, isForfeit, isNullified } = parseMatchOutcome(match, matchLabel);
     if (isNullified) return;
-
-    ensureTeam(team1Name);
-    ensureTeam(team2Name);
-
-    const isFinished = winner !== null;
-    const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
-    const isFullLength = !isForfeit && ((bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2));
 
     const matchTime = timePolicy.deriveMatchTime(match.DateTimeUTC);
     const {
@@ -56,6 +46,20 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       timeMinutes,
       roundedMinutes
     } = matchTime;
+    const { sessionKey } = readScheduleIdentity(match, matchLabel);
+    const timeGridLayoutMatch = { bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey };
+    timeGridLayoutMatches.push(timeGridLayoutMatch);
+
+    const team1Name = resolveTeamName(match.Team1);
+    const team2Name = resolveTeamName(match.Team2);
+    if (!team1Name || !team2Name) return;
+
+    ensureTeam(team1Name);
+    ensureTeam(team2Name);
+
+    const isFinished = winner !== null;
+    const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
+    const isFullLength = !isForfeit && ((bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2));
 
     if (matchDateStr !== "-" && (matchDateStr >= currentDate || !isFinished || retainedPastScheduleDates.has(matchDateStr))) {
       if (!allFutureMatches[matchDateStr]) allFutureMatches[matchDateStr] = [];
@@ -107,14 +111,14 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     const team2TurnaroundHistory = gameSequence.team2Turnaround === null ? {} : gameSequence.team2Turnaround;
 
     if (isFinished && (bestOf === 3 || bestOf === 5)) {
-      const { sessionKey } = readScheduleIdentity(match, matchLabel);
-      timeGridMatches.push({
+      Object.assign(timeGridLayoutMatch, {
         team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
         dateDisplay, fullDateDisplay,
-        timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr, sessionKey,
+        weekdayIndex,
         ...team1GameHistory,
         ...team1TurnaroundHistory
       });
+      timeGridMatches.push(timeGridLayoutMatch);
     }
 
     stats[team1Name].history.push({
@@ -188,5 +192,5 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
 
   Object.values(stats).forEach(team => team.history.sort((leftHistory, rightHistory) => rightHistory.timestamp - leftHistory.timestamp));
 
-  return { stats, timeGridMatches };
+  return { stats, timeGridLayoutMatches, timeGridMatches };
 }
