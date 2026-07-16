@@ -1,7 +1,7 @@
 import { timePolicy } from "../../utils/timePolicy.js";
 import { assertScheduleMetaFields } from "../facts/scheduleMetaStore.js";
 
-export function requireScheduleMeta(metasBySlug, slug) {
+function requireScheduleMeta(metasBySlug, slug) {
   const meta = metasBySlug.get(slug);
   if (!meta) throw new Error(`ScheduleMeta missing after load: ${slug}`);
   return meta;

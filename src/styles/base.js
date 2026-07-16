@@ -66,8 +66,6 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-tight); font-size: 14px; color: var(--color-text); box-sizing: border-box; transition: all 0.2s; background: var(--color-surface-muted); }
     .form-input:focus { background: var(--color-surface); border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); outline: none; }
     .form-input::placeholder { color: var(--color-text-faint); }
-    .form-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); margin: 0; flex-shrink: 0; }
-
     @media (max-width: 650px) {
         .nav-links { display: none; }
         .nav-toggle { display: block; }

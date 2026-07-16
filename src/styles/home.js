@@ -35,15 +35,6 @@ export default `${baseCSS}
     .home-indicator { font-size: 18px; color: #2563eb; font-weight: 600; transition: transform 0.3s ease; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; margin-right: 8px; }
     details.home-sec[open] .home-indicator { transform: rotate(90deg); }
     .table-title a { color: #2563eb; text-decoration: none; }
-    details.arch-sec { background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: all 0.3s ease; display: block; }
-    details.arch-sec[open] { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12); border-color: #2563eb; }
-    summary.arch-sum { cursor: pointer; user-select: none; list-style: none; min-height: 72px; display: flex; padding: 12px 16px; background: var(--gradient-header); border-bottom: none; align-items: center; transition: background 0.2s; }
-    summary.arch-sum::-webkit-details-marker { display: none; }
-    .arch-title-wrapper { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
-    .arch-title-wrapper a { color: #0f172a; font-weight: 600; text-decoration: none; transition: color 0.2s; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .arch-title-wrapper a:hover { color: #2563eb; }
-    .arch-indicator { font-size: 18px; color: #2563eb; font-weight: 600; transition: transform 0.3s ease; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; margin-right: 8px; }
-    details.arch-sec[open] .arch-indicator { transform: rotate(90deg); }
     .col-bo3 { width: 90px; } .col-bo3-pct { width: 90px; } .col-bo5 { width: 90px; } .col-bo5-pct { width: 90px; }
     .col-series { width: 90px; } .col-series-wr { width: 90px; } .col-game { width: 90px; } .col-game-wr { width: 90px; }
     .width-team { width: 80px; } .width-stat, .width-turnaround { width: 90px; } .width-streak { width: 70px; } .width-last { width: 100px; }
@@ -104,7 +95,6 @@ export default `${baseCSS}
     .badge { color: white; border-radius: 4px; padding: 3px 7px; font-size: 11px; font-weight: 600; }
     .badge-win { background: #10b981; }
     .badge-loss { background: #f43f5e; }
-    .footer { text-align: center; font-size: 12px; color: #94a3b8; margin: 40px 0; }
     .sch-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 40px; width: 100%; align-items: start; }
     .sch-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex-direction: column; }
     .sch-header { padding: 12px 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #334155; display:flex; justify-content:space-between; }
@@ -135,7 +125,6 @@ export default `${baseCSS}
     .rate-hint { font-weight: 400; color: #94a3b8; font-size: 11px; margin: 0 2px; }
     .sch-empty { margin-top: 40px; text-align: center; color: #94a3b8; background: #fff; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; font-weight: 600; }
     .arch-empty-msg { text-align: center; padding: 40px; color: #94a3b8; }
-    .arch-error-msg { padding: 20px; color: #dc2626; text-align: center; font-weight: 600; }
 
     .tournament-summary { font-size:12px; color:#64748b; font-weight: 600; background:#f8fafc; padding:4px 10px; border-radius:8px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; white-space:nowrap; }
     .tournament-summary-rate { opacity: 0.7; font-weight: 400; }
@@ -144,17 +133,12 @@ export default `${baseCSS}
 
     @media (max-width: 1100px) { .sch-container { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 650px) {
-        .table-title, summary.arch-sum { flex-wrap: wrap; gap: 0; padding: 12px 15px 0 15px; }
+        .table-title { flex-wrap: wrap; gap: 0; padding: 12px 15px 0 15px; }
         .container { padding-bottom: 31px; }
-        summary.arch-sum { display: flex; flex-direction: column; align-items: flex-start; padding: 0; }
         .table-title { display: flex; flex-direction: column; align-items: flex-start; padding: 0; background: #fff; border-bottom: none; width: 100%; border-radius: 12px 12px 0 0; }
         .table-title > div:first-child { width: 100%; padding: 8px 15px; display: flex; align-items: center; flex: 1 1 0; gap: 6px; min-width: 0; }
         .table-title > div:first-child .tournament-title-text { white-space: normal; line-height: 1.4; word-break: break-word; }
         .table-title .title-right-area { margin-top: 0 !important; padding: 8px 15px !important; align-items: center; display: flex; flex: 1 1 0; justify-content: flex-end !important; }
-        .arch-title-wrapper { width: 100%; padding: 8px 15px; display: flex; align-items: center; column-gap: 10px; flex: 1 1 0; }
-        summary.arch-sum .title-right-area { margin-top: 0 !important; padding: 8px 15px !important; align-items: center; flex: 1 1 0; }
-        .arch-indicator { margin-right: 0; }
-        .arch-title-wrapper a { white-space: normal; line-height: 1.3; }
         .title-right-area { width: 100%; justify-content: flex-end !important; padding: 10px 15px 12px 15px; border-top: 1px dashed #e2e8f0; margin-top: 8px; display: flex; }
         .tournament-summary { font-size: 11px; padding: 3px 8px; }
         .time-box-select { width: 66px; }

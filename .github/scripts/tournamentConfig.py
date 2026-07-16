@@ -252,16 +252,10 @@ def build_transition_manifest(
     if expected_active_removed != declared_active_removed:
         raise ValueError("Active transition manifest is incomplete")
 
-    manifest = {
+    return {
         "activeAddedSlugs": active_added,
         "activeUpdatedSlugs": active_updated,
         "activeArchivedSlugs": sorted(archived_slugs),
         "activeDroppedSlugs": sorted(dropped_slugs),
         "archiveAddedSlugs": sorted(archived_slugs),
     }
-    manifest["membershipChanged"] = any((
-        active_added,
-        archived_slugs,
-        dropped_slugs,
-    ))
-    return manifest

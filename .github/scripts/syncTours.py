@@ -769,13 +769,12 @@ def log_change_summary(source_count: int, active_count: int, archive_count: int,
     log(f"🗄️ {'Archive':<7} | {summary['archiveParts'] or 'No changes'}")
 
 
-def write_github_outputs(commit_message: str, manifest: dict) -> None:
+def write_github_outputs(commit_message: str) -> None:
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
         return
     with open(output_path, "a", encoding="utf-8") as file:
         file.write(f"commit_msg={commit_message}\n")
-        file.write(f"membership_changed={'true' if manifest['membershipChanged'] else 'false'}\n")
 
 
 # ==================== 主流程 ====================
@@ -822,7 +821,7 @@ def run_tournament_sync():
         len(transition["archive"]),
         summary,
     )
-    write_github_outputs(commit_message, manifest)
+    write_github_outputs(commit_message)
 
 if __name__ == "__main__":
     run_tournament_sync()

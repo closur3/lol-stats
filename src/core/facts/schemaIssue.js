@@ -34,13 +34,13 @@ export function assertSchemaIssue(issue) {
   return createSchemaIssue(issue);
 }
 
-export function formatSchemaIssue(issue) {
+function formatSchemaIssue(issue) {
   const normalized = assertSchemaIssue(issue);
   const actualText = normalized.actual ? `; actual ${normalized.actual}` : "";
   return `${normalized.artifactKey}.${normalized.path} ${normalized.kind}; expected ${normalized.expected}${actualText}`;
 }
 
-export class SchemaIssueError extends Error {
+class SchemaIssueError extends Error {
   constructor(issue) {
     const normalized = assertSchemaIssue(issue);
     super(formatSchemaIssue(normalized));

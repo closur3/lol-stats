@@ -11,7 +11,7 @@ export function parseMatchBestOf(value, label) {
   return bestOf;
 }
 
-export function parseMatchWinner(value, label) {
+function parseMatchWinner(value, label) {
   if (value === "" || value === null) return null;
   if (value === undefined) throw new Error(`Missing Winner: ${label}`);
   const winner = Number.parseInt(value, 10);
@@ -19,7 +19,7 @@ export function parseMatchWinner(value, label) {
   return winner;
 }
 
-export function parseMatchForfeitSide(value, label) {
+function parseMatchForfeitSide(value, label) {
   if (value === "" || value === null) return null;
   if (value === undefined) throw new Error(`Missing FF: ${label}`);
   const forfeitSide = Number.parseInt(value, 10);
@@ -27,14 +27,14 @@ export function parseMatchForfeitSide(value, label) {
   return forfeitSide;
 }
 
-export function parseMatchIsNullified(value, label) {
+function parseMatchIsNullified(value, label) {
   if (value === undefined) throw new Error(`Missing IsNullified: ${label}`);
   if (value === true || value === 1 || value === "1") return true;
   if (value === false || value === 0 || value === "0") return false;
   throw new Error(`Invalid IsNullified: ${label}`);
 }
 
-export function validateMatchOutcome(winner, forfeitSide, isNullified, label) {
+function validateMatchOutcome(winner, forfeitSide, isNullified, label) {
   if (isNullified && winner === null) throw new Error(`Nullified match must have Winner: ${label}`);
   if (forfeitSide === 1 && winner !== 2) throw new Error(`FF Team1 requires Winner 2: ${label}`);
   if (forfeitSide === 2 && winner !== 1) throw new Error(`FF Team2 requires Winner 1: ${label}`);

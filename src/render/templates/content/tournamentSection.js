@@ -69,7 +69,7 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
   const headerRight = `<div class="title-right-area">${summaryHtml}</div>`;
 
   if (isArchive) {
-    return `<details class="home-sec archive-sec"><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
+    return `<details class="home-sec"><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary><div class="wrapper">${tableBody}${timeTableHtml}</div></details>`;
   }
 
   const openAttr = phase === "offday" ? "" : " open";
