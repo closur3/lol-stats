@@ -1,5 +1,7 @@
 # KeSPA Cup 2026
 
+📊 **Fullrate**: 
+
 | TEAM | BO3 FULL | BO3% | BO5 FULL | BO5% | SERIES | SERIES WR | GAMES | GAME WR | STREAK | LAST DATE |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | BFX | - | - | - | - | - | - | - | - | - | - |
