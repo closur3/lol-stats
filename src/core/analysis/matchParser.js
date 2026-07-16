@@ -76,14 +76,6 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     if (isFinished) {
       if (timestamp > stats[team1Name].last) stats[team1Name].last = timestamp;
       if (timestamp > stats[team2Name].last) stats[team2Name].last = timestamp;
-
-      if (bestOf === 3 || bestOf === 5) {
-        timeGridMatches.push({
-          team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
-          dateDisplay, fullDateDisplay,
-          timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr
-        });
-      }
     }
 
     let team1MatchResultCode = 'NEXT', team2MatchResultCode = 'NEXT';
@@ -113,8 +105,19 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     const team1TurnaroundHistory = gameSequence.team1Turnaround === null ? {} : gameSequence.team1Turnaround;
     const team2TurnaroundHistory = gameSequence.team2Turnaround === null ? {} : gameSequence.team2Turnaround;
 
+    if (isFinished && (bestOf === 3 || bestOf === 5)) {
+      timeGridMatches.push({
+        team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
+        dateDisplay, fullDateDisplay,
+        timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr,
+        ...team1GameHistory,
+        ...team1TurnaroundHistory
+      });
+    }
+
     stats[team1Name].history.push({
       dateDisplay, fullDateDisplay,
+      scheduleSlot: 1,
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
@@ -124,6 +127,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     });
     stats[team2Name].history.push({
       dateDisplay, fullDateDisplay,
+      scheduleSlot: 2,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,

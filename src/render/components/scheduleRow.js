@@ -26,7 +26,7 @@ export function renderScheduleRow(match, globalStats) {
   }
 
   const h2hClass = (!isTbd1 && !isTbd2) ? "spine-sep clickable" : "spine-sep";
-  const h2hClick = (!isTbd1 && !isTbd2) ? `onclick="openH2H(${slugArgument}, ${team1Argument}, ${team2Argument})"` : "";
+  const h2hClick = (!isTbd1 && !isTbd2) ? `onclick="openH2H(${team1Argument}, ${team2Argument})"` : "";
 
   return `<div class="sch-row"><span class="sch-time">${escapeHtml(match.time)}</span><div class="sch-vs-container"><div class="spine-row"><span class="${isTbd1 ? "spine-l tbd-team" : "spine-l clickable"}" ${team1ClickHandler}>${team1RateHint}${safeDisplay1}</span><span class="${h2hClass} sch-mid-cell" ${h2hClick}>${midContent}</span><span class="${isTbd2 ? "spine-r tbd-team" : "spine-r clickable"}" ${team2ClickHandler}>${safeDisplay2}${team2RateHint}</span></div></div><div class="sch-tag-col"><span class="${bestOfClass}">${bestOfLabel}</span></div></div>`;
 }

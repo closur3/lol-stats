@@ -16,6 +16,26 @@ function requireTimeCell(timeGrid, hour, dayIndex) {
 }
 
 function validateTimeCell(cell, hour, dayIndex) {
+  for (const [matchIndex, match] of cell.matches.entries()) {
+    const label = `${hour}.${dayIndex}.matches[${matchIndex}]`;
+    if (!Array.isArray(match.gameResults) || match.gameResults.length === 0) {
+      throw new Error(`timeGrid match gameResults missing: ${label}`);
+    }
+    if (match.gameResults.some(result => result !== "W" && result !== "L")) {
+      throw new Error(`timeGrid match gameResults invalid: ${label}`);
+    }
+    const scoreMatch = String(match.scoreDisplay).match(/^(\d+)-(\d+)$/);
+    if (!scoreMatch) throw new Error(`timeGrid match scoreDisplay invalid: ${label}`);
+    const team1Score = Number(scoreMatch[1]);
+    const team2Score = Number(scoreMatch[2]);
+    if (match.gameResults.filter(result => result === "W").length !== team1Score ||
+        match.gameResults.filter(result => result === "L").length !== team2Score) {
+      throw new Error(`timeGrid match gameResults do not match score: ${label}`);
+    }
+    if (match.turnaroundType != null && match.turnaroundType !== "leadChange" && match.turnaroundType !== "reverseSweep") {
+      throw new Error(`timeGrid match turnaroundType invalid: ${label}`);
+    }
+  }
   const totalMatchCount = cell.matches.length;
   const fullLengthMatchCount = cell.matches.filter(match => match.isFullLength).length;
   if (cell.totalMatchCount !== totalMatchCount) {

@@ -14,14 +14,18 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleMetaBySlug) {
+export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleMetaBySlug, h2hMatches = null) {
   assertObject(globalStats, "globalStats");
   assertObject(timeGridBySlug, "timeGridBySlug");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
-  if (!isArchive) assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
+  if (!isArchive) {
+    assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
+    if (!Array.isArray(h2hMatches)) throw new Error("h2hMatches must be an array");
+  }
 
-  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});</script>`;
+  const h2hInjection = isArchive ? "" : `window.gH2HMatches = ${serializeForInlineScript(h2hMatches)};`;
+  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});${h2hInjection}</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
     .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleMetaBySlug, isArchive))
@@ -32,5 +36,5 @@ export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, 
 }
 
 export function renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments) {
-  return renderContentFragment(globalStats, timeGridBySlug, {}, tournaments, true, null);
+  return renderContentFragment(globalStats, timeGridBySlug, {}, tournaments, true, null, null);
 }

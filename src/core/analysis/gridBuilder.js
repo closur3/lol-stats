@@ -1,6 +1,22 @@
 import { timeGridColumnCount } from '../../constants/index.js';
 import { buildTimeSlotLayout } from './timeCluster.js';
 
+function readGameResults(match, tournamentSlug) {
+  if (!Array.isArray(match.gameResults) || match.gameResults.length === 0) {
+    throw new Error(`Time Grid game results missing: ${tournamentSlug}.${match.matchDateStr}`);
+  }
+  for (const result of match.gameResults) {
+    if (result !== "W" && result !== "L") {
+      throw new Error(`Time Grid game result invalid: ${tournamentSlug}.${match.matchDateStr}`);
+    }
+  }
+  if (match.gameResults.filter(result => result === "W").length !== match.team1Score ||
+      match.gameResults.filter(result => result === "L").length !== match.team2Score) {
+    throw new Error(`Time Grid game results do not match score: ${tournamentSlug}.${match.matchDateStr}`);
+  }
+  return [...match.gameResults];
+}
+
 export function buildTournamentTimeGrid(tournamentSlug, timeGridMatches, timeGrid) {
   const { clusters, assignmentByMatch } = buildTimeSlotLayout(timeGridMatches);
 
@@ -21,6 +37,7 @@ export function buildTournamentTimeGrid(tournamentSlug, timeGridMatches, timeGri
   }
 
   for (const timeGridMatchInput of timeGridMatches) {
+    const gameResults = readGameResults(timeGridMatchInput, tournamentSlug);
     const timeGridMatch = {
       dateDisplay: timeGridMatchInput.dateDisplay,
       fullDateDisplay: timeGridMatchInput.fullDateDisplay,
@@ -31,7 +48,9 @@ export function buildTournamentTimeGrid(tournamentSlug, timeGridMatches, timeGri
       winner: timeGridMatchInput.winner,
       isForfeit: timeGridMatchInput.isForfeit,
       isFullLength: timeGridMatchInput.isFullLength,
-      bestOf: timeGridMatchInput.bestOf
+      bestOf: timeGridMatchInput.bestOf,
+      gameResults,
+      ...(timeGridMatchInput.turnaroundType == null ? {} : { turnaroundType: timeGridMatchInput.turnaroundType })
     };
 
     const assignedClusterIndex = assignmentByMatch.get(timeGridMatchInput);
