@@ -46,9 +46,11 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       timeMinutes,
       roundedMinutes
     } = matchTime;
-    const { sessionKey } = readScheduleIdentity(match, matchLabel);
-    const timeGridLayoutMatch = { bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey };
-    timeGridLayoutMatches.push(timeGridLayoutMatch);
+    const isTimeGridSeries = bestOf === 3 || bestOf === 5;
+    const timeGridLayoutMatch = isTimeGridSeries
+      ? { bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey: readScheduleIdentity(match, matchLabel).sessionKey }
+      : null;
+    if (timeGridLayoutMatch) timeGridLayoutMatches.push(timeGridLayoutMatch);
 
     const team1Name = resolveTeamName(match.Team1);
     const team2Name = resolveTeamName(match.Team2);
@@ -110,7 +112,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     const team1TurnaroundHistory = gameSequence.team1Turnaround === null ? {} : gameSequence.team1Turnaround;
     const team2TurnaroundHistory = gameSequence.team2Turnaround === null ? {} : gameSequence.team2Turnaround;
 
-    if (isFinished && (bestOf === 3 || bestOf === 5)) {
+    if (isFinished && timeGridLayoutMatch) {
       Object.assign(timeGridLayoutMatch, {
         team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
         dateDisplay, fullDateDisplay,

@@ -1,7 +1,40 @@
 function compareTimeGroups(leftGroup, rightGroup) {
-  return leftGroup.actualCenter - rightGroup.actualCenter
+  return leftGroup.matchDateStr.localeCompare(rightGroup.matchDateStr)
+    || leftGroup.actualCenter - rightGroup.actualCenter
+    || leftGroup.roundedMinutes - rightGroup.roundedMinutes;
+}
+
+function compareTimelineGroups(leftGroup, rightGroup) {
+  return leftGroup.clusterCenter - rightGroup.clusterCenter
     || leftGroup.matchDateStr.localeCompare(rightGroup.matchDateStr)
     || leftGroup.roundedMinutes - rightGroup.roundedMinutes;
+}
+
+function readTimelineStart(timeGroups) {
+  const minutes = [...new Set(timeGroups.map(group => group.actualCenter))].sort((left, right) => left - right);
+  if (minutes.length === 1) return minutes[0];
+
+  let largestGap = -1;
+  let timelineStart = minutes[0];
+  for (let index = 0; index < minutes.length; index++) {
+    const current = minutes[index];
+    const next = index === minutes.length - 1 ? minutes[0] + 24 * 60 : minutes[index + 1];
+    const gap = next - current;
+    const candidateStart = next % (24 * 60);
+    if (gap > largestGap || (gap === largestGap && candidateStart < timelineStart)) {
+      largestGap = gap;
+      timelineStart = candidateStart;
+    }
+  }
+  return timelineStart;
+}
+
+function unwrapTimeGroups(timeGroups) {
+  const timelineStart = readTimelineStart(timeGroups);
+  return timeGroups.map(group => ({
+    ...group,
+    clusterCenter: group.actualCenter < timelineStart ? group.actualCenter + 24 * 60 : group.actualCenter
+  }));
 }
 
 function buildTimeGroups(matches) {
@@ -47,7 +80,7 @@ function groupBySession(timeGroups) {
     if (sessionGroups) sessionGroups.push(timeGroup);
     else groupsBySession.set(timeGroup.sessionKey, [timeGroup]);
   }
-  for (const sessionGroups of groupsBySession.values()) sessionGroups.sort(compareTimeGroups);
+  for (const sessionGroups of groupsBySession.values()) sessionGroups.sort(compareTimelineGroups);
   return groupsBySession;
 }
 
@@ -80,7 +113,7 @@ function assignSessionGroups(sessionGroups, centers) {
     for (let centerIndex = firstCenterIndex; centerIndex <= lastCenterIndex; centerIndex++) {
       const tail = choose(groupIndex + 1, centerIndex + 1);
       const group = sessionGroups[groupIndex];
-      const cost = tail.cost + Math.abs(group.actualCenter - centers[centerIndex]) * group.matches.length;
+      const cost = tail.cost + Math.abs(group.clusterCenter - centers[centerIndex]) * group.matches.length;
       const candidate = { cost, indexes: [centerIndex, ...tail.indexes] };
       if (!best || cost < best.cost || (cost === best.cost && compareIndexes(candidate.indexes, best.indexes) < 0)) {
         best = candidate;
@@ -112,7 +145,7 @@ function recenterGroups(timeGroups, assignmentByGroup, slotCount) {
     const clusterIndex = assignmentByGroup.get(timeGroup);
     if (clusterIndex == null) throw new Error(`Time group assignment missing: ${timeGroup.sessionKey}`);
     const weight = timeGroup.matches.length;
-    totals[clusterIndex] += timeGroup.actualCenter * weight;
+    totals[clusterIndex] += timeGroup.clusterCenter * weight;
     weights[clusterIndex] += weight;
   }
   return totals.map((total, index) => {
@@ -150,7 +183,7 @@ function buildInitialCenters(groupsBySession, slotCount) {
 
   for (const sessionGroups of groupsBySession.values()) {
     if (sessionGroups.length !== slotCount) continue;
-    const centers = sessionGroups.map(group => group.actualCenter);
+    const centers = sessionGroups.map(group => group.clusterCenter);
     const signature = centers.join(",");
     if (!signatures.has(signature)) {
       signatures.add(signature);
@@ -158,7 +191,7 @@ function buildInitialCenters(groupsBySession, slotCount) {
     }
     sessionGroups.forEach((group, index) => {
       const weight = group.matches.length;
-      rankTotals[index] += group.actualCenter * weight;
+      rankTotals[index] += group.clusterCenter * weight;
       rankWeights[index] += weight;
     });
   }
@@ -223,7 +256,7 @@ export function buildTimeSlotLayout(matches) {
   if (!Array.isArray(matches)) throw new Error("matches must be an array");
   if (matches.length === 0) return { clusters: [], assignmentByMatch: new Map() };
 
-  const timeGroups = buildTimeGroups(matches);
+  const timeGroups = unwrapTimeGroups(buildTimeGroups(matches));
   const groupsBySession = groupBySession(timeGroups);
   const slotCount = readSlotCount(groupsBySession);
   const { assignmentByGroup } = chooseBestClusters(timeGroups, groupsBySession, slotCount);
