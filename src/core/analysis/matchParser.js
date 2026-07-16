@@ -3,8 +3,22 @@ import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFie
 import { analyzeGameSequence, applyTurnaroundStats } from './gameSequence.js';
 import { readScheduleIdentity } from '../scheduleIdentity.js';
 
+function recordSessionStart(sessionStarts, sessionKey, timestamp, weekdayIndex) {
+  const current = sessionStarts.get(sessionKey);
+  if (!current || timestamp < current.timestamp) sessionStarts.set(sessionKey, { timestamp, weekdayIndex });
+}
+
+function assignTimeGridWeekdays(timeGridMatches, sessionStarts) {
+  for (const match of timeGridMatches) {
+    const sessionStart = sessionStarts.get(match.sessionKey);
+    if (!sessionStart) throw new Error(`Time Grid session start missing: ${match.sessionKey}`);
+    match.weekdayIndex = sessionStart.weekdayIndex;
+  }
+}
+
 export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, retainedPastScheduleDates, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   if (!(retainedPastScheduleDates instanceof Set)) throw new Error("retainedPastScheduleDates must be a Set");
+  const sessionStarts = new Map();
   const timeGridLayoutMatches = [];
   const timeGridMatches = [];
   const allStatsInit = {
@@ -46,9 +60,11 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       timeMinutes,
       roundedMinutes
     } = matchTime;
+    const { sessionKey } = readScheduleIdentity(match, matchLabel);
+    recordSessionStart(sessionStarts, sessionKey, timestamp, weekdayIndex);
     const isTimeGridSeries = bestOf === 3 || bestOf === 5;
     const timeGridLayoutMatch = isTimeGridSeries
-      ? { bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey: readScheduleIdentity(match, matchLabel).sessionKey }
+      ? { bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey }
       : null;
     if (timeGridLayoutMatch) timeGridLayoutMatches.push(timeGridLayoutMatch);
 
@@ -116,7 +132,6 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       Object.assign(timeGridLayoutMatch, {
         team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
         dateDisplay, fullDateDisplay,
-        weekdayIndex,
         ...team1GameHistory,
         ...team1TurnaroundHistory
       });
@@ -192,6 +207,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     }
   });
 
+  assignTimeGridWeekdays(timeGridMatches, sessionStarts);
   Object.values(stats).forEach(team => team.history.sort((leftHistory, rightHistory) => rightHistory.timestamp - leftHistory.timestamp));
 
   return { stats, timeGridLayoutMatches, timeGridMatches };
