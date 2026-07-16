@@ -53,7 +53,8 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
   };
   const summaryHtml = renderTournamentSummary(stats);
   const tableBody = buildTournamentTable(tournament, stats, sortMeta);
-  const timeTableHtml = renderTimeTable(tournamentTimeGrid);
+  const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveHome"}_${tournament.slug}`;
+  const timeTableHtml = renderTimeTable(tournamentTimeGrid, artifactKey);
 
   let phaseIcon = "";
   let phase = null;

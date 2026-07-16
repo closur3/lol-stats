@@ -1,12 +1,16 @@
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { throwIfArtifactsUnavailable } from './artifactAvailability.js';
+import { createSchemaIssue, describeSchemaValue } from '../facts/schemaIssue.js';
 
-function readArchiveSnapshotIssue(archiveSnapshot) {
-  if (!archiveSnapshot || typeof archiveSnapshot !== "object" || Array.isArray(archiveSnapshot)) return "Missing ArchiveSnapshot";
-  if (!archiveSnapshot.tournament || typeof archiveSnapshot.tournament !== "object" || !archiveSnapshot.tournament.slug) return "Invalid tournament";
-  if (Object.hasOwn(archiveSnapshot, "teamMap") || Object.hasOwn(archiveSnapshot.tournament, "teamMap")) return "Legacy team map";
-  if (!archiveSnapshot.stats || typeof archiveSnapshot.stats !== "object" || Array.isArray(archiveSnapshot.stats)) return "Invalid stats";
-  if (!archiveSnapshot.timeGrid || typeof archiveSnapshot.timeGrid !== "object" || Array.isArray(archiveSnapshot.timeGrid)) return "Invalid time grid";
+function readArchiveSnapshotIssue(snapshot, artifactKey) {
+  if (snapshot == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
+  if (typeof snapshot !== "object" || Array.isArray(snapshot)) return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "JSON object", actual: describeSchemaValue(snapshot) });
+  if (!snapshot.tournament || typeof snapshot.tournament !== "object" || Array.isArray(snapshot.tournament)) return createSchemaIssue({ artifactKey, path: "tournament", kind: "invalid", expected: "object", actual: describeSchemaValue(snapshot.tournament) });
+  if (typeof snapshot.tournament.slug !== "string" || !snapshot.tournament.slug) return createSchemaIssue({ artifactKey, path: "tournament.slug", kind: "invalid", expected: "non-empty string", actual: describeSchemaValue(snapshot.tournament.slug) });
+  if (Object.hasOwn(snapshot, "teamMap")) return createSchemaIssue({ artifactKey, path: "teamMap", kind: "invalid", expected: "field absent in current schema", actual: "present" });
+  if (Object.hasOwn(snapshot.tournament, "teamMap")) return createSchemaIssue({ artifactKey, path: "tournament.teamMap", kind: "invalid", expected: "field absent in current schema", actual: "present" });
+  if (!snapshot.stats || typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats)) return createSchemaIssue({ artifactKey, path: "stats", kind: "invalid", expected: "object", actual: describeSchemaValue(snapshot.stats) });
+  if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) return createSchemaIssue({ artifactKey, path: "timeGrid", kind: "invalid", expected: "object", actual: describeSchemaValue(snapshot.timeGrid) });
   return null;
 }
 
@@ -15,8 +19,8 @@ export async function readArchiveSnapshots(env, slugs) {
   const kv = env["lol-stats-kv"];
   const archiveSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
   const issues = archiveSnapshots.flatMap((archiveSnapshot, index) => {
-    const reason = readArchiveSnapshotIssue(archiveSnapshot);
-    return reason ? [{ slug: slugs[index], reason }] : [];
+    const issue = readArchiveSnapshotIssue(archiveSnapshot, kvKeys.archive(slugs[index]));
+    return issue ? [issue] : [];
   });
   throwIfArtifactsUnavailable("ArchiveSnapshot", issues);
   return archiveSnapshots;
