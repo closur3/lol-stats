@@ -2,7 +2,6 @@ import { HomeRouter } from './routes/home.js';
 import { ArchiveRouter } from './routes/archive.js';
 import { ToolsRouter } from './routes/tools.js';
 import { LogsRouter } from './routes/logs.js';
-import { handleBackup } from './routes/api/backup.js';
 import { handleForceUpdate } from './routes/api/force.js';
 import { handleDeleteActive } from './routes/api/activeActions.js';
 import { handleDeleteArchive, handleRebuildArchive } from './routes/api/archiveActions.js';
@@ -29,9 +28,6 @@ export default {
 
       case "/tools/auth":
         return ToolsRouter.handleToolsAuth(request, env);
-      
-      case "/backup":
-        return handleBackup(request, env);
       
       case "/force":
         return handleForceUpdate(request, env);

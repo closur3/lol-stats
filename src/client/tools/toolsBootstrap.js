@@ -1,7 +1,6 @@
 export const toolsBootstrap = `
           var toastContainer = document.getElementById("toast-container");
-          var toastDurationMs = 3000;
-          var redirectDelayMs = 1500;
+          var toastDurationMs = 5000;
           var authErrorMessage = "Session expired. Sign in again.";
           var networkErrorMessage = "Network request failed. Try again.";
 
@@ -13,12 +12,40 @@ export const toolsBootstrap = `
           });
 
           function clearAuth() { window.location.href = "/tools"; }
+          function dismissToast(toast) {
+              if (!toast || toast.classList.contains('leaving')) return;
+              clearTimeout(toast.dismissTimer);
+              toast.classList.add('leaving');
+              toast.classList.remove('show');
+              setTimeout(function() { toast.remove(); }, 240);
+          }
           function showToast(message, type) {
               type = type || 'success';
+              var icons = { success: '✓', warning: '!', error: '×' };
               var toast = document.createElement('div');
-              toast.className = 'toast ' + type; toast.innerText = message;
+              var icon = document.createElement('span');
+              var text = document.createElement('span');
+              var close = document.createElement('button');
+              var progress = document.createElement('span');
+              toast.className = 'toast ' + type;
+              toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+              toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+              toast.style.setProperty('--toast-duration', toastDurationMs + 'ms');
+              icon.className = 'toast-icon'; icon.setAttribute('aria-hidden', 'true'); icon.textContent = icons[type] || 'i';
+              text.className = 'toast-message'; text.textContent = message;
+              close.className = 'toast-close'; close.type = 'button'; close.setAttribute('aria-label', 'Dismiss notification'); close.textContent = '×';
+              progress.className = 'toast-progress'; progress.setAttribute('aria-hidden', 'true');
+              close.addEventListener('click', function() { dismissToast(toast); });
+              toast.appendChild(icon); toast.appendChild(text); toast.appendChild(close); toast.appendChild(progress);
               toastContainer.appendChild(toast); void toast.offsetWidth; toast.classList.add('show');
-              setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, toastDurationMs);
+              toast.dismissTimer = setTimeout(function() { dismissToast(toast); }, toastDurationMs);
+          }
+          function updateCronStatus(hasActiveCron) {
+              if (typeof hasActiveCron !== 'boolean') throw new Error('Cron status must be boolean.');
+              var dot = document.querySelector('.build-footer .cron-dot');
+              if (!dot) throw new Error('Cron status dot missing.');
+              dot.classList.toggle('active', hasActiveCron);
+              dot.classList.toggle('idle', !hasActiveCron);
           }
           function checkAuthError(status) { if (status === 401) { showToast(authErrorMessage, "error"); clearAuth(); return true; } return false; }
           function disableButton(button) {
@@ -86,7 +113,8 @@ export const toolsBootstrap = `
           }
           function confirmConfigAction(button) {
               if (!pendingConfigAction) return;
-              var meta = getConfigActionMeta(pendingConfigAction, pendingConfigActionPayload);
+              var action = pendingConfigAction;
+              var meta = getConfigActionMeta(action, pendingConfigActionPayload);
               if (!meta) return;
               var restoreConfirm = disableButton(button);
               var restoreAction = pendingConfigActionButton ? disableButton(pendingConfigActionButton) : function() {};
@@ -96,12 +124,18 @@ export const toolsBootstrap = `
                   if (checkAuthError(res.status)) return;
                   if (res.ok) {
                       closeConfigActionConfirm();
+                      if (action === 'active-runtime-delete') {
+                          return readActionResult(res).then(function(result) {
+                              updateCronStatus(result.hasActiveCron);
+                              if (res.status === 207) showWarning(result.message);
+                              else showResult(true, meta.successMessage);
+                          });
+                      }
                       if (res.status === 207) {
-                          res.text().then(function(message) { showWarning(message || 'Operation completed with schedule warnings.'); });
+                          return readActionMessage(res, 'Operation completed with warnings.').then(showWarning);
                       } else {
                           showResult(true, meta.successMessage);
                       }
-                      setTimeout(function() { location.reload(); }, redirectDelayMs);
                   } else {
                       res.text().then(function(errorMessage) {
                           showResult(false, meta.failurePrefix + ' — ' + (errorMessage || 'Request failed.'));

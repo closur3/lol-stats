@@ -40,13 +40,6 @@ jobs:
           FANDOM_BOT_PASSWORD: ${{ secrets.FANDOM_BOT_PASSWORD }}
         run: python .github/scripts/syncTours.py
 
-      - name: Export Active Backup
-        if: steps.process_data.outputs.membership_changed == 'true'
-        uses: ./.github/actions/markdown-backup
-        with:
-          adminSecret: ${{ secrets.ADMIN_SECRET }}
-          workerUrl: ${{ vars.WORKER_URL }}
-
       - name: Commit and Push Config
         id: auto_commit
         uses: stefanzweifel/git-auto-commit-action@v7

@@ -3,6 +3,15 @@ export const toolsActions = `
               return res.text().then(function(text) { return text || defaultMessage; });
           }
 
+          function readActionResult(res) {
+              return res.json().then(function(result) {
+                  if (!result || typeof result.message !== 'string' || typeof result.hasActiveCron !== 'boolean') {
+                      throw new Error('Invalid action result.');
+                  }
+                  return result;
+              });
+          }
+
           function requestForceUpdate(slugs) {
               return sendAuthorizedPost('/force', { 'Content-Type': 'application/json' }, JSON.stringify({ slugs: slugs }));
           }
