@@ -30,17 +30,19 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
   const getClass = (baseClass, count) => count > 0 ? `${baseClass} team-clickable` : baseClass;
   const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${slugArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
   const gameHistoryCount = teamStats.history.filter(match => Array.isArray(match.gameResults)).length;
-  const comebackText = renderTurnaroundCell(
+  const comebackText = renderTurnaroundCells(
     teamStats.comebackCount,
     teamStats.seriesTrailedCount,
     "col-series-trailed",
+    "col-series-trailed-pct",
     sortMeta.comebackPriorMean,
     getClickHandler('seriesTrailed', teamStats.seriesTrailedCount)
   );
-  const lostLeadText = renderTurnaroundCell(
+  const lostLeadText = renderTurnaroundCells(
     teamStats.lostLeadCount,
     teamStats.seriesLedCount,
     "col-series-led",
+    "col-series-led-pct",
     sortMeta.lostLeadPriorMean,
     getClickHandler('seriesLed', teamStats.seriesLedCount)
   );
@@ -50,33 +52,32 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
   const lastStyle = teamStats.last ? `style="color:${lastMatchColor}"` : "";
   const streakEmpty = teamStats.winStreakCount === 0 && teamStats.lossStreakCount === 0;
   const streakClass = streakEmpty ? "col-streak is-empty-stat" : "col-streak";
-
   return `<tr><td class="team-col team-clickable" onclick="openTeam(${slugArgument}, ${teamNameArgument})">${safeDisplayName}</td>` +
-    `<td class="${getClass('col-bo3', teamStats.bestOf3TotalMatchCount)}${emptyClass(teamStats.bestOf3TotalMatchCount)}" ${getClickHandler('bo3', teamStats.bestOf3TotalMatchCount)}>${bo3Text}</td>` +
-    `<td class="col-bo3-pct rate-cell" data-bayes-tie="${bo3BayesTieBreakRate}" data-sample-size="${teamStats.bestOf3TotalMatchCount || 0}" ${percentStyle(bo3Rate, true)}>${pct(bo3Rate)}</td>` +
-    `<td class="${getClass('col-bo5', teamStats.bestOf5TotalMatchCount)}${emptyClass(teamStats.bestOf5TotalMatchCount)}" ${getClickHandler('bo5', teamStats.bestOf5TotalMatchCount)}>${bo5Text}</td>` +
-    `<td class="col-bo5-pct rate-cell" data-bayes-tie="${bo5BayesTieBreakRate}" data-sample-size="${teamStats.bestOf5TotalMatchCount || 0}" ${percentStyle(bo5Rate, true)}>${pct(bo5Rate)}</td>` +
-    `<td class="${getClass('col-series', teamStats.seriesTotalMatchCount)}${emptyClass(teamStats.seriesTotalMatchCount)}" ${getClickHandler('series', teamStats.seriesTotalMatchCount)}>${seriesText}</td>` +
-    `<td class="col-series-wr rate-cell" ${percentStyle(winRate)}>${pct(winRate)}</td>` +
-    `<td class="${getClass('col-game', gameHistoryCount)}${emptyClass(teamStats.gameTotalCount)}" ${getClickHandler('games', gameHistoryCount)}>${gameText}</td>` +
-    `<td class="col-game-wr rate-cell" ${percentStyle(gameRate)}>${pct(gameRate)}</td>` +
+    `<td class="${getClass('col-bo3', teamStats.bestOf3TotalMatchCount)} metric-record${emptyClass(teamStats.bestOf3TotalMatchCount)}" ${getClickHandler('bo3', teamStats.bestOf3TotalMatchCount)}>${bo3Text}</td>` +
+    `<td class="col-bo3-pct metric-rate rate-cell" data-bayes-tie="${bo3BayesTieBreakRate}" data-sample-size="${teamStats.bestOf3TotalMatchCount || 0}" ${percentStyle(bo3Rate, true)}>${pct(bo3Rate)}</td>` +
+    `<td class="${getClass('col-bo5', teamStats.bestOf5TotalMatchCount)} metric-record${emptyClass(teamStats.bestOf5TotalMatchCount)}" ${getClickHandler('bo5', teamStats.bestOf5TotalMatchCount)}>${bo5Text}</td>` +
+    `<td class="col-bo5-pct metric-rate rate-cell" data-bayes-tie="${bo5BayesTieBreakRate}" data-sample-size="${teamStats.bestOf5TotalMatchCount || 0}" ${percentStyle(bo5Rate, true)}>${pct(bo5Rate)}</td>` +
+    `<td class="${getClass('col-series', teamStats.seriesTotalMatchCount)} metric-record${emptyClass(teamStats.seriesTotalMatchCount)}" ${getClickHandler('series', teamStats.seriesTotalMatchCount)}>${seriesText}</td>` +
+    `<td class="col-series-wr metric-rate rate-cell" ${percentStyle(winRate)}>${pct(winRate)}</td>` +
+    `<td class="${getClass('col-game', gameHistoryCount)} metric-record${emptyClass(teamStats.gameTotalCount)}" ${getClickHandler('games', gameHistoryCount)}>${gameText}</td>` +
+    `<td class="col-game-wr metric-rate rate-cell" ${percentStyle(gameRate)}>${pct(gameRate)}</td>` +
     comebackText +
     lostLeadText +
     `<td class="${streakClass}">${streak}</td>` +
     `<td class="${lastClass}" ${lastStyle}>${lastMatch}</td></tr>`;
 }
 
-function renderTurnaroundCell(count, opportunityCount, className, priorMean, clickHandler) {
+function renderTurnaroundCells(count, opportunityCount, recordClassName, rateClassName, priorMean, clickHandler) {
   if (opportunityCount === 0) {
-    return `<td class="${className} turnaround-cell is-empty-stat" data-rate="" data-bayes-sort="" data-sample-size="0">-</td>`;
+    return `<td class="${recordClassName} metric-record is-empty-stat">-</td>` +
+      `<td class="${rateClassName} metric-rate rate-cell is-empty-stat" data-rate="" data-bayes-sort="" data-sample-size="0">-</td>`;
   }
   const turnaroundRate = rate(count, opportunityCount);
   const bayesSortRate = sortPolicy.bayesPosteriorRate(count, opportunityCount, priorMean, sortPolicy.bayesPriorStrength);
-  const clickableClass = opportunityCount > 0 ? " team-clickable" : "";
   const cellStyle = `style="background:${color(turnaroundRate, true)};color:white"`;
-  return `<td class="${className} turnaround-cell${clickableClass}" data-rate="${turnaroundRate}" data-bayes-sort="${bayesSortRate}" data-sample-size="${opportunityCount}" ${cellStyle} ${clickHandler}>` +
-    `<div class="turnaround-content"><span class="turnaround-sample">${count}/${opportunityCount}</span>` +
-    `<span class="turnaround-rate">${pct(turnaroundRate)}</span></div></td>`;
+  const record = renderSplitScore(`${count}/${opportunityCount}`, '/');
+  return `<td class="${recordClassName} metric-record team-clickable" ${clickHandler}>${record}</td>` +
+    `<td class="${rateClassName} metric-rate rate-cell" data-rate="${turnaroundRate}" data-bayes-sort="${bayesSortRate}" data-sample-size="${opportunityCount}" ${cellStyle}>${pct(turnaroundRate)}</td>`;
 }
 
 function validateTurnaroundStats(teamStats) {

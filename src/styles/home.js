@@ -1,16 +1,17 @@
 import baseCSS from "./base.js";
 
 export default `${baseCSS}
-    .container { max-width: 1400px; }
+    .container { --table-label-width: 80px; max-width: 1400px; }
     .wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 25px; display: flex; flex-direction: column; }
     .wrapper::-webkit-scrollbar, .match-list::-webkit-scrollbar { display: none; }
     .wrapper, .match-list { -ms-overflow-style: none; scrollbar-width: none; }
     table { width: 100%; min-width: 1150px; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; margin: 0; border: none; }
+    .stats-table { min-width: 1340px; }
     th { background: #f8fafc; padding: 14px 8px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s; box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.05); border: none !important; }
     th:hover { background: #eff6ff; color: #2563eb; }
     td { padding: 12px 8px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.04); border: none !important; }
     tr { border: none !important; }
-    .team-col { position: sticky; left: 0; background: white !important; z-index: 10; text-align: left; font-weight: 600; padding-left: 15px; width: 80px; transition: 0.2s; box-shadow: inset 1px 0 2px rgba(0, 0, 0, 0.04), inset -1px -1px 2px rgba(0, 0, 0, 0.04) !important; border: none !important; outline: none !important; }
+    .team-col { position: sticky; left: 0; background: white !important; z-index: 10; text-align: left; font-weight: 600; padding-left: 15px; width: var(--table-label-width); transition: 0.2s; box-shadow: inset 1px 0 2px rgba(0, 0, 0, 0.04), inset -1px -1px 2px rgba(0, 0, 0, 0.04) !important; border: none !important; outline: none !important; }
     .team-clickable { cursor: pointer; }
     .team-clickable:hover, .time-table-cell:not(.is-empty):hover { color: #2563eb !important; background-color: #eff6ff !important; }
     .table-title { font-weight: 600; display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 12px 12px 0 0; border: 1px solid #e2e8f0; border-bottom: none; box-sizing: border-box; min-height: 72px; padding: 12px 16px; }
@@ -37,22 +38,11 @@ export default `${baseCSS}
     .table-title a { color: #2563eb; text-decoration: none; }
     .col-bo3 { width: 90px; } .col-bo3-pct { width: 90px; } .col-bo5 { width: 90px; } .col-bo5-pct { width: 90px; }
     .col-series { width: 90px; } .col-series-wr { width: 90px; } .col-game { width: 90px; } .col-game-wr { width: 90px; }
-    .width-team { width: 80px; } .width-stat, .width-turnaround { width: 90px; } .width-streak { width: 70px; } .width-last { width: 100px; }
-    .col-series-trailed, .col-series-led { width: 90px; }
-    .col-streak { width: 70px; } .col-last { width: 100px; }
-    .col-bo3, .col-bo3-pct, .col-bo5, .col-bo5-pct, .col-series, .col-series-wr, .col-game, .col-game-wr, .col-series-trailed, .col-series-led, .col-streak, .col-last, .sch-time, .sch-fin-score, .sch-live-score { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: 0; }
-    .turnaround-cell { background: #f8fafc; }
-    .turnaround-header { position: relative; overflow: hidden; cursor: default; }
-    .turnaround-header:hover { background: #f8fafc; color: #64748b; }
-    .turnaround-header-label { position: relative; z-index: 3; pointer-events: none; }
-    .turnaround-header:hover .turnaround-header-label, .turnaround-header:focus-within .turnaround-header-label { color: #2563eb; }
-    .turnaround-sort-target { position: absolute; top: 0; bottom: 0; width: 50%; border: 0; padding: 0; background: transparent; cursor: pointer; z-index: 1; transition: background 0.2s; }
-    .turnaround-sort-target:hover, .turnaround-sort-target:focus-visible { background: #eff6ff; outline: none; }
-    .turnaround-sort-left { left: 0; }
-    .turnaround-sort-right { right: 0; }
-    .turnaround-content { display: flex; align-items: center; width: 100%; }
-    .turnaround-sample { flex: 1; text-align: right; padding-right: 4px; font-weight: 700; }
-    .turnaround-rate { flex: 1; text-align: left; padding-left: 4px; color: inherit; opacity: 0.68; font-size: 10px; font-weight: 500; }
+    .width-team { width: var(--table-label-width); } .width-streak { width: 70px; } .width-last { width: 110px; }
+    .col-streak { width: 70px; } .col-last { width: 110px; }
+    .col-bo3, .col-bo3-pct, .col-bo5, .col-bo5-pct, .col-series, .col-series-wr, .col-game, .col-game-wr, .col-series-trailed, .col-series-trailed-pct, .col-series-led, .col-series-led-pct, .col-streak, .col-last, .sch-time, .sch-fin-score, .sch-live-score { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: 0; }
+    .metric-record { padding-right: 2px; }
+    .metric-rate { padding-left: 2px; }
     .spine-row { display: flex; justify-content: center; align-items: stretch; width: 100%; height: 100%; }
     .spine-l { flex: 1; flex-basis: 0; display: flex; align-items: center; justify-content: flex-end; padding: 0; font-weight: 600; transition: background 0.15s; }
     .spine-r { flex: 1; flex-basis: 0; display: flex; align-items: center; justify-content: flex-start; padding: 0; font-weight: 600; transition: background 0.15s; }
