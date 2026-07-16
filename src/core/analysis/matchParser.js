@@ -1,6 +1,7 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchBestOf, parseMatchOutcome, parseMatchScore } from './matchFields.js';
 import { analyzeGameSequence, applyTurnaroundStats } from './gameSequence.js';
+import { readScheduleIdentity } from '../scheduleIdentity.js';
 
 export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, retainedPastScheduleDates, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
   if (!(retainedPastScheduleDates instanceof Set)) throw new Error("retainedPastScheduleDates must be a Set");
@@ -106,10 +107,11 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     const team2TurnaroundHistory = gameSequence.team2Turnaround === null ? {} : gameSequence.team2Turnaround;
 
     if (isFinished && (bestOf === 3 || bestOf === 5)) {
+      const { sessionKey } = readScheduleIdentity(match, matchLabel);
       timeGridMatches.push({
         team1Name, team2Name, team1Score, team2Score, bestOf, winner, isForfeit, isFullLength,
         dateDisplay, fullDateDisplay,
-        timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr,
+        timestamp, weekdayIndex, timeMinutes, roundedMinutes, matchDateStr, sessionKey,
         ...team1GameHistory,
         ...team1TurnaroundHistory
       });

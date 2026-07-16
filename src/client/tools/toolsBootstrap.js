@@ -19,6 +19,22 @@ export const toolsBootstrap = `
               toast.classList.remove('show');
               setTimeout(function() { toast.remove(); }, 240);
           }
+          function startToastTimer(toast) {
+              toast.dismissStartedAt = Date.now();
+              toast.dismissTimer = setTimeout(function() { dismissToast(toast); }, toast.remainingDurationMs);
+          }
+          function pauseToast(toast) {
+              if (toast.classList.contains('leaving') || toast.classList.contains('paused')) return;
+              clearTimeout(toast.dismissTimer);
+              toast.remainingDurationMs = Math.max(0, toast.remainingDurationMs - (Date.now() - toast.dismissStartedAt));
+              toast.classList.add('paused');
+          }
+          function resumeToast(toast) {
+              if (toast.classList.contains('leaving') || !toast.classList.contains('paused')) return;
+              toast.classList.remove('paused');
+              if (toast.remainingDurationMs === 0) { dismissToast(toast); return; }
+              startToastTimer(toast);
+          }
           function showToast(message, type) {
               type = type || 'success';
               var icons = { success: '✓', warning: '!', error: '×' };
@@ -36,9 +52,12 @@ export const toolsBootstrap = `
               close.className = 'toast-close'; close.type = 'button'; close.setAttribute('aria-label', 'Dismiss notification'); close.textContent = '×';
               progress.className = 'toast-progress'; progress.setAttribute('aria-hidden', 'true');
               close.addEventListener('click', function() { dismissToast(toast); });
+              toast.addEventListener('mouseenter', function() { pauseToast(toast); });
+              toast.addEventListener('mouseleave', function() { resumeToast(toast); });
               toast.appendChild(icon); toast.appendChild(text); toast.appendChild(close); toast.appendChild(progress);
               toastContainer.appendChild(toast); void toast.offsetWidth; toast.classList.add('show');
-              toast.dismissTimer = setTimeout(function() { dismissToast(toast); }, toastDurationMs);
+              toast.remainingDurationMs = toastDurationMs;
+              startToastTimer(toast);
           }
           function updateCronStatus(hasActiveCron) {
               if (typeof hasActiveCron !== 'boolean') throw new Error('Cron status must be boolean.');

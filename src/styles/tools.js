@@ -60,6 +60,7 @@ export default `${baseCSS}
     .toast-close { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #94a3b8; font: inherit; font-size: 17px; line-height: 1; cursor: pointer; }
     .toast-close:hover { background: #f1f5f9; color: #475569; }
     .toast-progress { position: absolute; left: 0; bottom: 0; width: 100%; height: 3px; background: var(--toast-accent); transform-origin: left center; animation: toastProgress var(--toast-duration) linear forwards; }
+    .toast.paused .toast-progress { animation-play-state: paused; }
     .toast.success { --toast-accent: #16a34a; border-color: #bbf7d0; }
     .toast.warning { --toast-accent: #d97706; border-color: #fde68a; }
     .toast.error { --toast-accent: #dc2626; border-color: #fecaca; }

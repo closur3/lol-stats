@@ -1,24 +1,6 @@
 import { timePolicy } from '../../utils/timePolicy.js';
 import { parseMatchOutcome } from './matchFields.js';
-
-function readPositiveInteger(value, label) {
-  const number = Number(value);
-  if (!Number.isInteger(number) || number < 1 || String(value).trim() === "") {
-    throw new Error(`${label} must be a positive integer`);
-  }
-  return number;
-}
-
-function readText(value, label, allowEmpty = false) {
-  if (typeof value !== "string" || (!allowEmpty && value.trim() === "")) {
-    throw new Error(`${label} must be a string`);
-  }
-  return value;
-}
-
-function sessionKey(overviewPage, tab, matchDay) {
-  return JSON.stringify([overviewPage, tab, matchDay]);
-}
+import { readScheduleIdentity } from '../scheduleIdentity.js';
 
 function buildSession(overviewPage, tab, matchDay, matchNumber, timestamp, dateKey, unfinished) {
   return {
@@ -68,10 +50,7 @@ export function computeScheduleMetaFromRawMatches(rawMatches) {
     const { winner, isNullified } = parseMatchOutcome(rawMatch, label);
     if (isNullified) return;
 
-    const overviewPage = readText(rawMatch.OverviewPage, `${label}.OverviewPage`);
-    const tab = readText(rawMatch.Tab, `${label}.Tab`, true);
-    const matchDay = readPositiveInteger(rawMatch.matchDay, `${label}.matchDay`);
-    const matchNumber = readPositiveInteger(rawMatch.nMatchInTab, `${label}.nMatchInTab`);
+    const { overviewPage, tab, matchDay, matchNumber, sessionKey } = readScheduleIdentity(rawMatch, label);
     const matchTime = timePolicy.deriveMatchTime(rawMatch.DateTimeUTC);
     const tabKey = JSON.stringify([overviewPage, tab]);
     if (!matchNumbersByTab.has(tabKey)) matchNumbersByTab.set(tabKey, new Set());
@@ -81,13 +60,12 @@ export function computeScheduleMetaFromRawMatches(rawMatches) {
     }
     usedNumbers.add(matchNumber);
 
-    const key = sessionKey(overviewPage, tab, matchDay);
     const unfinished = winner === null;
-    if (!sessions.has(key)) {
-      sessions.set(key, buildSession(overviewPage, tab, matchDay, matchNumber, matchTime.timestamp, matchTime.matchDateStr, unfinished));
+    if (!sessions.has(sessionKey)) {
+      sessions.set(sessionKey, buildSession(overviewPage, tab, matchDay, matchNumber, matchTime.timestamp, matchTime.matchDateStr, unfinished));
       return;
     }
-    appendMatch(sessions.get(key), matchNumber, matchTime.timestamp, matchTime.matchDateStr, unfinished);
+    appendMatch(sessions.get(sessionKey), matchNumber, matchTime.timestamp, matchTime.matchDateStr, unfinished);
   });
 
   return {

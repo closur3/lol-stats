@@ -1,12 +1,20 @@
-const clusterMergeThresholdMinutes = 60;
+function compareTimeGroups(leftGroup, rightGroup) {
+  return leftGroup.actualCenter - rightGroup.actualCenter
+    || leftGroup.matchDateStr.localeCompare(rightGroup.matchDateStr)
+    || leftGroup.roundedMinutes - rightGroup.roundedMinutes;
+}
 
 function buildTimeGroups(matches) {
   const groupsByKey = new Map();
   for (const match of matches) {
-    const key = `${match.matchDateStr}\u001f${match.roundedMinutes}`;
+    if (typeof match.sessionKey !== "string" || match.sessionKey === "") {
+      throw new Error("Time Grid match sessionKey missing");
+    }
+    const key = `${match.sessionKey}\u001f${match.matchDateStr}\u001f${match.roundedMinutes}`;
     let group = groupsByKey.get(key);
     if (!group) {
       group = {
+        sessionKey: match.sessionKey,
         matchDateStr: match.matchDateStr,
         roundedMinutes: match.roundedMinutes,
         timeMinutesTotal: 0,
@@ -20,124 +28,171 @@ function buildTimeGroups(matches) {
 
   return [...groupsByKey.values()]
     .map(group => ({
+      sessionKey: group.sessionKey,
       matchDateStr: group.matchDateStr,
       roundedMinutes: group.roundedMinutes,
       actualCenter: group.timeMinutesTotal / group.matches.length,
       matches: group.matches
     }))
     .sort((leftGroup, rightGroup) => (
-      leftGroup.matchDateStr.localeCompare(rightGroup.matchDateStr)
-      || leftGroup.roundedMinutes - rightGroup.roundedMinutes
-      || leftGroup.actualCenter - rightGroup.actualCenter
+      leftGroup.sessionKey.localeCompare(rightGroup.sessionKey)
+      || compareTimeGroups(leftGroup, rightGroup)
     ));
 }
 
-function readMaxGroupsPerDay(timeGroups) {
-  const countsByDate = new Map();
+function groupBySession(timeGroups) {
+  const groupsBySession = new Map();
   for (const timeGroup of timeGroups) {
-    countsByDate.set(timeGroup.matchDateStr, (countsByDate.get(timeGroup.matchDateStr) ?? 0) + 1);
+    const sessionGroups = groupsBySession.get(timeGroup.sessionKey);
+    if (sessionGroups) sessionGroups.push(timeGroup);
+    else groupsBySession.set(timeGroup.sessionKey, [timeGroup]);
   }
-  return Math.max(...countsByDate.values(), 0);
+  for (const sessionGroups of groupsBySession.values()) sessionGroups.sort(compareTimeGroups);
+  return groupsBySession;
 }
 
-function createTimeSlotClusters(timeGroups, maxClusters) {
-  if (maxClusters === 0) return [];
-
-  const roundedTimes = [...new Set(timeGroups.map(timeGroup => timeGroup.roundedMinutes))]
-    .sort((leftTime, rightTime) => leftTime - rightTime);
-
-  if (roundedTimes.length <= maxClusters) {
-    return roundedTimes.map(roundedTime => ({ actualCenter: roundedTime }));
+function readSlotCount(groupsBySession) {
+  let slotCount = 0;
+  for (const sessionGroups of groupsBySession.values()) {
+    slotCount = Math.max(slotCount, sessionGroups.length);
   }
+  return slotCount;
+}
 
-  const clusters = [];
-  let currentCluster = { actualCenter: roundedTimes[0], times: [roundedTimes[0]] };
-
-  for (let timeIndex = 1; timeIndex < roundedTimes.length; timeIndex++) {
-    const roundedTime = roundedTimes[timeIndex];
-    const distance = Math.abs(roundedTime - currentCluster.actualCenter);
-    if (distance <= clusterMergeThresholdMinutes && clusters.length + 1 < maxClusters) {
-      currentCluster.times.push(roundedTime);
-      currentCluster.actualCenter = Math.round(
-        currentCluster.times.reduce((sum, clusterTime) => sum + clusterTime, 0) / currentCluster.times.length
-      );
-    } else {
-      clusters.push(currentCluster);
-      currentCluster = { actualCenter: roundedTime, times: [roundedTime] };
-    }
+function compareIndexes(leftIndexes, rightIndexes) {
+  for (let index = 0; index < leftIndexes.length; index++) {
+    if (leftIndexes[index] !== rightIndexes[index]) return leftIndexes[index] - rightIndexes[index];
   }
-  clusters.push(currentCluster);
+  return 0;
+}
 
-  while (clusters.length > maxClusters) {
-    let nearestDistance = Infinity;
-    let nearestIndex = -1;
-    for (let clusterIndex = 0; clusterIndex < clusters.length - 1; clusterIndex++) {
-      const distance = clusters[clusterIndex + 1].actualCenter - clusters[clusterIndex].actualCenter;
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = clusterIndex;
+function assignSessionGroups(sessionGroups, centers) {
+  const memo = new Map();
+
+  function choose(groupIndex, firstCenterIndex) {
+    if (groupIndex === sessionGroups.length) return { cost: 0, indexes: [] };
+    const key = `${groupIndex}.${firstCenterIndex}`;
+    if (memo.has(key)) return memo.get(key);
+
+    const remainingGroups = sessionGroups.length - groupIndex;
+    const lastCenterIndex = centers.length - remainingGroups;
+    let best = null;
+    for (let centerIndex = firstCenterIndex; centerIndex <= lastCenterIndex; centerIndex++) {
+      const tail = choose(groupIndex + 1, centerIndex + 1);
+      const group = sessionGroups[groupIndex];
+      const cost = tail.cost + Math.abs(group.actualCenter - centers[centerIndex]) * group.matches.length;
+      const candidate = { cost, indexes: [centerIndex, ...tail.indexes] };
+      if (!best || cost < best.cost || (cost === best.cost && compareIndexes(candidate.indexes, best.indexes) < 0)) {
+        best = candidate;
       }
     }
-    if (nearestIndex < 0) throw new Error("Nearest time slot cluster missing");
+    if (!best) throw new Error(`Time slot assignment missing for session ${sessionGroups[0].sessionKey}`);
+    memo.set(key, best);
+    return best;
+  }
 
-    const mergedTimes = [...clusters[nearestIndex].times, ...clusters[nearestIndex + 1].times];
-    clusters.splice(nearestIndex, 2, {
-      actualCenter: Math.round(mergedTimes.reduce((sum, clusterTime) => sum + clusterTime, 0) / mergedTimes.length),
-      times: mergedTimes
+  return choose(0, 0);
+}
+
+function assignGroups(groupsBySession, centers) {
+  const assignmentByGroup = new Map();
+  let cost = 0;
+  for (const sessionGroups of groupsBySession.values()) {
+    const assignment = assignSessionGroups(sessionGroups, centers);
+    cost += assignment.cost;
+    sessionGroups.forEach((group, index) => assignmentByGroup.set(group, assignment.indexes[index]));
+  }
+  return { assignmentByGroup, cost };
+}
+
+function recenterGroups(timeGroups, assignmentByGroup, slotCount) {
+  const totals = Array(slotCount).fill(0);
+  const weights = Array(slotCount).fill(0);
+  for (const timeGroup of timeGroups) {
+    const clusterIndex = assignmentByGroup.get(timeGroup);
+    if (clusterIndex == null) throw new Error(`Time group assignment missing: ${timeGroup.sessionKey}`);
+    const weight = timeGroup.matches.length;
+    totals[clusterIndex] += timeGroup.actualCenter * weight;
+    weights[clusterIndex] += weight;
+  }
+  return totals.map((total, index) => {
+    if (weights[index] === 0) throw new Error(`Time slot cluster ${index} has no assigned groups`);
+    return total / weights[index];
+  });
+}
+
+function assignmentSignature(timeGroups, assignmentByGroup) {
+  return timeGroups.map(timeGroup => assignmentByGroup.get(timeGroup)).join(",");
+}
+
+function optimizeClusters(timeGroups, groupsBySession, initialCenters) {
+  let centers = [...initialCenters].sort((left, right) => left - right);
+  let previousSignature = null;
+
+  for (let iteration = 0; iteration < 100; iteration++) {
+    const { assignmentByGroup } = assignGroups(groupsBySession, centers);
+    const signature = assignmentSignature(timeGroups, assignmentByGroup);
+    if (signature === previousSignature) {
+      const result = assignGroups(groupsBySession, centers);
+      return { centers, ...result };
+    }
+    previousSignature = signature;
+    centers = recenterGroups(timeGroups, assignmentByGroup, centers.length);
+  }
+  throw new Error("Time slot clustering did not converge");
+}
+
+function buildInitialCenters(groupsBySession, slotCount) {
+  const candidates = [];
+  const signatures = new Set();
+  const rankTotals = Array(slotCount).fill(0);
+  const rankWeights = Array(slotCount).fill(0);
+
+  for (const sessionGroups of groupsBySession.values()) {
+    if (sessionGroups.length !== slotCount) continue;
+    const centers = sessionGroups.map(group => group.actualCenter);
+    const signature = centers.join(",");
+    if (!signatures.has(signature)) {
+      signatures.add(signature);
+      candidates.push(centers);
+    }
+    sessionGroups.forEach((group, index) => {
+      const weight = group.matches.length;
+      rankTotals[index] += group.actualCenter * weight;
+      rankWeights[index] += weight;
     });
   }
 
-  return clusters.map(cluster => ({ actualCenter: cluster.actualCenter }));
+  const rankCenters = rankTotals.map((total, index) => total / rankWeights[index]);
+  const rankSignature = rankCenters.join(",");
+  if (!signatures.has(rankSignature)) candidates.push(rankCenters);
+  return candidates;
 }
 
-function assignTimeGroupsToClusters(timeGroups, clusters) {
-  const assignmentByGroup = new Map();
-  const groupsByDate = new Map();
-  for (const timeGroup of timeGroups) {
-    const dailyGroups = groupsByDate.get(timeGroup.matchDateStr);
-    if (dailyGroups) dailyGroups.push(timeGroup);
-    else groupsByDate.set(timeGroup.matchDateStr, [timeGroup]);
-  }
-
-  for (const [matchDateStr, dailyGroups] of groupsByDate) {
-    const usedClusterIndexes = new Set();
-    for (const timeGroup of dailyGroups) {
-      let chosenClusterIndex = -1;
-      let chosenDistance = Infinity;
-      let chosenCenter = Infinity;
-
-      for (let clusterIndex = 0; clusterIndex < clusters.length; clusterIndex++) {
-        if (usedClusterIndexes.has(clusterIndex)) continue;
-        const center = clusters[clusterIndex].actualCenter;
-        const distance = Math.abs(timeGroup.actualCenter - center);
-        if (distance < chosenDistance || (distance === chosenDistance && center < chosenCenter)) {
-          chosenClusterIndex = clusterIndex;
-          chosenDistance = distance;
-          chosenCenter = center;
-        }
-      }
-
-      if (chosenClusterIndex < 0) {
-        throw new Error(`No available time slot for time group on ${matchDateStr}. dailyGroups=${dailyGroups.length}, clusters=${clusters.length}`);
-      }
-      usedClusterIndexes.add(chosenClusterIndex);
-      assignmentByGroup.set(timeGroup, chosenClusterIndex);
+function chooseBestClusters(timeGroups, groupsBySession, slotCount) {
+  let best = null;
+  for (const initialCenters of buildInitialCenters(groupsBySession, slotCount)) {
+    const candidate = optimizeClusters(timeGroups, groupsBySession, initialCenters);
+    const centerSignature = candidate.centers.join(",");
+    const bestCenterSignature = best?.centers.join(",");
+    if (!best || candidate.cost < best.cost || (candidate.cost === best.cost && centerSignature < bestCenterSignature)) {
+      best = candidate;
     }
   }
-
-  return assignmentByGroup;
+  if (!best) throw new Error("Time slot cluster seed missing");
+  return best;
 }
 
-function labelTimeSlotClusters(timeGroups, assignmentByGroup, clusters) {
-  const countsByCluster = clusters.map(() => new Map());
+function labelClusters(timeGroups, assignmentByGroup, slotCount) {
+  const countsByCluster = Array.from({ length: slotCount }, () => new Map());
   for (const timeGroup of timeGroups) {
     const clusterIndex = assignmentByGroup.get(timeGroup);
-    if (clusterIndex == null) throw new Error(`Time group assignment missing: ${timeGroup.matchDateStr}.${timeGroup.roundedMinutes}`);
+    if (clusterIndex == null) throw new Error(`Time group assignment missing: ${timeGroup.sessionKey}`);
     const counts = countsByCluster[clusterIndex];
     counts.set(timeGroup.roundedMinutes, (counts.get(timeGroup.roundedMinutes) ?? 0) + timeGroup.matches.length);
   }
 
-  const labeledClusters = countsByCluster.map((counts) => {
+  const clusters = countsByCluster.map(counts => {
     let peakMinutes = null;
     let peakCount = -1;
     for (const [roundedMinutes, count] of counts) {
@@ -149,16 +204,16 @@ function labelTimeSlotClusters(timeGroups, assignmentByGroup, clusters) {
     if (peakMinutes == null) throw new Error("Time slot cluster has no assigned groups");
     return { label: String(Math.floor(peakMinutes / 60)) };
   });
-  const labels = new Set(labeledClusters.map(cluster => cluster.label));
-  if (labels.size !== labeledClusters.length) throw new Error("Time slot cluster labels must be unique");
-  return labeledClusters;
+  const labels = new Set(clusters.map(cluster => cluster.label));
+  if (labels.size !== clusters.length) throw new Error("Time slot cluster labels must be unique");
+  return clusters;
 }
 
 function mapMatchesToClusters(timeGroups, assignmentByGroup) {
   const assignmentByMatch = new Map();
   for (const timeGroup of timeGroups) {
     const clusterIndex = assignmentByGroup.get(timeGroup);
-    if (clusterIndex == null) throw new Error(`Time group assignment missing: ${timeGroup.matchDateStr}.${timeGroup.roundedMinutes}`);
+    if (clusterIndex == null) throw new Error(`Time group assignment missing: ${timeGroup.sessionKey}`);
     for (const match of timeGroup.matches) assignmentByMatch.set(match, clusterIndex);
   }
   return assignmentByMatch;
@@ -166,12 +221,14 @@ function mapMatchesToClusters(timeGroups, assignmentByGroup) {
 
 export function buildTimeSlotLayout(matches) {
   if (!Array.isArray(matches)) throw new Error("matches must be an array");
+  if (matches.length === 0) return { clusters: [], assignmentByMatch: new Map() };
+
   const timeGroups = buildTimeGroups(matches);
-  const maxGroupsPerDay = readMaxGroupsPerDay(timeGroups);
-  const clusters = createTimeSlotClusters(timeGroups, maxGroupsPerDay);
-  const assignmentByGroup = assignTimeGroupsToClusters(timeGroups, clusters);
+  const groupsBySession = groupBySession(timeGroups);
+  const slotCount = readSlotCount(groupsBySession);
+  const { assignmentByGroup } = chooseBestClusters(timeGroups, groupsBySession, slotCount);
   return {
-    clusters: labelTimeSlotClusters(timeGroups, assignmentByGroup, clusters),
+    clusters: labelClusters(timeGroups, assignmentByGroup, slotCount),
     assignmentByMatch: mapMatchesToClusters(timeGroups, assignmentByGroup)
   };
 }

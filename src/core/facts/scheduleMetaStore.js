@@ -1,5 +1,6 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { computeScheduleMetaFromRawMatches } from "../analysis/scheduleMeta.js";
+import { createScheduleSessionKey } from "../scheduleIdentity.js";
 import { readRawMatches } from "./rawMatchesStore.js";
 
 function readPositiveInteger(value, label) {
@@ -70,7 +71,7 @@ export function assertScheduleMetaFields(label, meta) {
   const keys = new Set();
   let previousTimestamp = -1;
   for (const session of sessions) {
-    const key = JSON.stringify([session.overviewPage, session.tab, session.matchDay]);
+    const key = createScheduleSessionKey(session.overviewPage, session.tab, session.matchDay);
     if (keys.has(key)) throw new Error(`${label}.sessions contains duplicate session ${key}`);
     keys.add(key);
     if (session.startTimestamp < previousTimestamp) throw new Error(`${label}.sessions must be sorted`);
