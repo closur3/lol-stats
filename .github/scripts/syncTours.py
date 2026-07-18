@@ -362,15 +362,16 @@ def collect_fandom_leagues(source_rows: list) -> list:
     return sorted(leagues)
 
 
-def read_league_short_map(session, url: str, fandom_leagues: list) -> dict:
+def read_league_group_short_map(session, url: str, fandom_leagues: list) -> dict:
     validate_filter_values(fandom_leagues, "Fandom leagues")
     league_short_rows = fetch_cargo(session, url, {
         "action": "cargoquery",
         "format": "json",
-        "tables": "Leagues",
-        "fields": "League,League_Short=leagueShort",
-        "where": build_field_condition("League", fandom_leagues),
-        "order_by": "League ASC",
+        "tables": "LeagueGroups,LeagueGroups__Leagues",
+        "fields": "LeagueGroups__Leagues._value=League,LeagueGroups.ShortName=leagueShort",
+        "join_on": "LeagueGroups._ID=LeagueGroups__Leagues._rowID",
+        "where": build_field_condition("LeagueGroups__Leagues._value", fandom_leagues),
+        "order_by": "LeagueGroups__Leagues._value ASC",
     })
     league_short_by_fandom_league = {}
     for item in league_short_rows:
@@ -378,10 +379,10 @@ def read_league_short_map(session, url: str, fandom_leagues: list) -> dict:
         fandom_league = row.get("League", "")
         league_short = row.get("leagueShort", "")
         if not fandom_league or not league_short:
-            raise ValueError(f"Invalid League row: {row}")
+            raise ValueError(f"Invalid League Group row: {row}")
         existing = league_short_by_fandom_league.get(fandom_league)
         if existing is not None and existing != league_short:
-            raise ValueError(f"Conflicting League Short: {fandom_league}")
+            raise ValueError(f"Conflicting League Group Short: {fandom_league}")
         league_short_by_fandom_league[fandom_league] = league_short
     return league_short_by_fandom_league
 
@@ -790,7 +791,7 @@ def run_tournament_sync():
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
     source_rows = fetch_tournament_source_rows(session, url, old_active)
     fandom_leagues = collect_fandom_leagues(source_rows)
-    league_short_map = read_league_short_map(session, url, fandom_leagues) if fandom_leagues else {}
+    league_short_map = read_league_group_short_map(session, url, fandom_leagues) if fandom_leagues else {}
     log(f"📥 抓取完成 | 原始: {len(source_rows)} 条 | 耗时: {time.time() - start_time:.1f}s")
 
     active_overview_pages = {
