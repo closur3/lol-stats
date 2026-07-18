@@ -1,5 +1,7 @@
 import { readRawMatches } from "../facts/rawMatchesStore.js";
-import { readScheduleMeta } from "../facts/scheduleMetaStore.js";
+import { readScheduleCarryover } from "../facts/scheduleCarryoverStore.js";
+import { readScheduleSessions } from "../facts/scheduleSessionsStore.js";
+import { assertScheduleCarryoverReferences } from "../analysis/scheduleCarryover.js";
 import { readActiveHomes } from "./activeHomeReader.js";
 
 const SnapshotTournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate"];
@@ -18,10 +20,19 @@ function assertSnapshotTournament(expected, snapshot) {
 }
 
 async function assertActiveFactsAvailable(env, slugs) {
-  await Promise.all(slugs.flatMap(slug => [
-    readRawMatches(env, slug),
-    readScheduleMeta(env, slug)
-  ]));
+  const now = new Date();
+  await Promise.all(slugs.map(async slug => {
+    const [, scheduleSessions, carryover] = await Promise.all([
+      readRawMatches(env, slug),
+      readScheduleSessions(env, slug),
+      readScheduleCarryover(env, slug)
+    ]);
+    assertScheduleCarryoverReferences(
+      { entries: carryover.entries },
+      { sessions: scheduleSessions.sessions },
+      now
+    );
+  }));
 }
 
 export async function assertActiveRuntimeMatchesConfig(env, activeTournaments) {

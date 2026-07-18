@@ -6,6 +6,7 @@ import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.j
 import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { reconcileTournamentRuntime } from "../updater/tournamentRuntimeReconciler.js";
+import { observeScheduleCarryovers } from "../scheduler/scheduleCarryoverObserver.js";
 
 function filterTournaments(tournaments, slugs) {
   return tournaments.filter(tournament => slugs.has(tournament.slug));
@@ -42,6 +43,7 @@ export async function runCron(env, event) {
   const scheduleOptions = resolveScheduleOptions(env);
   const { config, configChanged } = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
   const tournaments = config.active;
+  await observeScheduleCarryovers(env, tournaments, new Date());
 
   const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
   if (target.type === 'none') {

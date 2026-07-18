@@ -7,7 +7,8 @@ const ActiveRuntimePrefixes = [
   kvKeys.ActiveLogPrefix,
   kvKeys.FandomRevisionPrefix,
   kvKeys.RawMatchesPrefix,
-  kvKeys.ScheduleMetaPrefix
+  kvKeys.ScheduleCarryoverPrefix,
+  kvKeys.ScheduleSessionsPrefix
 ];
 
 async function listKeys(kv, prefix) {

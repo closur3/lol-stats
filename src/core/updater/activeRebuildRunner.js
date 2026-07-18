@@ -1,4 +1,5 @@
 import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
+import { observeExistingScheduleCarryovers } from "../scheduler/scheduleCarryoverObserver.js";
 import { detectRevisionChanges } from "./revisionDetector.js";
 import { runActiveUpdate } from "./activeUpdateRunner.js";
 
@@ -17,6 +18,7 @@ export async function rebuildActiveTournaments(env, activeTournaments, reasonsBy
   const targetTournaments = activeTournaments.filter(tournament => targetSlugs.has(tournament.slug));
   if (targetTournaments.length !== targetSlugs.size) throw new Error("Active rebuild tournament not present in TournamentConfig.active");
 
+  await observeExistingScheduleCarryovers(env, targetTournaments, new Date());
   const rawMatchesBySlug = await readExistingRawMatchesBySlug(env, targetTournaments);
   const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, targetTournaments);
   await runActiveUpdate(env, activeTournaments, rawMatchesBySlug, targetSlugs, {

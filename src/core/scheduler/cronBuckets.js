@@ -1,4 +1,4 @@
-import { assertSlugScheduleState, isNowInCronWindow } from "./scheduleState.js";
+import { assertScheduleControl, isNowInCronWindow } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
 export const baselineCron = "0 */2 * * *";
@@ -49,14 +49,14 @@ function mergeIntervals(intervals) {
 }
 
 export function buildActiveBucketCronsFromState(state) {
-  if (!state?.slugStates || typeof state.slugStates !== "object" || Array.isArray(state.slugStates)) {
-    throw new Error("ScheduleState.slugStates must be a JSON object");
+  if (!state?.controlsBySlug || typeof state.controlsBySlug !== "object" || Array.isArray(state.controlsBySlug)) {
+    throw new Error("ScheduleState.controlsBySlug must be a JSON object");
   }
   const intervals = [];
-  for (const [slug, slugState] of Object.entries(state.slugStates)) {
-    assertSlugScheduleState(slug, slugState);
-    if (slugState.cronWindow === null) continue;
-    intervals.push(...timePolicy.appWindowToUtcCronSegments(state.date, slugState.cronWindow.startHour, slugState.cronWindow.endHour));
+  for (const [slug, control] of Object.entries(state.controlsBySlug)) {
+    assertScheduleControl(slug, control);
+    if (control.cronWindow === null) continue;
+    intervals.push(...timePolicy.appWindowToUtcCronSegments(state.date, control.cronWindow.startHour, control.cronWindow.endHour));
   }
 
   const buckets = mergeIntervals(intervals);
@@ -72,6 +72,6 @@ export function buildCronsFromScheduleState(state) {
   return schedules;
 }
 
-export function shouldRunScheduledSlugAt(slugState, nowUtc) {
-  return isNowInCronWindow(slugState, nowUtc);
+export function shouldRunScheduledSlugAt(control, nowUtc) {
+  return isNowInCronWindow(control, nowUtc);
 }

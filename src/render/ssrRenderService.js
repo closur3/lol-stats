@@ -3,12 +3,14 @@ import { renderPageShell } from './templates/page.js';
 import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { readActiveHomes } from '../core/updater/activeHomeReader.js';
 import { readArchiveSnapshots } from '../core/updater/archiveSnapshotReader.js';
-import { readScheduleMetaBySlug, buildHomeRenderInput, pruneHomeSchedule } from '../core/updater/homeRenderInputBuilder.js';
+import { buildHomeRenderInput, readHomeScheduleFacts } from '../core/updater/homeRenderInputBuilder.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 import { inspectH2HArtifacts } from './h2hMatchesBuilder.js';
 import { validateTimeGrid } from './components/timeTable.js';
 import { throwIfArtifactsUnavailable } from '../core/updater/artifactAvailability.js';
 import { readSchemaIssue } from '../core/facts/schemaIssue.js';
+import { selectHomeSchedule } from '../core/projection/homeScheduleSelector.js';
+import { updateConfig } from '../core/updater/updateConfig.js';
 
 function collectTimeGridIssues(activeHomes, archiveSnapshots) {
   const issues = [];
@@ -38,9 +40,16 @@ export async function renderHomeFromFacts(env) {
   ]);
 
   const orderedTournaments = activeHomes.map(activeHome => activeHome.tournament);
-  const scheduleMetaBySlug = await readScheduleMetaBySlug(env, orderedTournaments);
-  const renderInput = buildHomeRenderInput(activeHomes, orderedTournaments, scheduleMetaBySlug);
-  const limitedScheduleMap = pruneHomeSchedule(renderInput.scheduleMap, renderInput.scheduleMetaBySlug);
+  const { scheduleSessionsMap, carryoverMap } = await readHomeScheduleFacts(env, orderedTournaments);
+  const renderInput = buildHomeRenderInput(activeHomes, orderedTournaments);
+  const scheduleMap = selectHomeSchedule(
+    scheduleSessionsMap,
+    carryoverMap,
+    orderedTournaments,
+    new Date(),
+    updateConfig.maxScheduleDays
+  );
+  const scheduleSessionsBySlug = Object.fromEntries(Array.from(scheduleSessionsMap, ([slug, value]) => [slug, { sessions: value.sessions }]));
   const h2hInspection = inspectH2HArtifacts(activeHomes, archiveSnapshots);
   const artifactIssues = [
     ...h2hInspection.issues,
@@ -52,10 +61,10 @@ export async function renderHomeFromFacts(env) {
   const homeFragment = renderContentFragment(
     renderInput.globalStats,
     renderInput.timeGrid,
-    limitedScheduleMap,
+    scheduleMap,
     renderInput.tournaments,
     false,
-    renderInput.scheduleMetaBySlug,
+    scheduleSessionsBySlug,
     h2hMatches
   );
 

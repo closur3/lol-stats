@@ -16,8 +16,7 @@ function assignTimeGridWeekdays(timeGridMatches, sessionStarts) {
   }
 }
 
-export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate, retainedPastScheduleDates, tournamentSlug, tournamentLeagueShort, tournamentIndex, allFutureMatches) {
-  if (!(retainedPastScheduleDates instanceof Set)) throw new Error("retainedPastScheduleDates must be a Set");
+export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSlug) {
   const sessionStarts = new Map();
   const timeGridLayoutMatches = [];
   const timeGridMatches = [];
@@ -54,7 +53,6 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
       dateDisplay,
       fullDateDisplay,
       matchDateStr,
-      matchTimeStr,
       timestamp,
       weekdayIndex,
       timeMinutes,
@@ -78,23 +76,6 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, currentDate,
     const isFinished = winner !== null;
     const isLive = !isFinished && (team1Score > 0 || team2Score > 0 || (match.Team1Score !== "" && match.Team1Score != null));
     const isFullLength = !isForfeit && ((bestOf === 3 && Math.min(team1Score, team2Score) === 1) || (bestOf === 5 && Math.min(team1Score, team2Score) === 2));
-
-    if (matchDateStr !== "-" && (matchDateStr >= currentDate || !isFinished || retainedPastScheduleDates.has(matchDateStr))) {
-      if (!allFutureMatches[matchDateStr]) allFutureMatches[matchDateStr] = [];
-      const tabName = match.Tab || "";
-      allFutureMatches[matchDateStr].push({
-        time: matchTimeStr,
-        team1Name, team2Name,
-        team1Score, team2Score,
-        bestOf, winner, isForfeit,
-        isFinished, isLive,
-        leagueShort: tournamentLeagueShort,
-        slug: tournamentSlug,
-        tournamentIndex,
-        tabName: tabName || "",
-        timestamp
-      });
-    }
 
     if (isFinished) {
       if (timestamp > stats[team1Name].last) stats[team1Name].last = timestamp;

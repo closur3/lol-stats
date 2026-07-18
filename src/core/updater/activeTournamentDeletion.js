@@ -23,15 +23,16 @@ export async function deleteActiveRuntimeFacts(env, slug) {
     kv.delete(kvKeys.log(cleanSlug)),
     kv.delete(kvKeys.rev(cleanSlug)),
     kv.delete(kvKeys.rawMatches(cleanSlug)),
-    kv.delete(kvKeys.scheduleMeta(cleanSlug))
+    kv.delete(kvKeys.scheduleCarryover(cleanSlug)),
+    kv.delete(kvKeys.scheduleSessions(cleanSlug))
   ]);
 }
 
 async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
   const state = await readScheduleState(env);
   if (!state) return;
-  const controlChanged = Object.prototype.hasOwnProperty.call(state.slugStates, slug);
-  if (controlChanged) delete state.slugStates[slug];
+  const controlChanged = Object.prototype.hasOwnProperty.call(state.controlsBySlug, slug);
+  if (controlChanged) delete state.controlsBySlug[slug];
 
   const schedules = buildCronsFromScheduleState(state);
   let appliedChanged = false;

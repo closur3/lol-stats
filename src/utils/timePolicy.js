@@ -126,6 +126,11 @@ export const timePolicy = {
     return getAppTimeParts(timestampInput).dateKey;
   },
 
+  getNextAppDateStartTimestamp(timestampInput = new Date()) {
+    const parts = getAppTimeParts(timestampInput);
+    return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.dayOfMonth) + 1, -appTimeZoneOffsetHours, 0, 0);
+  },
+
   appWindowToUtcCronSegments(dateKey, startHour, endHour) {
     if (!Number.isInteger(startHour) || !Number.isInteger(endHour) || startHour < 0 || startHour > 23 || endHour < 0 || endHour > 23 || startHour > endHour) {
       throw new Error(`Invalid app play window: ${startHour}-${endHour}`);

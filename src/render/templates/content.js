@@ -14,13 +14,13 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleMetaBySlug, h2hMatches = null) {
+export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, h2hMatches = null) {
   assertObject(globalStats, "globalStats");
   assertObject(timeGridBySlug, "timeGridBySlug");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
   if (!isArchive) {
-    assertObject(scheduleMetaBySlug, "scheduleMetaBySlug");
+    assertObject(scheduleSessionsBySlug, "scheduleSessionsBySlug");
     if (!Array.isArray(h2hMatches)) throw new Error("h2hMatches must be an array");
   }
 
@@ -28,7 +28,7 @@ export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, 
   const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});${h2hInjection}</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
-    .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleMetaBySlug, isArchive))
+    .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleSessionsBySlug, isArchive))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, globalStats);
 

@@ -1,90 +1,37 @@
-import { dateUtils } from '../../utils/dateUtils.js';
-import { timePolicy } from '../../utils/timePolicy.js';
-import { readScheduleMeta } from '../facts/scheduleMetaStore.js';
-import { updateConfig } from './updateConfig.js';
-import { collectRetainedPastScheduleDates } from '../analysis/scheduleMeta.js';
+import { readScheduleCarryover } from "../facts/scheduleCarryoverStore.js";
+import { readScheduleSessions } from "../facts/scheduleSessionsStore.js";
 
-export async function readScheduleMetaBySlug(env, orderedTournaments) {
-  const scheduleMetas = await Promise.all(orderedTournaments.map(async (tournament) => {
+export async function readHomeScheduleFacts(env, orderedTournaments) {
+  if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
+  const pairs = await Promise.all(orderedTournaments.map(async tournament => {
     const slug = tournament?.slug;
     if (!slug) throw new Error("Tournament slug missing");
-    return readScheduleMeta(env, slug);
+    const [scheduleSessions, carryover] = await Promise.all([
+      readScheduleSessions(env, slug),
+      readScheduleCarryover(env, slug)
+    ]);
+    return [slug, scheduleSessions, carryover];
   }));
-  return new Map(scheduleMetas.map(meta => [meta.slug, meta]));
-}
-
-function normalizeHomeScheduleMatch(match, tournamentIndexMap) {
-  if (!match || typeof match !== "object" || Array.isArray(match)) {
-    throw new Error("Invalid HOME schedule match");
-  }
-  if (!match.slug) throw new Error("HOME schedule match slug missing");
-  if (typeof match.time !== "string") throw new Error(`HOME schedule match time missing: ${match.slug}`);
-  const index = tournamentIndexMap.get(match.slug);
-  if (index === undefined) throw new Error(`Unknown HOME schedule match slug: ${match.slug}`);
   return {
-    ...match,
-    tournamentIndex: index
+    scheduleSessionsMap: new Map(pairs.map(([slug, scheduleSessions]) => [slug, scheduleSessions])),
+    carryoverMap: new Map(pairs.map(([slug, , carryover]) => [slug, carryover]))
   };
 }
 
-function appendHomeSchedule(scheduleMap, tournamentIndexMap, home) {
-  const schedule = home.scheduleMap;
-  if (!schedule || typeof schedule !== "object" || Array.isArray(schedule)) {
-    throw new Error(`Invalid HOME scheduleMap: ${home.tournament.slug}`);
-  }
-  for (const [date, matches] of Object.entries(schedule)) {
-    if (!Array.isArray(matches)) throw new Error(`Invalid HOME schedule date: ${home.tournament.slug}:${date}`);
-    if (!scheduleMap[date]) scheduleMap[date] = [];
-    for (const match of matches) {
-      scheduleMap[date].push(normalizeHomeScheduleMatch(match, tournamentIndexMap));
-    }
-  }
-}
-
-export function buildHomeRenderInput(homeEntries, orderedTournaments, scheduleMetaMap) {
+export function buildHomeRenderInput(homeEntries, orderedTournaments) {
   if (!Array.isArray(homeEntries)) throw new Error("homeEntries must be an array");
   if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
-  if (!(scheduleMetaMap instanceof Map)) throw new Error("scheduleMetaMap must be a Map");
-  const tournamentIndexMap = new Map(orderedTournaments.map((tournament, index) => [tournament.slug, index]));
+  if (homeEntries.length !== orderedTournaments.length) throw new Error("ActiveHome count does not match tournaments");
   const globalStats = {};
   const timeGrid = {};
-  const scheduleMap = {};
-  const scheduleMetaBySlug = {};
 
-  for (const home of homeEntries) {
-    const slug = home.tournament.slug;
+  homeEntries.forEach((home, index) => {
+    const slug = home?.tournament?.slug;
+    if (!slug) throw new Error("ActiveHome tournament slug missing");
+    if (orderedTournaments[index]?.slug !== slug) throw new Error(`ActiveHome order mismatch: ${slug}`);
     globalStats[slug] = home.stats;
     timeGrid[slug] = home.timeGrid;
-    const meta = scheduleMetaMap.get(slug);
-    if (!meta) throw new Error(`ScheduleMeta missing after load: ${slug}`);
-    scheduleMetaBySlug[slug] = meta;
+  });
 
-    appendHomeSchedule(scheduleMap, tournamentIndexMap, home);
-  }
-
-  for (const date of Object.keys(scheduleMap)) {
-    scheduleMap[date].sort((leftMatch, rightMatch) => {
-      const leftTournamentIndex = leftMatch.tournamentIndex;
-      const rightTournamentIndex = rightMatch.tournamentIndex;
-      if (leftTournamentIndex !== rightTournamentIndex) return leftTournamentIndex - rightTournamentIndex;
-      return leftMatch.time.localeCompare(rightMatch.time);
-    });
-  }
-
-  return { tournaments: orderedTournaments, globalStats, timeGrid, scheduleMap, scheduleMetaBySlug };
-}
-
-export function pruneHomeSchedule(scheduleMap, scheduleMetaBySlug) {
-  const today = timePolicy.getCurrentAppDateTime().dateString;
-  const retainedPastDatesBySlug = {};
-  for (const [slug, meta] of Object.entries(scheduleMetaBySlug)) {
-    retainedPastDatesBySlug[slug] = Array.from(collectRetainedPastScheduleDates(meta, today));
-  }
-
-  return dateUtils.pruneScheduleMapByDayStatus(
-    scheduleMap,
-    updateConfig.maxScheduleDays,
-    today,
-    retainedPastDatesBySlug
-  );
+  return { tournaments: orderedTournaments, globalStats, timeGrid };
 }

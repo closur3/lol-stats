@@ -14,13 +14,13 @@ function renderTournamentSummary(stats) {
   return parts.length ? `<div class="tournament-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
 }
 
-function readScheduleMeta(scheduleMetaBySlug, slug, isArchive) {
+function readScheduleSessions(scheduleSessionsBySlug, slug, isArchive) {
   if (isArchive) return null;
-  const meta = scheduleMetaBySlug[slug];
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
-    throw new Error(`scheduleMetaBySlug missing: ${slug}`);
+  const scheduleSessions = scheduleSessionsBySlug[slug];
+  if (!scheduleSessions || typeof scheduleSessions !== "object" || Array.isArray(scheduleSessions)) {
+    throw new Error(`scheduleSessionsBySlug missing: ${slug}`);
   }
-  return meta;
+  return scheduleSessions;
 }
 
 function buildTournamentTable(tournament, stats, sortMeta) {
@@ -31,8 +31,8 @@ function buildTournamentTable(tournament, stats, sortMeta) {
   return tableBody;
 }
 
-export function renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleMetaBySlug, isArchive) {
-  const meta = readScheduleMeta(scheduleMetaBySlug, tournament.slug, isArchive);
+export function renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleSessionsBySlug, isArchive) {
+  const scheduleSessions = readScheduleSessions(scheduleSessionsBySlug, tournament.slug, isArchive);
   const rawStats = globalStats[tournament.slug];
   if (!rawStats || typeof rawStats !== "object" || Array.isArray(rawStats)) {
     throw new Error(`globalStats missing: ${tournament.slug}`);
@@ -56,7 +56,7 @@ export function renderTournamentSection(tournament, globalStats, timeGridBySlug,
   let phaseIcon = "";
   let phase = null;
   if (!isArchive) {
-    phase = resolveSchedulePhase(meta);
+    phase = resolveSchedulePhase(scheduleSessions);
     phaseIcon = renderSchedulePhaseIcon(phase);
   }
   const mainPage = getFirstOverviewPage(tournament.overviewPage);

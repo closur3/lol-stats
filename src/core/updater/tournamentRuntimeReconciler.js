@@ -1,7 +1,7 @@
 import { readTournamentConfig } from "../facts/tournamentConfigReader.js";
 import { buildTournamentApplyState } from "../facts/tournamentConfigFingerprint.js";
 import { writeTournamentApplyState } from "../facts/tournamentApplyState.js";
-import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
+import { rebuildSchedule } from "../scheduler/scheduleMaintenanceRunner.js";
 import { migrateArchiveTournaments } from "./archiveMigration.js";
 import { rebuildActiveTournaments } from "./activeRebuildRunner.js";
 import { deleteActiveRuntimeFacts } from "./activeTournamentDeletion.js";
@@ -52,7 +52,7 @@ export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleO
   ]);
   await rebuildActiveTournaments(env, config.active, rebuildReasons);
   await Promise.all(transition.dropped.map(slug => deleteActiveRuntimeFacts(env, slug)));
-  await runScheduleMaintenance(env, config.active, scheduledTimeMs, scheduleOptions);
+  await rebuildSchedule(env, config.active, scheduledTimeMs, scheduleOptions);
 
   await assertActiveRuntimeMatchesConfig(env, config.active);
   await assertConfigUnchanged(env, desiredApplyState.configDigest);

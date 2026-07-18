@@ -3,7 +3,7 @@ import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { kvKeys } from '../infrastructure/kv/keyFactory.js';
 import { renderLogPage } from '../render/templates/logs.js';
 import { readRawMatches } from '../core/facts/rawMatchesStore.js';
-import { readScheduleMeta } from '../core/facts/scheduleMetaStore.js';
+import { readScheduleSessions } from '../core/facts/scheduleSessionsStore.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
 
 async function readLogsBySlug(kv, slugs) {
@@ -25,13 +25,13 @@ async function readLogEntries(kv, logKey) {
 
 async function readLogMetaBySlug(env, slugs) {
   const metaPairs = await Promise.all(slugs.map(async slug => {
-    const [rawMatches, meta] = await Promise.all([
+    const [rawMatches, scheduleSessions] = await Promise.all([
       readRawMatches(env, slug),
-      readScheduleMeta(env, slug)
+      readScheduleSessions(env, slug)
     ]);
     return [slug, {
       totalMatchCount: rawMatches.length,
-      scheduleMeta: meta
+      scheduleSessions: { sessions: scheduleSessions.sessions }
     }];
   }));
   return new Map(metaPairs);
@@ -44,7 +44,7 @@ function buildActiveLogItem(name, slug, logs, homeMeta) {
     name,
     logs,
     totalMatches: homeMeta.totalMatchCount,
-    scheduleMeta: homeMeta.scheduleMeta
+    scheduleSessions: homeMeta.scheduleSessions
   };
 }
 

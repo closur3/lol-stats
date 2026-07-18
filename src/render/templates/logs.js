@@ -94,7 +94,7 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     const safeName = escapeHtml(name);
     const entries = normalizeLogEntries(activeLogItem);
     const lastEntry = entries[0];
-    const phase = resolveSchedulePhase(activeLogItem.scheduleMeta);
+    const phase = resolveSchedulePhase(activeLogItem.scheduleSessions);
     const phaseCls = `phase-${phase}`;
 
     const syncCount = entries.filter(isSyncEntry).length;

@@ -3,7 +3,8 @@ const ActiveLogPrefix = "ActiveLog_";
 const ArchiveSnapshotPrefix = "ArchiveSnapshot_";
 const FandomRevisionPrefix = "FandomRevision_";
 const RawMatchesPrefix = "RawMatches_";
-const ScheduleMetaPrefix = "ScheduleMeta_";
+const ScheduleCarryoverPrefix = "ScheduleCarryover_";
+const ScheduleSessionsPrefix = "ScheduleSessions_";
 
 export const kvKeys = {
   ActiveHomePrefix,
@@ -11,7 +12,8 @@ export const kvKeys = {
   ArchiveSnapshotPrefix,
   FandomRevisionPrefix,
   RawMatchesPrefix,
-  ScheduleMetaPrefix,
+  ScheduleCarryoverPrefix,
+  ScheduleSessionsPrefix,
 
   home(slug) {
     return `${ActiveHomePrefix}${slug}`;
@@ -28,8 +30,11 @@ export const kvKeys = {
   rawMatches(slug) {
     return `${RawMatchesPrefix}${slug}`;
   },
-  scheduleMeta(slug) {
-    return `${ScheduleMetaPrefix}${slug}`;
+  scheduleCarryover(slug) {
+    return `${ScheduleCarryoverPrefix}${slug}`;
+  },
+  scheduleSessions(slug) {
+    return `${ScheduleSessionsPrefix}${slug}`;
   },
   scheduleState() {
     return "ScheduleState";
