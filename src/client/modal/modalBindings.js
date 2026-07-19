@@ -11,5 +11,6 @@ window.showPopup = showPopup;
 window.openTeam = openTeam;
 window.openStats = openStats;
 window.openH2H = openH2H;
+window.switchHistoryStatus = switchHistoryStatus;
 window.closePopup = closePopup;
 `;

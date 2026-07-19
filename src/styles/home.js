@@ -144,13 +144,16 @@ export default `${baseCSS}
 
     @keyframes modalShow { 0% { opacity: 0; transform: translate(-50%, -45%) scale(0.98); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
     .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(15, 23, 42, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-    .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #ffffff; margin: 0; padding: 0; border: 1px solid #e2e8f0; width: 90%; max-width: 420px; border-radius: var(--radius-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalShow 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; display: flex; flex-direction: column; max-height: 80vh; }
+    .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #ffffff; margin: 0; padding: 0; border: 1px solid #e2e8f0; width: 90%; max-width: 420px; border-radius: var(--radius-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalShow 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; display: flex; flex-direction: column; max-height: calc(100vh - 100px); }
     #modalTitle { margin: 0; padding: 20px 24px; border-bottom: 1px solid #f1f5f9; font-size: 18px; font-weight: 600; color: #0f172a; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; background: #f8fafc; border-radius: var(--radius-card) var(--radius-card) 0 0; flex-shrink: 0; }
+    #modalTitle.history-status-modal-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; padding-bottom: 14px; }
+    .modal-title-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .modal-context-label { display: block; margin-bottom: 7px; color: #94a3b8; font-size: 9px; font-weight: 800; letter-spacing: 0.16em; line-height: 1; }
     .modal-context-title { display: flex; align-items: baseline; gap: 8px; color: #0f172a; font-size: 17px; font-weight: 750; }
     .modal-title-record { font-variant-numeric: tabular-nums; }
     .modal-context-divider { color: #cbd5e1; font-weight: 500; }
     .match-list { margin: 0; padding: 16px 24px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; flex: 1; }
+    .history-status-modal-title + .match-list { padding-top: 10px; padding-bottom: 10px; }
     .match-list::-webkit-scrollbar { width: 6px; }
     .match-list::-webkit-scrollbar-track { background: transparent; }
     .match-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: var(--radius-pill); }
@@ -180,8 +183,8 @@ export default `${baseCSS}
     .history-tournament-group { margin: 0 0 10px; border: 1px solid #dbe3ec; border-radius: var(--radius-card); background: #ffffff; overflow: hidden; }
     .history-group-summary { position: relative; display: flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 48px; background: #f8fafc; color: #334155; cursor: pointer; list-style: none; font-size: 11px; font-weight: 750; }
     .history-group-summary::-webkit-details-marker { display: none; }
-    .history-group-summary::before { content: '▸'; position: absolute; left: 12px; color: #64748b; }
-    .history-tournament-group[open] > .history-group-summary::before { content: '▾'; }
+    .history-group-summary::before { content: ''; position: absolute; left: 14px; width: 6px; height: 6px; border-right: 1.5px solid #64748b; border-bottom: 1.5px solid #64748b; transform: rotate(-45deg); transition: transform 0.15s ease; }
+    .history-tournament-group[open] > .history-group-summary::before { transform: rotate(45deg); }
     .history-group-summary > span:first-child { min-width: 0; max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
     .history-group-count { flex-shrink: 0; color: #64748b; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; }
     .history-group-summary > .history-group-count { position: absolute; right: 12px; }
@@ -193,6 +196,22 @@ export default `${baseCSS}
     .history-tournament-group[open] > .history-tab-group:last-child { padding-bottom: 8px; }
     .history-tab-label { padding: 0 12px 3px; color: #64748b; font-size: 10px; font-weight: 750; letter-spacing: 0.03em; }
     .history-group-list { padding: 8px 10px 0; }
+    .history-status-switch { flex: 0 0 auto; }
+    .history-status-switch-control { display: grid; grid-template-columns: 44px; gap: 2px; }
+    .history-status-button { display: inline-flex; align-items: center; justify-content: space-between; gap: 5px; width: 44px; height: 22px; padding: 0 7px; border: 0; border-radius: var(--radius-badge); outline: none; background: transparent; color: #94a3b8; cursor: pointer; font: inherit; transition: background 0.15s ease, color 0.15s ease; }
+    .history-status-button:hover { background: #f1f5f9; color: #475569; }
+    .history-status-button.is-active { background: #e2e8f0; color: #334155; }
+    .history-status-button:focus-visible { box-shadow: 0 0 0 2px #bfdbfe; }
+    .history-status-button svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .history-status-button span { color: inherit; font-size: 9px; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .history-status-view.is-hidden { display: none; }
+    .history-status-empty { padding: 28px 12px; color: #94a3b8; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
+    .h2h-tournament-group { margin: 0 0 8px; border: 1px solid #dbe3ec; border-radius: var(--radius-card); background: #ffffff; overflow: hidden; }
+    .history-status-view > .h2h-tournament-group:last-child { margin-bottom: 0; }
+    .h2h-group-heading { position: relative; display: flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 48px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; color: #334155; font-size: 11px; font-weight: 750; }
+    .h2h-group-heading > span:first-child { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+    .h2h-group-heading > .h2h-group-meta { position: absolute; right: 12px; }
+    .h2h-tournament-group > .history-tab-group:last-child { padding-bottom: 8px; }
     .match-details { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; min-height: 26px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0; }
     .match-details::after { content: ''; position: absolute; top: 10px; bottom: 0; left: 50%; width: 1px; background: #e2e8f0; transform: translateX(-0.5px); }
     .match-details.game-only { grid-template-columns: minmax(0, 1fr); }

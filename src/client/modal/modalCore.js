@@ -49,9 +49,11 @@ function setModalTitle(contextLabel, titleParts) {
         throw new Error('Unknown modal title part kind: ' + part.kind);
     }).join('');
 
-    document.getElementById('modalTitle').innerHTML =
+    const modalTitle = document.getElementById('modalTitle');
+    modalTitle.className = '';
+    modalTitle.innerHTML = '<span class="modal-title-copy">' +
         '<span class="modal-context-label">' + escapeModalHtml(contextLabel) + '</span>' +
-        '<span class="modal-context-title">' + titleHtml + '</span>';
+        '<span class="modal-context-title">' + titleHtml + '</span></span>';
 }
 
 function renderGameResults(gameResults) {

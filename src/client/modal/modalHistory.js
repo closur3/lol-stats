@@ -115,37 +115,122 @@ function renderHistoryGroupRecord(matches) {
     return '<span class="history-group-record"><b>' + wins + '</b><i>–</i><b>' + losses + '</b></span>';
 }
 
-function renderH2HGroups(history, newestFirst) {
-    return groupHistoryMatches(history, newestFirst).map((group, index) => {
+function countH2HWins(history, team1Name, team2Name) {
+    let team1Wins = 0;
+    let team2Wins = 0;
+    history.forEach(match => {
+        const team1IsLeft = match.teamName === team1Name && match.opponentName === team2Name;
+        const team2IsLeft = match.teamName === team2Name && match.opponentName === team1Name;
+        if (!team1IsLeft && !team2IsLeft) throw new Error('H2H match teams do not match title');
+        if (match.matchResultCode === 'WIN') {
+            if (team1IsLeft) team1Wins++;
+            else team2Wins++;
+        } else if (match.matchResultCode === 'LOSS') {
+            if (team1IsLeft) team2Wins++;
+            else team1Wins++;
+        }
+    });
+    return { team1Wins, team2Wins };
+}
+
+function renderH2HGroups(history, status, team1Name, team2Name) {
+    if (status !== 'finished' && status !== 'upcoming') throw new Error('Invalid H2H group status: ' + status);
+    const newestFirst = status === 'finished';
+    return groupHistoryMatches(history, newestFirst).map(group => {
         const groupMatches = sortHistoryMatches(group.matches, true);
-        const openAttribute = index === 0 ? ' open' : '';
+        let groupMeta;
+        if (status === 'finished') {
+            const record = countH2HWins(groupMatches, team1Name, team2Name);
+            groupMeta = '<span class="history-group-record"><b>' + record.team1Wins + '</b><i>–</i><b>' + record.team2Wins + '</b></span>';
+        } else {
+            groupMeta = '<span class="history-group-count">' + groupMatches.length + '</span>';
+        }
         const tabHtml = Array.from(group.tabs.values()).sort((left, right) => newestFirst
             ? right.latestTimestamp - left.latestTimestamp
             : left.latestTimestamp - right.latestTimestamp).map(tab => {
             const tabTitle = tab.tabName.length > 0 ? '<div class="history-tab-label">' + escapeModalHtml(tab.tabName) + '</div>' : '';
             return '<div class="history-tab-group">' + tabTitle + '<div class="history-group-list">' + sortHistoryMatches(tab.matches, newestFirst).map(renderH2HMatch).join('') + '</div></div>';
         }).join('');
-        return '<details class="history-tournament-group"' + openAttribute + '>' +
-            '<summary class="history-group-summary"><span>' + escapeModalHtml(group.tournamentName) + '</span><span class="history-group-count">' + groupMatches.length + '</span></summary>' +
+        return '<section class="h2h-tournament-group">' +
+            '<div class="h2h-group-heading"><span>' + escapeModalHtml(group.tournamentName) + '</span><span class="h2h-group-meta">' + groupMeta + '</span></div>' +
             tabHtml +
-            '</details>';
+            '</section>';
     });
+}
+
+function renderHistoryStatusView(view, items, activeView) {
+    if (view !== 'finished' && view !== 'upcoming') throw new Error('Invalid history status view: ' + view);
+    if (!Array.isArray(items)) throw new Error('History status view items are required');
+    const hiddenClass = view === activeView ? '' : ' is-hidden';
+    const ariaHidden = view === activeView ? 'false' : 'true';
+    const emptyLabel = view === 'finished' ? 'NO FINISHED MATCHES' : 'NO UPCOMING MATCHES';
+    return '<div id="history-status-' + view + '" class="history-status-view' + hiddenClass + '" data-history-status="' + view + '" role="tabpanel" aria-hidden="' + ariaHidden + '">' +
+        (items.length > 0 ? items.join('') : '<div class="history-status-empty">' + emptyLabel + '</div>') +
+        '</div>';
+}
+
+function switchHistoryStatus(view) {
+    if (view !== 'finished' && view !== 'upcoming') throw new Error('Invalid history status: ' + view);
+    document.querySelectorAll('[data-history-status]').forEach(element => {
+        const isActive = element.dataset.historyStatus === view;
+        element.classList.toggle('is-hidden', !isActive);
+        element.setAttribute('aria-hidden', String(!isActive));
+    });
+    document.querySelectorAll('[data-history-status-target]').forEach(button => {
+        const isActive = button.dataset.historyStatusTarget === view;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+    });
+    document.getElementById('modalList').scrollTop = 0;
+}
+
+function renderHistoryStatusButton(view, count, activeView) {
+    if (view !== 'finished' && view !== 'upcoming') throw new Error('Invalid history status button: ' + view);
+    if (!Number.isInteger(count) || count < 0) throw new Error('Invalid history status count: ' + count);
+    const isActive = view === activeView;
+    const label = view === 'finished' ? 'Finished matches' : 'Upcoming matches';
+    const icon = view === 'finished'
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+    return '<button type="button" class="history-status-button' + (isActive ? ' is-active' : '') + '" role="tab" ' +
+        'aria-label="' + label + ': ' + count + '" ' +
+        'aria-controls="history-status-' + view + '" aria-selected="' + String(isActive) + '" data-history-status-target="' + view + '" ' +
+        'onclick="switchHistoryStatus(\\'' + view + '\\')">' + icon + '<span>' + count + '</span></button>';
+}
+
+function renderHistoryStatusSwitch(finishedCount, upcomingCount, activeView) {
+    return '<div class="history-status-switch" role="tablist" aria-label="Match status">' +
+        '<div class="history-status-switch-control">' +
+        renderHistoryStatusButton('finished', finishedCount, activeView) +
+        renderHistoryStatusButton('upcoming', upcomingCount, activeView) +
+        '</div></div>';
+}
+
+function attachHistoryStatusSwitch(switchHtml) {
+    const modalTitle = document.getElementById('modalTitle');
+    modalTitle.classList.add('history-status-modal-title');
+    modalTitle.insertAdjacentHTML('beforeend', switchHtml);
 }
 
 function renderTeamHistoryModal(titleParts, teamName, history, grouped) {
     const finishedMatches = sortHistoryMatches(history.filter(isFinishedHistoryMatch), true);
     const upcomingMatches = sortHistoryMatches(history.filter(match => !isFinishedHistoryMatch(match)), false);
-    const listHtml = grouped
-        ? renderHistoryGroups(teamName, finishedMatches, true)
-        : renderFlatHistory(teamName, finishedMatches);
+    if (grouped) {
+        const activeView = finishedMatches.length > 0 ? 'finished' : 'upcoming';
+        setModalTitle('MATCH HISTORY', titleParts);
+        attachHistoryStatusSwitch(renderHistoryStatusSwitch(finishedMatches.length, upcomingMatches.length, activeView));
+        renderListHTML([
+            renderHistoryStatusView('finished', renderHistoryGroups(teamName, finishedMatches, true), activeView),
+            renderHistoryStatusView('upcoming', renderHistoryGroups(teamName, upcomingMatches, false), activeView)
+        ]);
+        document.getElementById('matchModal').style.display = 'block';
+        return;
+    }
 
+    const listHtml = renderFlatHistory(teamName, finishedMatches);
     if (upcomingMatches.length > 0) {
         listHtml.push('<div class="history-section-divider"><span>UPCOMING</span></div>');
-        if (grouped) {
-            listHtml.push(...renderHistoryGroups(teamName, upcomingMatches, false));
-        } else {
-            listHtml.push(...renderFlatHistory(teamName, upcomingMatches));
-        }
+        listHtml.push(...renderFlatHistory(teamName, upcomingMatches));
     }
 
     setModalTitle('MATCH HISTORY', titleParts);
@@ -224,32 +309,21 @@ function openH2H(team1Name, team2Name) {
     );
     const finishedHistory = sortHistoryMatches(h2hHistory.filter(isFinishedHistoryMatch), true);
     const upcomingHistory = sortHistoryMatches(h2hHistory.filter(match => !isFinishedHistoryMatch(match)), false);
-    let team1Wins = 0;
-    let team2Wins = 0;
-    finishedHistory.forEach(match => {
-        const team1IsLeft = match.teamName === team1Name;
-        if (match.matchResultCode === 'WIN') {
-            if (team1IsLeft) team1Wins++;
-            else team2Wins++;
-        } else if (match.matchResultCode === 'LOSS') {
-            if (team1IsLeft) team2Wins++;
-            else team1Wins++;
-        }
-    });
+    const record = countH2HWins(finishedHistory, team1Name, team2Name);
     const titleParts = [{ kind: 'text', text: team1Name + ' vs ' + team2Name }];
     if (finishedHistory.length > 0) {
         titleParts.push(
             { kind: 'divider', text: '·' },
-            { kind: 'record', value: team1Wins + '-' + team2Wins, separator: '-' }
+            { kind: 'record', value: record.team1Wins + '-' + record.team2Wins, separator: '-' }
         );
     }
+    const activeView = finishedHistory.length > 0 ? 'finished' : 'upcoming';
     setModalTitle('HEAD TO HEAD', titleParts);
-    const listHtml = renderH2HGroups(finishedHistory, true);
-    if (upcomingHistory.length > 0) {
-        listHtml.push('<div class="history-section-divider"><span>UPCOMING</span></div>');
-        listHtml.push(...renderH2HGroups(upcomingHistory, false));
-    }
-    renderListHTML(listHtml);
+    attachHistoryStatusSwitch(renderHistoryStatusSwitch(finishedHistory.length, upcomingHistory.length, activeView));
+    renderListHTML([
+        renderHistoryStatusView('finished', renderH2HGroups(finishedHistory, 'finished', team1Name, team2Name), activeView),
+        renderHistoryStatusView('upcoming', renderH2HGroups(upcomingHistory, 'upcoming', team1Name, team2Name), activeView)
+    ]);
     document.getElementById('matchModal').style.display = 'block';
 }
 
