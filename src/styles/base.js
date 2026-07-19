@@ -17,7 +17,8 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
         --gradient-header: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
         --radius-card: 12px;
         --radius-control: 8px;
-        --radius-tight: 8px;
+        --radius-badge: 4px;
+        --radius-pill: 999px;
         --shadow-card: 0 4px 6px rgba(0,0,0,0.05);
     }
     body, code, input, button, select, textarea { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
@@ -52,18 +53,18 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
     .table-title { font-weight: 600; display: flex; align-items: center; background: var(--color-surface); color: var(--color-text); box-sizing: border-box; }
     .empty-state { text-align: center; padding: 40px; color: var(--color-text-faint); }
 
-    .primary-btn, .secondary-btn { padding: 10px 20px; border-radius: var(--radius-tight); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; transition: 0.2s; margin: 0; white-space: nowrap; }
+    .primary-btn, .secondary-btn { padding: 10px 20px; border-radius: var(--radius-control); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; transition: 0.2s; margin: 0; white-space: nowrap; }
     .primary-btn { background: var(--color-primary); color: #fff; border: none; }
     .primary-btn:hover { background: var(--color-primary-strong); box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
     .secondary-btn { background: var(--color-surface); color: #475569; border: 1px solid var(--color-border-strong); }
     .secondary-btn:hover { background: var(--color-surface-muted); color: var(--color-text); border-color: var(--color-text-faint); }
-    .icon-btn { width: 32px; height: 32px; background: none; border: 1px solid var(--color-border); border-radius: var(--radius-tight); padding: 0; cursor: pointer; color: #475569; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn { width: 32px; height: 32px; background: none; border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: 0; cursor: pointer; color: #475569; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
     .icon-btn:hover { background: var(--color-bg); border-color: var(--color-border-strong); color: var(--color-primary-strong); }
     .icon-btn-del { color: var(--color-danger); }
     .icon-btn-del:hover { background: #fef2f2; border-color: #fca5a5; color: var(--color-danger); }
     .ui-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
-    .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-tight); font-size: 14px; color: var(--color-text); box-sizing: border-box; transition: all 0.2s; background: var(--color-surface-muted); }
+    .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); font-size: 14px; color: var(--color-text); box-sizing: border-box; transition: all 0.2s; background: var(--color-surface-muted); }
     .form-input:focus { background: var(--color-surface); border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); outline: none; }
     .form-input::placeholder { color: var(--color-text-faint); }
     @media (max-width: 650px) {

@@ -41,7 +41,11 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
   };
 
   rawMatches.forEach(match => {
-    const matchLabel = `${tournamentSlug}.${match.MatchId}`;
+    if (typeof match.MatchId !== "string" || match.MatchId.trim() === "") {
+      throw new Error(`${tournamentSlug}.MatchId must be a nonempty string`);
+    }
+    const matchId = match.MatchId;
+    const matchLabel = `${tournamentSlug}.${matchId}`;
     const team1Score = parseMatchScore(match.Team1Score, `${tournamentSlug}.${match.MatchId}.Team1Score`);
     const team2Score = parseMatchScore(match.Team2Score, `${tournamentSlug}.${match.MatchId}.Team2Score`);
     const bestOf = parseMatchBestOf(match.BestOf, `${tournamentSlug}.${match.MatchId}.BestOf`);
@@ -58,7 +62,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
       timeMinutes,
       roundedMinutes
     } = matchTime;
-    const { sessionKey } = readScheduleIdentity(match, matchLabel);
+    const { tab: tabName, sessionKey } = readScheduleIdentity(match, matchLabel);
     recordSessionStart(sessionStarts, sessionKey, timestamp, weekdayIndex);
     const isTimeGridSeries = bestOf === 3 || bestOf === 5;
     const timeGridLayoutMatch = isTimeGridSeries
@@ -121,7 +125,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
 
     stats[team1Name].history.push({
       dateDisplay, fullDateDisplay,
-      scheduleSlot: 1,
+      matchId, tabName, scheduleSlot: 1,
       opponentName: team2Name,
       scoreDisplay: `${team1Score}-${team2Score}`,
       matchResultCode: team1MatchResultCode,
@@ -131,7 +135,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
     });
     stats[team2Name].history.push({
       dateDisplay, fullDateDisplay,
-      scheduleSlot: 2,
+      matchId, tabName, scheduleSlot: 2,
       opponentName: team1Name,
       scoreDisplay: `${team2Score}-${team1Score}`,
       matchResultCode: team2MatchResultCode,

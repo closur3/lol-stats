@@ -3,9 +3,9 @@ import { renderPageShell } from './templates/page.js';
 import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { readActiveHomes } from '../core/updater/activeHomeReader.js';
 import { readArchiveSnapshots } from '../core/updater/archiveSnapshotReader.js';
-import { buildHomeRenderInput, readHomeScheduleFacts } from '../core/updater/homeRenderInputBuilder.js';
+import { buildHomeRenderInput, readHomeScheduleFacts, readScheduleSessionsMap } from '../core/updater/homeRenderInputBuilder.js';
 import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
-import { inspectH2HArtifacts } from './h2hMatchesBuilder.js';
+import { inspectModalHistory } from './modalHistoryBuilder.js';
 import { validateTimeGrid } from './components/timeTable.js';
 import { throwIfArtifactsUnavailable } from '../core/updater/artifactAvailability.js';
 import { readSchemaIssue } from '../core/facts/schemaIssue.js';
@@ -50,13 +50,13 @@ export async function renderHomeFromFacts(env) {
     updateConfig.maxScheduleDays
   );
   const scheduleSessionsBySlug = Object.fromEntries(Array.from(scheduleSessionsMap, ([slug, value]) => [slug, { sessions: value.sessions }]));
-  const h2hInspection = inspectH2HArtifacts(activeHomes, archiveSnapshots);
+  const modalInspection = inspectModalHistory(activeHomes, archiveSnapshots, tournaments, scheduleSessionsMap);
   const artifactIssues = [
-    ...h2hInspection.issues,
+    ...modalInspection.issues,
     ...collectTimeGridIssues(activeHomes, archiveSnapshots)
   ];
   throwIfArtifactsUnavailable("tournament artifacts", artifactIssues);
-  const h2hMatches = h2hInspection.matches;
+  const modalHistory = modalInspection.history;
 
   const homeFragment = renderContentFragment(
     renderInput.globalStats,
@@ -65,7 +65,7 @@ export async function renderHomeFromFacts(env) {
     renderInput.tournaments,
     false,
     scheduleSessionsBySlug,
-    h2hMatches
+    modalHistory
   );
 
   const hasActiveCron = await readHasActiveCron(env);
@@ -73,7 +73,7 @@ export async function renderHomeFromFacts(env) {
 }
 
 export async function renderArchiveFromFacts(env) {
-  const { archive: tournaments } = await readTournamentConfig(env);
+  const { active: activeTournaments, archive: tournaments } = await readTournamentConfig(env);
 
   if (!tournaments.length) {
     const hasActiveCron = await readHasActiveCron(env);
@@ -81,8 +81,16 @@ export async function renderArchiveFromFacts(env) {
   }
 
   const slugs = tournaments.map(tournament => tournament.slug);
-  const archiveSnapshots = await readArchiveSnapshots(env, slugs);
-  const archiveIssues = collectTimeGridIssues([], archiveSnapshots);
+  const [archiveSnapshots, activeHomes, scheduleSessionsMap] = await Promise.all([
+    readArchiveSnapshots(env, slugs),
+    readActiveHomes(env, activeTournaments.map(tournament => tournament.slug)),
+    readScheduleSessionsMap(env, activeTournaments)
+  ]);
+  const modalInspection = inspectModalHistory(activeHomes, archiveSnapshots, activeTournaments, scheduleSessionsMap);
+  const archiveIssues = [
+    ...collectTimeGridIssues([], archiveSnapshots),
+    ...modalInspection.issues
+  ];
   throwIfArtifactsUnavailable("archive snapshots", archiveIssues);
 
   const globalStats = {};
@@ -92,7 +100,7 @@ export async function renderArchiveFromFacts(env) {
     globalStats[snapshotTournament.slug] = snapshot.stats;
     timeGridBySlug[snapshotTournament.slug] = snapshot.timeGrid;
   }
-  const combined = renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments);
+  const combined = renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments, modalInspection.history);
 
   const hasActiveCron = await readHasActiveCron(env);
   return renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, hasActiveCron);

@@ -52,7 +52,7 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
   const lastStyle = teamStats.last ? `style="color:${lastMatchColor}"` : "";
   const streakEmpty = teamStats.winStreakCount === 0 && teamStats.lossStreakCount === 0;
   const streakClass = streakEmpty ? "col-streak is-empty-stat" : "col-streak";
-  return `<tr><td class="team-col team-clickable" onclick="openTeam(${slugArgument}, ${teamNameArgument})">${safeDisplayName}</td>` +
+  return `<tr><td class="team-col team-clickable" onclick="openTeam(${teamNameArgument})">${safeDisplayName}</td>` +
     `<td class="${getClass('col-bo3', teamStats.bestOf3TotalMatchCount)} metric-record${emptyClass(teamStats.bestOf3TotalMatchCount)}" ${getClickHandler('bo3', teamStats.bestOf3TotalMatchCount)}>${bo3Text}</td>` +
     `<td class="col-bo3-pct metric-rate rate-cell" data-bayes-tie="${bo3BayesTieBreakRate}" data-sample-size="${teamStats.bestOf3TotalMatchCount || 0}" ${percentStyle(bo3Rate, true)}>${pct(bo3Rate)}</td>` +
     `<td class="${getClass('col-bo5', teamStats.bestOf5TotalMatchCount)} metric-record${emptyClass(teamStats.bestOf5TotalMatchCount)}" ${getClickHandler('bo5', teamStats.bestOf5TotalMatchCount)}>${bo5Text}</td>` +

@@ -2,13 +2,13 @@ import baseCSS from "./base.js";
 
 export default `${baseCSS}
     .logs-cards-container { max-width: 1000px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .tournament-card { --card-x-pad: 16px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: var(--shadow-card); overflow: hidden; height: 300px; display: flex; flex-direction: column; }
+    .tournament-card { --card-x-pad: 16px; background: #fff; border-radius: var(--radius-card); border: 1px solid #e2e8f0; box-shadow: var(--shadow-card); overflow: hidden; height: 300px; display: flex; flex-direction: column; }
     .tournament-card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; }
     .tournament-card-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .tournament-card-name { font-weight: 600; font-size: 16px; color: #0f172a; }
-    .tournament-total-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; padding: 0 8px; border-radius: 999px; background: #e2e8f0; color: #334155; font-size: 12px; font-weight: 700; line-height: 1; }
+    .tournament-total-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; padding: 0 8px; border-radius: var(--radius-pill); background: #e2e8f0; color: #334155; font-size: 12px; font-weight: 700; line-height: 1; }
     .tournament-card-status { display: flex; align-items: center; gap: 6px; }
-    .phase-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: 4px; }
+    .phase-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: var(--radius-badge); }
     .phase-tag .schedule-phase-icon { width: 16px; height: 16px; flex-shrink: 0; }
     .phase-play { background: #dbeafe; color: #1d4ed8; }
     .phase-done { background: #dcfce7; color: #166534; }

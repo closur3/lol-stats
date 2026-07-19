@@ -5,13 +5,12 @@ export function renderScheduleRow(match, globalStats) {
   const bestOfLabel = `BO${match.bestOf}`;
   const bestOfClass = `best-of-pill bo${match.bestOf}`;
   const isTbd1 = match.team1Name === "TBD", isTbd2 = match.team2Name === "TBD";
-  const slugArgument = escapeJsArg(match.slug);
   const team1Argument = escapeJsArg(match.team1Name);
   const team2Argument = escapeJsArg(match.team2Name);
   const safeDisplay1 = escapeHtml(match.team1Name);
   const safeDisplay2 = escapeHtml(match.team2Name);
-  const team1ClickHandler = isTbd1 ? "" : `onclick="openTeam(${slugArgument}, ${team1Argument})"`;
-  const team2ClickHandler = isTbd2 ? "" : `onclick="openTeam(${slugArgument}, ${team2Argument})"`;
+  const team1ClickHandler = isTbd1 ? "" : `onclick="openTeam(${team1Argument})"`;
+  const team2ClickHandler = isTbd2 ? "" : `onclick="openTeam(${team2Argument})"`;
   const team1RateHint = renderRateBadge(match.team1Name, match.slug, match.bestOf, globalStats);
   const team2RateHint = renderRateBadge(match.team2Name, match.slug, match.bestOf, globalStats);
 

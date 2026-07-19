@@ -156,5 +156,6 @@ function renderListHTML(htmlArray) {
     } else {
       modalList.innerHTML = htmlArray.join("");
     }
+    modalList.scrollTop = 0;
 }
 `;

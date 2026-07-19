@@ -1,6 +1,16 @@
 import { readScheduleCarryover } from "../facts/scheduleCarryoverStore.js";
 import { readScheduleSessions } from "../facts/scheduleSessionsStore.js";
 
+export async function readScheduleSessionsMap(env, orderedTournaments) {
+  if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
+  const pairs = await Promise.all(orderedTournaments.map(async tournament => {
+    const slug = tournament?.slug;
+    if (!slug) throw new Error("Tournament slug missing");
+    return [slug, await readScheduleSessions(env, slug)];
+  }));
+  return new Map(pairs);
+}
+
 export async function readHomeScheduleFacts(env, orderedTournaments) {
   if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
   const pairs = await Promise.all(orderedTournaments.map(async tournament => {

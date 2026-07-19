@@ -14,7 +14,8 @@ export function renderScheduleSection(scheduleMap, globalStats) {
     let lastGroupKey = "";
 
     matches.forEach(match => {
-      const tabName = match.tabName || "";
+      if (typeof match.tabName !== "string") throw new Error(`Schedule tabName missing: ${match.slug}`);
+      const tabName = match.tabName;
       const groupKey = `${match.leagueShort}_${tabName}`;
       if (groupKey !== lastGroupKey) {
         const blockHtml = tabName ? `<span class="spine-sep">/</span><span class="spine-r sch-group-block">${escapeHtml(tabName)}</span>` : "";

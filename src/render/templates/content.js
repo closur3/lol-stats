@@ -14,18 +14,17 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, h2hMatches = null) {
+export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, modalHistory) {
   assertObject(globalStats, "globalStats");
   assertObject(timeGridBySlug, "timeGridBySlug");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
+  if (!Array.isArray(modalHistory)) throw new Error("modalHistory must be an array");
   if (!isArchive) {
     assertObject(scheduleSessionsBySlug, "scheduleSessionsBySlug");
-    if (!Array.isArray(h2hMatches)) throw new Error("h2hMatches must be an array");
   }
 
-  const h2hInjection = isArchive ? "" : `window.gH2HMatches = ${serializeForInlineScript(h2hMatches)};`;
-  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});${h2hInjection}</script>`;
+  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
     .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleSessionsBySlug, isArchive))
@@ -35,6 +34,6 @@ export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, 
   return `${tablesHtml} ${scheduleHtml} ${injectedData}`;
 }
 
-export function renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments) {
-  return renderContentFragment(globalStats, timeGridBySlug, {}, tournaments, true, null, null);
+export function renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments, modalHistory) {
+  return renderContentFragment(globalStats, timeGridBySlug, {}, tournaments, true, null, modalHistory);
 }
