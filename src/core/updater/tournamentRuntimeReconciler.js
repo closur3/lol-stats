@@ -1,4 +1,5 @@
 import { readTournamentConfig } from "../facts/tournamentConfigReader.js";
+import { assertTournamentConfigDigest } from "../facts/tournamentConfigDigest.js";
 import { buildTournamentApplyState } from "../facts/tournamentConfigFingerprint.js";
 import { writeTournamentApplyState } from "../facts/tournamentApplyState.js";
 import { rebuildSchedule } from "../scheduler/scheduleMaintenanceRunner.js";
@@ -17,19 +18,29 @@ function logTransition(transition) {
 
 async function assertConfigUnchanged(env, expectedDigest) {
   const currentConfig = await readTournamentConfig(env);
-  const currentApplyState = await buildTournamentApplyState(currentConfig);
-  if (currentApplyState.configDigest !== expectedDigest) {
+  if (currentConfig.configDigest !== expectedDigest) {
     throw new Error("TournamentConfig changed during runtime reconciliation");
   }
 }
 
-export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleOptions) {
+export class TournamentConfigVersionError extends Error {
+  constructor(expectedDigest, actualDigest, readError = null) {
+    const actualLabel = actualDigest ?? `unreadable (${readError})`;
+    super(`TournamentConfig version mismatch: expected ${expectedDigest}, received ${actualLabel}`);
+    this.name = "TournamentConfigVersionError";
+    this.expectedDigest = expectedDigest;
+    this.actualDigest = actualDigest;
+  }
+}
+
+function assertReconcileInputs(scheduledTimeMs, scheduleOptions) {
   if (!Number.isFinite(scheduledTimeMs)) throw new Error("scheduledTimeMs must be finite");
   if (!scheduleOptions || typeof scheduleOptions !== "object" || Array.isArray(scheduleOptions)) {
     throw new Error("scheduleOptions must be an object");
   }
+}
 
-  const config = await readTournamentConfig(env);
+async function reconcileConfig(env, config, scheduledTimeMs, scheduleOptions) {
   const desiredApplyState = await buildTournamentApplyState(config);
   const baseline = await resolveTournamentApplyBaseline(env, config, desiredApplyState);
   if (baseline.applyState.configDigest === desiredApplyState.configDigest) {
@@ -58,4 +69,25 @@ export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleO
   await assertConfigUnchanged(env, desiredApplyState.configDigest);
   await writeTournamentApplyState(env, desiredApplyState);
   return { config, transition, configChanged: true };
+}
+
+export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleOptions) {
+  assertReconcileInputs(scheduledTimeMs, scheduleOptions);
+  const config = await readTournamentConfig(env);
+  return reconcileConfig(env, config, scheduledTimeMs, scheduleOptions);
+}
+
+export async function reconcileTournamentRuntimeForConfig(env, scheduledTimeMs, scheduleOptions, expectedDigest) {
+  assertReconcileInputs(scheduledTimeMs, scheduleOptions);
+  const normalizedExpectedDigest = assertTournamentConfigDigest(expectedDigest, "expectedConfigDigest");
+  let config;
+  try {
+    config = await readTournamentConfig(env);
+  } catch (error) {
+    throw new TournamentConfigVersionError(normalizedExpectedDigest, null, error.message);
+  }
+  if (config.configDigest !== normalizedExpectedDigest) {
+    throw new TournamentConfigVersionError(normalizedExpectedDigest, config.configDigest);
+  }
+  return reconcileConfig(env, config, scheduledTimeMs, scheduleOptions);
 }

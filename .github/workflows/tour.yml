@@ -6,16 +6,18 @@ on:
     - cron: '0 16 * * *'
 
 permissions:
-  actions: write
   contents: write
+
+concurrency:
+  group: tournament-config-sync
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    concurrency:
-      group: repository-write-${{ github.ref }}
-      cancel-in-progress: false
-      queue: max
+    outputs:
+      configSha: ${{ steps.config_commit.outputs.sha }}
 
     steps:
       - name: Checkout repo
@@ -27,6 +29,11 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
 
       - name: Install dependencies
         run: pip install requests
@@ -40,6 +47,9 @@ jobs:
           FANDOM_BOT_PASSWORD: ${{ secrets.FANDOM_BOT_PASSWORD }}
         run: python .github/scripts/syncTours.py
 
+      - name: Validate TournamentConfig
+        run: node .github/scripts/validateTournamentConfig.js config/TournamentConfig.json
+
       - name: Commit and Push Config
         id: auto_commit
         uses: stefanzweifel/git-auto-commit-action@v7
@@ -47,31 +57,16 @@ jobs:
           commit_message: "${{ steps.process_data.outputs.commit_msg }}"
           file_pattern: 'config/TournamentConfig.json'
 
-      - name: Apply Config
-        if: steps.auto_commit.outputs.changes_detected == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Capture Config Commit
+        id: config_commit
         shell: bash
-        run: |
-          set -euo pipefail
-          config_sha="$(git rev-parse HEAD)"
-          gh workflow run kv.yml \
-            --ref "${GITHUB_REF_NAME}" \
-            -f clear=false \
-            -f reconcile=true
+        run: echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
 
-          run_id=""
-          for _ in $(seq 1 30); do
-            run_id="$(gh run list \
-              --workflow kv.yml \
-              --branch "${GITHUB_REF_NAME}" \
-              --event workflow_dispatch \
-              --commit "${config_sha}" \
-              --limit 1 \
-              --json databaseId \
-              --jq '.[0].databaseId // empty')"
-            [[ -n "${run_id}" ]] && break
-            sleep 2
-          done
-          [[ -n "${run_id}" ]] || { echo "Unable to locate dispatched kv.yml run."; exit 1; }
-          gh run watch "${run_id}" --exit-status
+  apply:
+    needs: sync
+    uses: ./.github/workflows/kv.yml
+    with:
+      clear: false
+      reconcile: true
+      configRef: ${{ needs.sync.outputs.configSha }}
+    secrets: inherit

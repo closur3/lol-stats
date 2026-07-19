@@ -1,6 +1,17 @@
 name: "Config: Persist KV"
 
 on:
+  workflow_call:
+    inputs:
+      clear:
+        required: true
+        type: boolean
+      reconcile:
+        required: true
+        type: boolean
+      configRef:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       clear:
@@ -18,12 +29,22 @@ jobs:
   persist:
     runs-on: ubuntu-latest
     concurrency:
-      group: worker-runtime-${{ github.ref }}
+      group: worker-runtime
       cancel-in-progress: false
       queue: max
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.configRef || github.event.repository.default_branch }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Validate TournamentConfig
+        run: node .github/scripts/validateTournamentConfig.js config/TournamentConfig.json
 
       - name: Validate runtime reconcile config
         if: inputs.clear == true || inputs.reconcile == true
@@ -82,23 +103,86 @@ jobs:
             done
           }
 
-          put_config() {
+          write_config() {
             local key="$1"
             local file="$2"
             [[ -s "${file}" ]] || { echo "Missing config file: ${file}"; exit 1; }
-            curl -fsSL -X PUT \
-              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${key}" \
-              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-              -H "Content-Type: application/json" \
-              --data-binary @"${file}" > /dev/null
+            local write_response
+            write_response="$(
+              curl -fsSL -X PUT \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${key}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                --data-binary @"${file}"
+            )"
+            [[ "$(echo "${write_response}" | jq -r '.success')" == "true" ]] || { echo "${write_response}" | jq -c '.errors'; exit 1; }
             echo "${key} updated in Cloudflare KV."
+          }
+
+          document_digest() {
+            local file="$1"
+            jq -cS . "${file}" | sha256sum | awk '{print $1}'
+          }
+
+          sync_config() {
+            local key="$1"
+            local file="$2"
+            [[ -s "${file}" ]] || { echo "Missing config file: ${file}"; exit 1; }
+
+            local desired_digest
+            desired_digest="$(document_digest "${file}")"
+
+            local current_file
+            current_file="$(mktemp)"
+            local read_status
+            if ! read_status="$(
+              curl -sSL --show-error \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${key}" \
+                -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+                -o "${current_file}" \
+                -w '%{http_code}'
+            )"; then
+              rm -f "${current_file}"
+              return 1
+            fi
+
+            case "${read_status}" in
+              200)
+                local current_digest
+                if ! current_digest="$(document_digest "${current_file}")"; then
+                  echo "${key} contains invalid JSON and will be replaced."
+                  rm -f "${current_file}"
+                  write_config "${key}" "${file}"
+                  return
+                fi
+                if [[ "${desired_digest}" == "${current_digest}" ]]; then
+                  rm -f "${current_file}"
+                  echo "${key} already matches repository config."
+                  return
+                fi
+                ;;
+              404)
+                echo "${key} is missing from Cloudflare KV."
+                ;;
+              *)
+                cat "${current_file}"
+                printf '\n'
+                rm -f "${current_file}"
+                echo "Unable to read ${key} from Cloudflare KV: HTTP ${read_status}."
+                return 1
+                ;;
+            esac
+
+            rm -f "${current_file}"
+            write_config "${key}" "${file}"
           }
 
           if [[ "${{ inputs.clear }}" == "true" ]]; then
             clear_all_keys
+            write_config "TournamentConfig" "config/TournamentConfig.json"
+          else
+            sync_config "TournamentConfig" "config/TournamentConfig.json"
           fi
-
-          put_config "TournamentConfig" "config/TournamentConfig.json"
 
       - name: Reconcile Worker runtime
         if: inputs.clear == true || inputs.reconcile == true
@@ -110,6 +194,10 @@ jobs:
           [[ -n "${ADMIN_SECRET}" ]] || { echo "Missing ADMIN_SECRET."; exit 1; }
           [[ -n "${WORKER_URL}" ]] || { echo "Missing WORKER_URL variable."; exit 1; }
 
+          EXPECTED_CONFIG_DIGEST="$(
+            jq -er '.configDigest | select(type == "string" and test("^[a-f0-9]{64}$"))' config/TournamentConfig.json
+          )"
+
           print_worker_body() {
             local body_file="$1"
             if [[ -s "${body_file}" ]]; then
@@ -118,24 +206,55 @@ jobs:
             fi
           }
 
-          post_worker() {
+          reconcile_worker() {
             local url="$1"
-            shift
-            local body_file
-            body_file="$(mktemp)"
-            local status
-            if ! status="$(curl -sSL --show-error -X POST "${url}" \
-              -H "Authorization: Bearer ${ADMIN_SECRET}" \
-              "$@" \
-              -o "${body_file}" \
-              -w '%{http_code}')"; then
+            local max_attempts=5
+            for attempt in $(seq 1 "${max_attempts}"); do
+              local body_file
+              body_file="$(mktemp)"
+              local status
+              if ! status="$(curl -sSL --show-error -X POST "${url}" \
+                -H "Authorization: Bearer ${ADMIN_SECRET}" \
+                -H "X-Tournament-Config-Digest: ${EXPECTED_CONFIG_DIGEST}" \
+                -o "${body_file}" \
+                -w '%{http_code}')"; then
+                print_worker_body "${body_file}"
+                rm -f "${body_file}"
+                if [[ "${attempt}" -eq "${max_attempts}" ]]; then
+                  echo "Worker request failed after ${max_attempts} attempts."
+                  return 1
+                fi
+                sleep 15
+                continue
+              fi
+
               print_worker_body "${body_file}"
+              if [[ "${status}" == "200" ]]; then
+                local actual_digest
+                if ! actual_digest="$(jq -er '.configDigest' "${body_file}")"; then
+                  rm -f "${body_file}"
+                  echo "Worker response missing configDigest."
+                  return 1
+                fi
+                rm -f "${body_file}"
+                [[ "${actual_digest}" == "${EXPECTED_CONFIG_DIGEST}" ]] || {
+                  echo "Worker reconciled unexpected TournamentConfig: ${actual_digest}."
+                  return 1
+                }
+                return
+              fi
+
               rm -f "${body_file}"
-              return 1
-            fi
-            print_worker_body "${body_file}"
-            rm -f "${body_file}"
-            [[ "${status}" == "200" ]] || { echo "Worker returned HTTP ${status}."; return 1; }
+              if [[ "${status}" != "409" ]]; then
+                echo "Worker returned HTTP ${status}."
+                return 1
+              fi
+              if [[ "${attempt}" -eq "${max_attempts}" ]]; then
+                echo "TournamentConfig did not reach Worker after ${max_attempts} attempts."
+                return 1
+              fi
+              sleep 15
+            done
           }
 
-          post_worker "${WORKER_URL}/reconcile-tournaments"
+          reconcile_worker "${WORKER_URL}/reconcile-tournaments"

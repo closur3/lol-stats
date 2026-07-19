@@ -1,7 +1,8 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { assertTeamMap } from "../../utils/data/teamMaps.js";
+import { assertTournamentConfigDigest, calculateTournamentConfigDigest } from "./tournamentConfigDigest.js";
 
-const TournamentConfigFields = ["active", "archive"];
+const TournamentConfigFields = ["configDigest", "active", "archive"];
 const TournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate", "teamMap"];
 const DatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -68,7 +69,7 @@ function assertConfigFields(storedConfig) {
   }
   const fields = Object.keys(storedConfig);
   if (fields.length !== TournamentConfigFields.length || TournamentConfigFields.some(field => !Object.hasOwn(storedConfig, field))) {
-    throw new Error("TournamentConfig fields must be active and archive");
+    throw new Error("TournamentConfig fields must be configDigest, active and archive");
   }
 }
 
@@ -78,9 +79,9 @@ function assertDisjoint(active, archive) {
   if (overlap.length > 0) throw new Error(`TournamentConfig active/archive overlap: ${overlap.join(",")}`);
 }
 
-function assertOverviewPageOwnership(config) {
+function assertOverviewPageOwnership(active, archive) {
   const owners = new Map();
-  for (const [group, tournaments] of Object.entries(config)) {
+  for (const [group, tournaments] of [["active", active], ["archive", archive]]) {
     for (const tournament of tournaments) {
       for (const page of tournament.overviewPage) {
         const owner = `${group}:${tournament.slug}`;
@@ -100,10 +101,15 @@ export async function readTournamentConfig(env) {
   assertConfigFields(storedConfig);
 
   const config = {
+    configDigest: assertTournamentConfigDigest(storedConfig.configDigest),
     active: normalizeTournamentList("TournamentConfig.active", storedConfig.active),
     archive: normalizeTournamentList("TournamentConfig.archive", storedConfig.archive)
   };
   assertDisjoint(config.active, config.archive);
-  assertOverviewPageOwnership(config);
+  assertOverviewPageOwnership(config.active, config.archive);
+  const calculatedDigest = await calculateTournamentConfigDigest(config);
+  if (calculatedDigest !== config.configDigest) {
+    throw new Error("TournamentConfig.configDigest does not match config content");
+  }
   return config;
 }

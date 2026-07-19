@@ -10,14 +10,15 @@ import requests
 
 from tournamentConfig import (
     TOURNAMENT_FIELDS,
+    assert_config_digest,
     assert_active_source_complete,
     assert_configs_disjoint,
     assign_stable_slugs,
+    build_tournament_config,
     build_membership_transition,
     build_transition_manifest,
     classify_tournament_eligibility,
     deduplicate_source_rows,
-    order_tournament_fields,
     parse_date,
 )
 
@@ -93,12 +94,14 @@ def validate_tournament_list(value, label: str) -> list:
 def load_tournament_config(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as file:
         value = json.load(file)
-    if not isinstance(value, dict) or set(value) != {"active", "archive"}:
-        raise ValueError(f"{path} fields must be active and archive")
-    config = {
-        "active": validate_tournament_list(value["active"], f"{path}.active"),
-        "archive": validate_tournament_list(value["archive"], f"{path}.archive"),
-    }
+    if not isinstance(value, dict) or set(value) != {"configDigest", "active", "archive"}:
+        raise ValueError(f"{path} fields must be configDigest, active and archive")
+    stored_digest = assert_config_digest(value["configDigest"], f"{path}.configDigest")
+    active = validate_tournament_list(value["active"], f"{path}.active")
+    archive = validate_tournament_list(value["archive"], f"{path}.archive")
+    config = build_tournament_config(active, archive)
+    if config["configDigest"] != stored_digest:
+        raise ValueError(f"{path}.configDigest does not match config content")
     assert_configs_disjoint(config["active"], config["archive"])
     return config
 
@@ -677,10 +680,9 @@ def build_manifest(old_active: list, transition: dict) -> dict:
 
 
 def write_config(active: list, archive: list) -> None:
-    ordered_active = [order_tournament_fields(tournament) for tournament in active]
-    ordered_archive = [order_tournament_fields(tournament) for tournament in archive]
+    config = build_tournament_config(active, archive)
     with open(CONFIG_FILE, "w", encoding="utf-8") as file:
-        json.dump({"active": ordered_active, "archive": ordered_archive}, file, indent=4, ensure_ascii=False)
+        json.dump(config, file, indent=4, ensure_ascii=False)
         file.write("\n")
 
 

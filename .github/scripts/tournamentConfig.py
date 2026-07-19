@@ -1,3 +1,5 @@
+import hashlib
+import json
 import re
 from datetime import datetime, timedelta
 
@@ -11,6 +13,7 @@ TOURNAMENT_FIELDS = (
     "endDate",
     "teamMap",
 )
+CONFIG_DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 
 
 def parse_date(value: str):
@@ -23,6 +26,24 @@ def order_tournament_fields(tournament: dict) -> dict:
     ordered = {field: tournament[field] for field in TOURNAMENT_FIELDS}
     ordered["teamMap"] = dict(sorted(ordered["teamMap"].items()))
     return ordered
+
+
+def assert_config_digest(value, label: str) -> str:
+    if not isinstance(value, str) or not CONFIG_DIGEST_PATTERN.fullmatch(value):
+        raise ValueError(f"{label} must be a SHA-256 digest")
+    return value
+
+
+def build_tournament_config(active: list, archive: list) -> dict:
+    payload = {
+        "active": [order_tournament_fields(tournament) for tournament in active],
+        "archive": [order_tournament_fields(tournament) for tournament in archive],
+    }
+    serialized = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return {
+        "configDigest": hashlib.sha256(serialized).hexdigest(),
+        **payload,
+    }
 
 
 def slugify_name(name: str) -> str:
