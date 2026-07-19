@@ -1,5 +1,5 @@
 {
-    "configDigest": "cf0854cdc00caa8935145e2d5d6ff7e7aed7de76c17804a73151677aaaa3261c",
+    "configDigest": "a4da9ff1486049fcd29f4933bbaab72f79c4eafcde2a1349c615c1f46417edf3",
     "active": [
         {
             "slug": "lpl-2026-split-3",
@@ -48,6 +48,31 @@
             }
         },
         {
+            "slug": "lck-2026-rounds-1-4",
+            "name": "LCK 2026 Rounds 1-4",
+            "leagueShort": "LCK",
+            "overviewPage": [
+                "LCK/2026 Season/Rounds 1-2",
+                "LCK/2026 Season/Rounds 3-4"
+            ],
+            "startDate": "2026-04-01",
+            "endDate": "2026-08-23",
+            "teamMap": {
+                "BNK FEARX": "BFX",
+                "DN SOOPers": "DNS",
+                "Dplus Kia": "DK",
+                "Gen.G": "GEN",
+                "HANJIN BRION": "BRO",
+                "Hanwha Life Esports": "HLE",
+                "KT Rolster": "KT",
+                "Kiwoom DRX": "KRX",
+                "Nongshim RedForce": "NS",
+                "T1": "T1"
+            }
+        }
+    ],
+    "archive": [
+        {
             "slug": "esports-world-cup-2026",
             "name": "Esports World Cup 2026",
             "leagueShort": "EWC",
@@ -75,31 +100,6 @@
                 "Team Secret (Vietnamese Team)": "TS"
             }
         },
-        {
-            "slug": "lck-2026-rounds-1-4",
-            "name": "LCK 2026 Rounds 1-4",
-            "leagueShort": "LCK",
-            "overviewPage": [
-                "LCK/2026 Season/Rounds 1-2",
-                "LCK/2026 Season/Rounds 3-4"
-            ],
-            "startDate": "2026-04-01",
-            "endDate": "2026-08-23",
-            "teamMap": {
-                "BNK FEARX": "BFX",
-                "DN SOOPers": "DNS",
-                "Dplus Kia": "DK",
-                "Gen.G": "GEN",
-                "HANJIN BRION": "BRO",
-                "Hanwha Life Esports": "HLE",
-                "KT Rolster": "KT",
-                "Kiwoom DRX": "KRX",
-                "Nongshim RedForce": "NS",
-                "T1": "T1"
-            }
-        }
-    ],
-    "archive": [
         {
             "slug": "msi-2026",
             "name": "MSI 2026",
