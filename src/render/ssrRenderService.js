@@ -40,11 +40,11 @@ export async function renderHomeFromFacts(env) {
   ]);
 
   const orderedTournaments = activeHomes.map(activeHome => activeHome.tournament);
-  const { scheduleSessionsMap, carryoverMap } = await readHomeScheduleFacts(env, orderedTournaments);
+  const { scheduleSessionsMap, scheduleState } = await readHomeScheduleFacts(env, orderedTournaments);
   const renderInput = buildHomeRenderInput(activeHomes, orderedTournaments);
   const scheduleMap = selectHomeSchedule(
     scheduleSessionsMap,
-    carryoverMap,
+    scheduleState,
     orderedTournaments,
     new Date(),
     updateConfig.maxScheduleDays

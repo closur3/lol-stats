@@ -1,12 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { buildCronsFromScheduleState } from "../scheduler/cronBuckets.js";
-import { runScheduleApply } from "../scheduler/scheduleApplyRunner.js";
-import {
-  areCronsApplied,
-  readScheduleState,
-  recordAppliedCrons,
-  writeScheduleState
-} from "../scheduler/scheduleState.js";
+import { deleteScheduleControl } from "../scheduler/scheduleControlDeletion.js";
 
 function normalizeSlug(slug) {
   if (typeof slug !== "string" || !slug.trim()) {
@@ -23,27 +16,8 @@ export async function deleteActiveRuntimeFacts(env, slug) {
     kv.delete(kvKeys.log(cleanSlug)),
     kv.delete(kvKeys.rev(cleanSlug)),
     kv.delete(kvKeys.rawMatches(cleanSlug)),
-    kv.delete(kvKeys.scheduleCarryover(cleanSlug)),
     kv.delete(kvKeys.scheduleSessions(cleanSlug))
   ]);
-}
-
-async function deleteActiveRuntimeScheduleState(env, slug, scheduleOptions) {
-  const state = await readScheduleState(env);
-  if (!state) return;
-  const controlChanged = Object.prototype.hasOwnProperty.call(state.controlsBySlug, slug);
-  if (controlChanged) delete state.controlsBySlug[slug];
-
-  const schedules = buildCronsFromScheduleState(state);
-  let appliedChanged = false;
-  if (!areCronsApplied(state, schedules)) {
-    const applyResult = await runScheduleApply(env, schedules, "DELETE_ACTIVE", scheduleOptions);
-    if (applyResult === "applied") {
-      recordAppliedCrons(state, schedules);
-      appliedChanged = true;
-    }
-  }
-  if (controlChanged || appliedChanged) await writeScheduleState(env, state);
 }
 
 export async function deleteActiveRuntimeState(env, slug, scheduleOptions) {
@@ -52,7 +26,7 @@ export async function deleteActiveRuntimeState(env, slug, scheduleOptions) {
     throw new Error("scheduleOptions must be a JSON object");
   }
   await deleteActiveRuntimeFacts(env, cleanSlug);
-  await deleteActiveRuntimeScheduleState(env, cleanSlug, scheduleOptions);
+  await deleteScheduleControl(env, cleanSlug, scheduleOptions);
 
   return { deletedSlug: cleanSlug };
 }

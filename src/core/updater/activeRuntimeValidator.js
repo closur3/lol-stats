@@ -1,7 +1,6 @@
 import { readRawMatches } from "../facts/rawMatchesStore.js";
-import { readScheduleCarryover } from "../facts/scheduleCarryoverStore.js";
 import { readScheduleSessions } from "../facts/scheduleSessionsStore.js";
-import { assertScheduleCarryoverReferences } from "../analysis/scheduleCarryover.js";
+import { readScheduleState } from "../scheduler/scheduleState.js";
 import { readActiveHomes } from "./activeHomeReader.js";
 
 const SnapshotTournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate"];
@@ -20,27 +19,39 @@ function assertSnapshotTournament(expected, snapshot) {
 }
 
 async function assertActiveFactsAvailable(env, slugs) {
-  const now = new Date();
-  await Promise.all(slugs.map(async slug => {
-    const [, scheduleSessions, carryover] = await Promise.all([
+  const pairs = await Promise.all(slugs.map(async slug => {
+    const [, scheduleSessions] = await Promise.all([
       readRawMatches(env, slug),
-      readScheduleSessions(env, slug),
-      readScheduleCarryover(env, slug)
+      readScheduleSessions(env, slug)
     ]);
-    assertScheduleCarryoverReferences(
-      { entries: carryover.entries },
-      { sessions: scheduleSessions.sessions },
-      now
-    );
+    return [slug, scheduleSessions];
   }));
+  return new Map(pairs);
+}
+
+function assertScheduleStateScope(state, slugs, sessionsBySlug) {
+  if (state === null) throw new Error("ScheduleState missing");
+  const expectedSlugs = new Set(slugs);
+  const actualSlugs = Object.keys(state.controlsBySlug);
+  if (actualSlugs.length !== expectedSlugs.size || actualSlugs.some(slug => !expectedSlugs.has(slug))) {
+    throw new Error("ScheduleState controls do not match TournamentConfig.active");
+  }
+  for (const slug of slugs) {
+    const sessionKeys = new Set(sessionsBySlug.get(slug).sessions.map(session => session.sessionKey));
+    for (const sessionKey of state.controlsBySlug[slug].trackedSessionKeys) {
+      if (!sessionKeys.has(sessionKey)) throw new Error(`ScheduleState tracked session missing: ${slug}:${sessionKey}`);
+    }
+  }
 }
 
 export async function assertActiveRuntimeMatchesConfig(env, activeTournaments) {
   const activeSlugs = activeTournaments.map(tournament => tournament.slug);
-  const [activeHomes] = await Promise.all([
+  const [activeHomes, sessionsBySlug, scheduleState] = await Promise.all([
     readActiveHomes(env, activeSlugs),
-    assertActiveFactsAvailable(env, activeSlugs)
+    assertActiveFactsAvailable(env, activeSlugs),
+    readScheduleState(env)
   ]);
+  assertScheduleStateScope(scheduleState, activeSlugs, sessionsBySlug);
 
   activeTournaments.forEach((tournament, index) => {
     assertSnapshotTournament(tournament, activeHomes[index]);

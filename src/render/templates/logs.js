@@ -1,6 +1,6 @@
 import logsCSS from '../../styles/logs.js';
 import { renderPageShell } from './page.js';
-import { resolveSchedulePhase } from '../../core/scheduler/schedulePlanBuilder.js';
+import { resolveSchedulePhase } from '../../core/scheduler/scheduleDay.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 import { padLogCount } from '../../core/updater/logWriter.js';
 import { getSchedulePhaseLabel, renderSchedulePhaseIcon } from '../components/schedulePhaseIcon.js';

@@ -2,7 +2,12 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 import { parseScheduleSessionKey } from "../scheduleIdentity.js";
 
-const phases = new Set(["offday", "idle", "play", "done"]);
+export class ScheduleStateSchemaError extends Error {
+  constructor(cause) {
+    super(`ScheduleState schema invalid: ${cause.message}`, { cause });
+    this.name = "ScheduleStateSchemaError";
+  }
+}
 
 function assertExactFields(value, fields, label) {
   const actual = Object.keys(value);
@@ -23,15 +28,16 @@ function assertCronWindow(slug, window) {
   }
 }
 
-function assertTargetSession(slug, target) {
-  if (target === null) return;
-  if (!target || typeof target !== "object" || Array.isArray(target)) {
-    throw new Error(`ScheduleState.controlsBySlug.${slug}.targetSession must be a JSON object or null`);
+function assertTrackedSessionKeys(slug, sessionKeys) {
+  if (!Array.isArray(sessionKeys)) {
+    throw new Error(`ScheduleState.controlsBySlug.${slug}.trackedSessionKeys must be an array`);
   }
-  assertExactFields(target, ["sessionKey", "startTimestamp"], `ScheduleState.controlsBySlug.${slug}.targetSession`);
-  parseScheduleSessionKey(target.sessionKey, `ScheduleState ${slug} target sessionKey`);
-  if (!Number.isInteger(target.startTimestamp) || target.startTimestamp < 1) {
-    throw new Error(`ScheduleState ${slug} target startTimestamp invalid`);
+  const keys = new Set();
+  for (const [index, sessionKey] of sessionKeys.entries()) {
+    const label = `ScheduleState.controlsBySlug.${slug}.trackedSessionKeys[${index}]`;
+    parseScheduleSessionKey(sessionKey, label);
+    if (keys.has(sessionKey)) throw new Error(`${label} is duplicated`);
+    keys.add(sessionKey);
   }
 }
 
@@ -39,19 +45,9 @@ export function assertScheduleControl(slug, control) {
   if (!control || typeof control !== "object" || Array.isArray(control)) {
     throw new Error(`ScheduleState.controlsBySlug.${slug} must be a JSON object`);
   }
-  assertExactFields(control, ["phase", "targetSession", "cronWindow"], `ScheduleState.controlsBySlug.${slug}`);
-  if (!phases.has(control.phase)) throw new Error(`Invalid scheduler phase for ${slug}: ${control.phase}`);
-  assertTargetSession(slug, control.targetSession);
+  assertExactFields(control, ["cronWindow", "trackedSessionKeys"], `ScheduleState.controlsBySlug.${slug}`);
   assertCronWindow(slug, control.cronWindow);
-  if ((control.phase === "idle" || control.phase === "play") && control.cronWindow === null) {
-    throw new Error(`ScheduleState ${slug} ${control.phase} phase requires cronWindow`);
-  }
-  if ((control.phase === "idle" || control.phase === "play") && control.targetSession === null) {
-    throw new Error(`ScheduleState ${slug} ${control.phase} phase requires targetSession`);
-  }
-  if ((control.phase === "done" || control.phase === "offday") && control.cronWindow !== null) {
-    throw new Error(`ScheduleState ${slug} ${control.phase} phase cannot have cronWindow`);
-  }
+  assertTrackedSessionKeys(slug, control.trackedSessionKeys);
   return control;
 }
 
@@ -73,7 +69,11 @@ function normalizeScheduleState(state) {
 export async function readScheduleState(env) {
   const state = await env["lol-stats-kv"].get(kvKeys.scheduleState(), { type: "json" });
   if (state == null) return null;
-  return normalizeScheduleState(state);
+  try {
+    return normalizeScheduleState(state);
+  } catch (error) {
+    throw new ScheduleStateSchemaError(error);
+  }
 }
 
 export async function writeScheduleState(env, state) {

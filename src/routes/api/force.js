@@ -34,14 +34,13 @@ export async function handleForceUpdate(request, env) {
     }
     if (!Array.isArray(tournaments)) return new Response("Invalid tournaments config", { status: 500 });
 
-    const now = Date.now();
     const forcedTournaments = tournaments.filter(tournament => forceSlugs.has(tournament.slug));
     if (forcedTournaments.length !== forceSlugs.size) return new Response("Unknown slug in slugs[]", { status: 400 });
     await rebuildActiveTournaments(env, tournaments, new Map(Array.from(forceSlugs, slug => [slug, "force"])));
 
     const scheduleWarnings = [];
     const scheduleOptions = resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings });
-    await rebuildSchedule(env, tournaments, now, scheduleOptions);
+    await rebuildSchedule(env, tournaments, Date.now(), scheduleOptions);
     if (scheduleWarnings.length > 0) {
       return new Response(`PARTIAL scheduleWarnings=${scheduleWarnings.join(" | ")}`, { status: 207 });
     }

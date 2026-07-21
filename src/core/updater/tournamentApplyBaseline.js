@@ -7,7 +7,6 @@ const ActiveRuntimePrefixes = [
   kvKeys.ActiveLogPrefix,
   kvKeys.FandomRevisionPrefix,
   kvKeys.RawMatchesPrefix,
-  kvKeys.ScheduleCarryoverPrefix,
   kvKeys.ScheduleSessionsPrefix
 ];
 

@@ -1,5 +1,5 @@
-import { readScheduleCarryover } from "../facts/scheduleCarryoverStore.js";
 import { readScheduleSessions } from "../facts/scheduleSessionsStore.js";
+import { readScheduleState } from "../scheduler/scheduleState.js";
 
 export async function readScheduleSessionsMap(env, orderedTournaments) {
   if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
@@ -13,18 +13,18 @@ export async function readScheduleSessionsMap(env, orderedTournaments) {
 
 export async function readHomeScheduleFacts(env, orderedTournaments) {
   if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
-  const pairs = await Promise.all(orderedTournaments.map(async tournament => {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    const [scheduleSessions, carryover] = await Promise.all([
-      readScheduleSessions(env, slug),
-      readScheduleCarryover(env, slug)
-    ]);
-    return [slug, scheduleSessions, carryover];
-  }));
+  const [pairs, scheduleState] = await Promise.all([
+    Promise.all(orderedTournaments.map(async tournament => {
+      const slug = tournament?.slug;
+      if (!slug) throw new Error("Tournament slug missing");
+      return [slug, await readScheduleSessions(env, slug)];
+    })),
+    readScheduleState(env)
+  ]);
+  if (scheduleState === null) throw new Error("ScheduleState missing");
   return {
-    scheduleSessionsMap: new Map(pairs.map(([slug, scheduleSessions]) => [slug, scheduleSessions])),
-    carryoverMap: new Map(pairs.map(([slug, , carryover]) => [slug, carryover]))
+    scheduleSessionsMap: new Map(pairs),
+    scheduleState
   };
 }
 

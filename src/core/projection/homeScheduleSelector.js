@@ -1,8 +1,7 @@
 import { timePolicy } from "../../utils/timePolicy.js";
-import { assertScheduleCarryoverReferences } from "../analysis/scheduleCarryover.js";
-import { assertScheduleCarryoverFields } from "../facts/scheduleCarryoverStore.js";
 import { assertScheduleSessionsFields } from "../facts/scheduleSessionsStore.js";
 import { parseScheduleSessionKey } from "../scheduleIdentity.js";
+import { assertScheduleControl } from "../scheduler/scheduleState.js";
 
 function requireObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -67,17 +66,7 @@ function readStoreValue(map, slug, field, artifactName, assertArtifactFields) {
   return assertArtifactFields(label, { [field]: stored[field] });
 }
 
-function collectActiveCarryoverKeys(entries, nowTimestamp) {
-  const keys = new Set();
-  for (const entry of entries) {
-    if (entry.observedAt <= nowTimestamp && nowTimestamp < entry.expiresAt) {
-      keys.add(entry.sessionKey);
-    }
-  }
-  return keys;
-}
-
-function readSessionMatches(session, today) {
+function readSessionMatches(session) {
   const matches = session.matches.map(match => {
     const dateTime = timePolicy.getCurrentAppDateTime(match.scheduledAt);
     return {
@@ -87,9 +76,7 @@ function readSessionMatches(session, today) {
       timestamp: dateTime.timestamp
     };
   });
-  const dates = new Set(matches.map(match => match.date));
-  const naturallyCrossesToday = dates.has(today) && Array.from(dates).some(date => date < today);
-  return { matches, naturallyCrossesToday };
+  return matches;
 }
 
 function buildScheduleRow(match, tournament, tabName) {
@@ -113,15 +100,17 @@ function buildScheduleRow(match, tournament, tabName) {
   };
 }
 
-function appendSelectedSessions(rowsByDate, artifact, carryover, tournament, today, nowTimestamp) {
-  assertScheduleCarryoverReferences(carryover, artifact, new Date(nowTimestamp));
-  const activeCarryoverKeys = collectActiveCarryoverKeys(carryover.entries, nowTimestamp);
+function appendSelectedSessions(rowsByDate, artifact, control, tournament, today) {
+  const sessionsByKey = new Map(artifact.sessions.map(session => [session.sessionKey, session]));
+  const trackedKeys = new Set(control.trackedSessionKeys);
+  for (const sessionKey of trackedKeys) {
+    if (!sessionsByKey.has(sessionKey)) throw new Error(`ScheduleState tracked session missing: ${tournament.slug}:${sessionKey}`);
+  }
   for (const session of artifact.sessions) {
     const { tab } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${tournament.slug}.${session.sessionKey}`);
-    const { matches, naturallyCrossesToday } = readSessionMatches(session, today);
-    const retainPastMatches = naturallyCrossesToday || activeCarryoverKeys.has(session.sessionKey);
+    const matches = readSessionMatches(session);
     for (const match of matches) {
-      if (match.date < today && !retainPastMatches) continue;
+      if (match.date < today && !trackedKeys.has(session.sessionKey)) continue;
       if (!rowsByDate.has(match.date)) rowsByDate.set(match.date, []);
       rowsByDate.get(match.date).push(buildScheduleRow(match, tournament, tab));
     }
@@ -142,14 +131,21 @@ function buildScheduleMap(rowsByDate, maxDays) {
   return scheduleMap;
 }
 
-export function selectHomeSchedule(scheduleSessionsMap, carryoverMap, tournaments, now, maxDays) {
+export function selectHomeSchedule(scheduleSessionsMap, scheduleState, tournaments, now, maxDays) {
   if (!Number.isInteger(maxDays) || maxDays < 1) throw new Error("maxDays must be a positive integer");
   const nowTimestamp = readNowTimestamp(now);
   const today = timePolicy.getAppDateKey(nowTimestamp);
   const orderedTournaments = readTournaments(tournaments);
   const tournamentSlugs = new Set(orderedTournaments.map(tournament => tournament.slug));
   assertMapScope(scheduleSessionsMap, "scheduleSessionsMap", tournamentSlugs);
-  assertMapScope(carryoverMap, "carryoverMap", tournamentSlugs);
+  requireObject(scheduleState, "ScheduleState");
+  if (scheduleState.date !== today) throw new Error(`ScheduleState date mismatch: ${scheduleState.date} != ${today}`);
+  requireObject(scheduleState.controlsBySlug, "ScheduleState.controlsBySlug");
+  const controlSlugs = new Set(Object.keys(scheduleState.controlsBySlug));
+  if (controlSlugs.size !== tournamentSlugs.size) throw new Error("ScheduleState scope does not match tournaments");
+  for (const slug of tournamentSlugs) {
+    if (!controlSlugs.has(slug)) throw new Error(`ScheduleState control missing: ${slug}`);
+  }
 
   const rowsByDate = new Map();
   for (const tournament of orderedTournaments) {
@@ -160,14 +156,8 @@ export function selectHomeSchedule(scheduleSessionsMap, carryoverMap, tournament
       "ScheduleSessions",
       assertScheduleSessionsFields
     );
-    const scheduleCarryover = readStoreValue(
-      carryoverMap,
-      tournament.slug,
-      "entries",
-      "ScheduleCarryover",
-      assertScheduleCarryoverFields
-    );
-    appendSelectedSessions(rowsByDate, scheduleSessions, scheduleCarryover, tournament, today, nowTimestamp);
+    const control = assertScheduleControl(tournament.slug, scheduleState.controlsBySlug[tournament.slug]);
+    appendSelectedSessions(rowsByDate, scheduleSessions, control, tournament, today);
   }
   return buildScheduleMap(rowsByDate, maxDays);
 }
