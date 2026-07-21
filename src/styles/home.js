@@ -143,8 +143,8 @@ export default `${baseCSS}
     @media (max-width: 650px) { .sch-container { grid-template-columns: 1fr; } }
 
     @keyframes modalShow { 0% { opacity: 0; transform: translate(-50%, -45%) scale(0.98); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
-    .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background-color: rgba(15, 23, 42, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-    .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #ffffff; margin: 0; padding: 0; border: 1px solid #e2e8f0; width: 90%; max-width: 420px; border-radius: var(--radius-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalShow 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; display: flex; flex-direction: column; max-height: calc(100vh - 180px); }
+    .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100dvh; overflow: hidden; background-color: rgba(15, 23, 42, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #ffffff; margin: 0; padding: 0; border: 1px solid #e2e8f0; width: 90%; max-width: 420px; border-radius: var(--radius-card); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: modalShow 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; display: flex; flex-direction: column; max-height: min(72dvh, 720px); }
     #modalTitle { margin: 0; padding: 20px 24px; border-bottom: 1px solid #f1f5f9; font-size: 18px; font-weight: 600; color: #0f172a; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; background: #f8fafc; border-radius: var(--radius-card) var(--radius-card) 0 0; flex-shrink: 0; }
     #modalTitle.history-status-modal-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; padding-bottom: 14px; }
     .modal-title-copy { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -239,5 +239,12 @@ export default `${baseCSS}
     .best-of-pill.bo1, .best-of-pill.bo2 { background: #e2e8f0; color: #475569; }
     .best-of-pill.bo3 { background: #dbeafe; color: #1d4ed8; }
     .best-of-pill.bo5 { background: #f2d49c; color: #9c5326; }
-    @media (max-width: 650px) { .match-item { padding: 10px 8px; } .match-card { padding: 0; } .match-card-fixture { padding: 5px 10px; } .spine-l { padding-right: 2px; } .spine-r { padding-left: 2px; } }
+    @media (max-width: 650px) {
+        .modal-content { width: calc(100% - 32px); max-height: min(70dvh, 560px); }
+        .match-item { padding: 10px 8px; }
+        .match-card { padding: 0; }
+        .match-card-fixture { padding: 5px 10px; }
+        .spine-l { padding-right: 2px; }
+        .spine-r { padding-left: 2px; }
+    }
 `;
