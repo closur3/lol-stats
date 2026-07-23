@@ -32,7 +32,7 @@ async function fetchMatchSchedule(fandomClient, slug, pages) {
       action: "cargoquery",
       format: "json",
       tables: "MatchSchedule",
-      fields: "Team1,Team2,Winner,Team1Score,Team2Score,FF,IsNullified,DateTime_UTC=DateTimeUTC,OverviewPage,BestOf,Tab,MatchDay=matchDay,N_MatchInTab=nMatchInTab,MatchId",
+      fields: "Team1,Team2,Winner,Team1Score,Team2Score,FF,IsNullified,DateTime_UTC=DateTimeUTC,OverviewPage,BestOf,Tab,MatchDay,N_MatchInTab=NMatchInTab,MatchId",
       where: whereClause,
       limit: limit.toString(),
       offset: offset.toString(),
@@ -102,9 +102,9 @@ function parseMatchScheduleGame(record, slug) {
   if (matchId === "" || matchId === null || matchId === undefined) {
     throw new Error(`[FANDOM:GAMES] ${slug} missing MatchId`);
   }
-  const number = Number.parseInt(record.N_GameInMatch, 10);
+  const number = Number.parseInt(record.NGameInMatch, 10);
   if (!Number.isInteger(number) || number < 1) {
-    throw new Error(`[FANDOM:GAMES] ${slug}.${matchId} invalid N_GameInMatch`);
+    throw new Error(`[FANDOM:GAMES] ${slug}.${matchId} invalid NGameInMatch`);
   }
   const label = `${slug}.${matchId}.${number}`;
   const winner = parseOptionalInteger(record.Winner, `${label}.Winner`, [1, 2]);
@@ -142,7 +142,7 @@ async function fetchMatchScheduleGames(fandomClient, slug, pages) {
       action: "cargoquery",
       format: "json",
       tables: "MatchSchedule=MS,MatchScheduleGame=MSG",
-      fields: "MS.MatchId=MatchId,MSG.GameId=GameId,MSG.N_GameInMatch=N_GameInMatch,MSG.Blue=Blue,MSG.Red=Red,MSG.Winner=Winner,MSG.BlueScore=BlueScore,MSG.RedScore=RedScore,MSG.FF=FF,MSG.IsRemake=IsRemake,MSG.IsChronobreak=IsChronobreak",
+      fields: "MS.MatchId=MatchId,MSG.GameId=GameId,MSG.N_GameInMatch=NGameInMatch,MSG.Blue=Blue,MSG.Red=Red,MSG.Winner=Winner,MSG.BlueScore=BlueScore,MSG.RedScore=RedScore,MSG.FF=FF,MSG.IsRemake=IsRemake,MSG.IsChronobreak=IsChronobreak",
       join_on: "MS.MatchId=MSG.MatchId",
       where: whereClause,
       limit: limit.toString(),

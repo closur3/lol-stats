@@ -15,8 +15,8 @@ const canonicalMatch = (match) => [
   match.OverviewPage,
   match.BestOf,
   match.Tab,
-  match.matchDay,
-  match.nMatchInTab,
+  match.MatchDay,
+  match.NMatchInTab,
   match.MatchId,
   JSON.stringify(match.games)
 ].join("\u001f");
