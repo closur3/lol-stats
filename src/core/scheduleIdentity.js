@@ -42,8 +42,8 @@ export function parseScheduleSessionKey(sessionKey, label = "sessionKey") {
 export function readScheduleIdentity(rawMatch, label) {
   const overviewPage = readText(rawMatch.OverviewPage, `${label}.OverviewPage`);
   const tab = readText(rawMatch.Tab, `${label}.Tab`, true);
-  const matchDay = readPositiveInteger(rawMatch.matchDay, `${label}.matchDay`);
-  const matchNumber = readPositiveInteger(rawMatch.nMatchInTab, `${label}.nMatchInTab`);
+  const matchDay = readPositiveInteger(rawMatch.MatchDay, `${label}.MatchDay`);
+  const matchNumber = readPositiveInteger(rawMatch.NMatchInTab, `${label}.NMatchInTab`);
   return {
     overviewPage,
     tab,

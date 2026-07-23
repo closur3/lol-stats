@@ -88,7 +88,7 @@ export function buildScheduleSessions(rawMatches, tournament) {
     if (!matchNumbersByTab.has(tabKey)) matchNumbersByTab.set(tabKey, new Set());
     const usedMatchNumbers = matchNumbersByTab.get(tabKey);
     if (usedMatchNumbers.has(matchNumber)) {
-      throw new Error(`${label}.nMatchInTab duplicates ${matchNumber} in ${overviewPage}/${tab}`);
+      throw new Error(`${label}.NMatchInTab duplicates ${matchNumber} in ${overviewPage}/${tab}`);
     }
     usedMatchNumbers.add(matchNumber);
 
