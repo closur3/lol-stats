@@ -108,7 +108,7 @@ export function validateTimeGrid(timeGrid, artifactKey) {
 export function renderTimeTable(timeGrid, artifactKey) {
   const { tableHours, boxFilters, timeGridPath } = validateTimeGrid(timeGrid, artifactKey);
 
-  let html = `<div class="time-table-block" data-box-filter="all"><table class="time-table"><thead><tr class="time-header-row"><th class="team-col time-filter-cell">${renderBoxFilter(boxFilters)}</th>`;
+  let html = `<div class="time-table-block" data-box-filter="all"><table class="time-table"><colgroup><col><col span="7"><col style="width:180px"></colgroup><thead><tr class="time-header-row"><th class="team-col time-filter-cell">${renderBoxFilter(boxFilters)}</th>`;
   timeTableColumns.forEach(dayName => { html += `<th class="time-header-cell">${dayName}</th>`; });
   html += "</tr></thead><tbody>";
 
