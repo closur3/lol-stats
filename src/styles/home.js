@@ -2,11 +2,11 @@ import baseCSS from "./base.js";
 
 export default `${baseCSS}
     .container { --table-label-width: 80px; max-width: 1400px; }
-    .wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 25px; display: flex; flex-direction: column; }
+    .wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 25px; display: flex; flex-direction: column; --min-table-width: 1340px; }
     .wrapper::-webkit-scrollbar, .match-list::-webkit-scrollbar { display: none; }
     .wrapper, .match-list { -ms-overflow-style: none; scrollbar-width: none; }
-    table { width: 100%; min-width: 1150px; border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; margin: 0; border: none; }
-    .stats-table { min-width: 1340px; }
+    table { width: 100%; min-width: var(--min-table-width); border-collapse: separate; border-spacing: 0; font-size: 14px; table-layout: fixed; margin: 0; border: none; }
+
     th { background: #f8fafc; padding: 14px 8px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s; box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.05); border: none !important; }
     th:hover { background: #eff6ff; color: #2563eb; }
     td { padding: 12px 8px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.04); border: none !important; }
