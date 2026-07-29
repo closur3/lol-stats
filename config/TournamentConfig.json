@@ -1,5 +1,5 @@
 {
-    "configDigest": "1483f74e171cba9088f34c438afa409bfcbffe14c7d006a05afbfd890c7bd684",
+    "configDigest": "dd92bdc54e6ad21d8f907e65ac3cfc5977d2a69fe4b1b015b03dc3c4cf25da0c",
     "active": [
         {
             "slug": "lpl-2026-split-3",
@@ -53,10 +53,12 @@
             "leagueShort": "LCK",
             "overviewPage": [
                 "LCK/2026 Season/Rounds 1-2",
-                "LCK/2026 Season/Rounds 3-4"
+                "LCK/2026 Season/Rounds 3-4",
+                "LCK/2026 Season/Season Play-In",
+                "LCK/2026 Season/Season Playoffs"
             ],
             "startDate": "2026-04-01",
-            "endDate": "2026-08-23",
+            "endDate": "2026-09-13",
             "teamMap": {
                 "BNK FEARX": "BFX",
                 "DN SOOPers": "DNS",
@@ -67,7 +69,8 @@
                 "KT Rolster": "KT",
                 "Kiwoom DRX": "KRX",
                 "Nongshim RedForce": "NS",
-                "T1": "T1"
+                "T1": "T1",
+                "TBD": "TBD"
             }
         }
     ],
