@@ -1,5 +1,5 @@
 {
-    "configDigest": "a4da9ff1486049fcd29f4933bbaab72f79c4eafcde2a1349c615c1f46417edf3",
+    "configDigest": "1483f74e171cba9088f34c438afa409bfcbffe14c7d006a05afbfd890c7bd684",
     "active": [
         {
             "slug": "lpl-2026-split-3",
@@ -48,8 +48,8 @@
             }
         },
         {
-            "slug": "lck-2026-rounds-1-4",
-            "name": "LCK 2026 Rounds 1-4",
+            "slug": "lck-2026-rounds-1-2-3-4",
+            "name": "LCK 2026 Rounds 1-2 + 3-4",
             "leagueShort": "LCK",
             "overviewPage": [
                 "LCK/2026 Season/Rounds 1-2",
