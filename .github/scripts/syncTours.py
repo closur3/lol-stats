@@ -61,7 +61,6 @@ def validate_tournament_list(value, label: str) -> list:
         team_map = item.get("teamMap")
         if (
             not isinstance(team_map, dict)
-            or not team_map
             or any(
                 not isinstance(source, str)
                 or not source.strip()
@@ -70,7 +69,7 @@ def validate_tournament_list(value, label: str) -> list:
                 for source, target in team_map.items()
             )
         ):
-            raise ValueError(f"{label}[{index}].teamMap must be a non-empty string map")
+            raise ValueError(f"{label}[{index}].teamMap must be a string map")
         overviewPages = item.get("overviewPage")
         if not isinstance(overviewPages, list) or not overviewPages or any(not isinstance(page, str) or not page.strip() for page in overviewPages):
             raise ValueError(f"{label}[{index}].overviewPage must be a non-empty string array")
@@ -306,7 +305,6 @@ def attach_team_maps(
     session,
     url: str,
     tournaments: list,
-    required_overview_pages: set,
 ) -> None:
     overview_pages = sorted({
         page
@@ -315,17 +313,14 @@ def attach_team_maps(
     })
     if not overview_pages:
         return
-    unexpected_required_pages = required_overview_pages - set(overview_pages)
-    if unexpected_required_pages:
-        raise ValueError(
-            "Required tournament team-map pages are outside the write set: "
-            f"{', '.join(sorted(unexpected_required_pages))}"
-        )
     roster_rows = fetch_cargo(session, url, {
         "action": "cargoquery",
         "format": "json",
         "tables": "TournamentRosters=TR,Teamnames=TN",
-        "fields": "TR.OverviewPage=OverviewPage,TR.Team=Team,TN.Short=Short",
+        "fields": (
+            "TR.OverviewPage=OverviewPage,TR.Team=Team,"
+            "TN.Short=Short,TN.Exception=isException"
+        ),
         "join_on": "TR.Team=TN.Link",
         "where": (
             "TR.OverviewPage IN "
@@ -336,29 +331,30 @@ def attach_team_maps(
     maps_by_page = {page: {} for page in overview_pages}
     for item in roster_rows:
         row = item.get("title", {})
-        overviewPage = row.get("OverviewPage", "")
+        overview_page = row.get("OverviewPage", "")
         team = row.get("Team", "")
         short = row.get("Short", "")
-        if overviewPage not in maps_by_page or not team or not short:
+        is_exception = row.get("isException")
+        if overview_page not in maps_by_page or is_exception not in {"0", "1"}:
             raise ValueError(f"Invalid tournament team row: {row}")
-        existing = maps_by_page[overviewPage].get(team)
+        if is_exception == "1":
+            continue
+        if not team or not short:
+            raise ValueError(f"Invalid tournament team row: {row}")
+        existing = maps_by_page[overview_page].get(team)
         if existing is not None and existing != short:
-            raise ValueError(f"Conflicting team short: {overviewPage}:{team}")
-        maps_by_page[overviewPage][team] = short
+            raise ValueError(f"Conflicting team short: {overview_page}:{team}")
+        maps_by_page[overview_page][team] = short
 
     for tournament in tournaments:
         team_map = {}
-        for overviewPage in tournament["overviewPage"]:
-            page_map = maps_by_page[overviewPage]
-            if not page_map and overviewPage in required_overview_pages:
-                raise ValueError(f"Tournament team map missing: {overviewPage}")
+        for overview_page in tournament["overviewPage"]:
+            page_map = maps_by_page[overview_page]
             for team, short in page_map.items():
                 existing = team_map.get(team)
                 if existing is not None and existing != short:
                     raise ValueError(f"Conflicting tournament team short: {tournament['slug']}:{team}")
                 team_map[team] = short
-        if not team_map:
-            raise ValueError(f"Tournament team map missing: {tournament['slug']}")
         tournament["teamMap"] = dict(sorted(team_map.items()))
 
 def collect_fandom_leagues(source_rows: list) -> list:
@@ -1071,24 +1067,10 @@ def log_active_table(active: list) -> None:
         log("  (无准入赛事)")
 
 
-def collect_required_team_map_pages(
-    nodes: dict,
-    current_date,
-    preheat_days: int,
-) -> set:
-    latest_start = current_date + timedelta(days=preheat_days)
-    return {
-        page
-        for page, node in nodes.items()
-        if node["startDate"] <= latest_start
-    }
-
-
 def attach_transition_team_maps(
     session,
     url: str,
     transition: dict,
-    required_overview_pages: set,
 ) -> None:
     archived_slugs = set(transition["archivedSlugs"])
     new_archive_tournaments = [
@@ -1096,17 +1078,10 @@ def attach_transition_team_maps(
         for tournament in transition["archive"]
         if tournament["slug"] in archived_slugs
     ]
-    write_tournaments = transition["active"] + new_archive_tournaments
-    write_pages = {
-        page
-        for tournament in write_tournaments
-        for page in tournament["overviewPage"]
-    }
     attach_team_maps(
         session,
         url,
-        write_tournaments,
-        required_overview_pages.intersection(write_pages),
+        transition["active"] + new_archive_tournaments,
     )
 
 
@@ -1297,17 +1272,7 @@ def run_tournament_sync():
     log_lifecycle_summary(transition)
     log_active_table(transition["active"])
 
-    required_team_map_pages = collect_required_team_map_pages(
-        node_result["nodes"],
-        today_dt,
-        PREHEAT_DAYS,
-    )
-    attach_transition_team_maps(
-        session,
-        url,
-        transition,
-        required_team_map_pages,
-    )
+    attach_transition_team_maps(session, url, transition)
     assert_configs_disjoint(transition["active"], transition["archive"])
     manifest = build_manifest(old_active, transition)
     write_config(transition["active"], transition["archive"])
