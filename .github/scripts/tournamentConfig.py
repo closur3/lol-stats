@@ -53,34 +53,46 @@ def slugify_name(name: str) -> str:
     return slug
 
 
-def is_whitelisted(name: str, overview_page: str, whitelist: list) -> bool:
+def matches_tournament_filter(name: str, overview_page: str, values: list) -> bool:
     haystack = f"{name}\n{overview_page}".lower()
-    return any(keyword.strip().lower() in haystack for keyword in whitelist)
+    return any(keyword.strip().lower() in haystack for keyword in values)
+
+
+def assert_boolean_field(row: dict, field: str) -> None:
+    value = row.get(field)
+    if isinstance(value, str) and value and value not in {"0", "1"}:
+        raise ValueError(f"Tournament {field} must be 0 or 1: {row['OverviewPage']}")
 
 
 def classify_tournament_eligibility(row: dict, regions: list, whitelist: list, blacklist: list) -> str:
     name = row["Name"]
     overview_page = row["OverviewPage"]
-    whitelisted = is_whitelisted(name, overview_page, whitelist)
-    blacklisted = any(keyword.strip().lower() in name.lower() for keyword in blacklist)
+    assert_boolean_field(row, "IsQualifier")
+    assert_boolean_field(row, "IsPlayoffs")
+    whitelisted = matches_tournament_filter(name, overview_page, whitelist)
+    blacklisted = matches_tournament_filter(name, overview_page, blacklist)
     if whitelisted:
         return "eligible"
     if blacklisted:
         return "ineligible"
 
-    filter_fields = ("TournamentLevel", "IsQualifier", "Region")
+    tournament_level = row.get("TournamentLevel")
+    is_qualifier = row.get("IsQualifier")
+    region = row.get("Region")
+    if isinstance(tournament_level, str) and tournament_level and tournament_level != "Primary":
+        return "ineligible"
+    if isinstance(is_qualifier, str) and is_qualifier and is_qualifier != "0":
+        return "ineligible"
+    if isinstance(region, str) and region and region not in regions:
+        return "ineligible"
+
+    filter_values = (tournament_level, is_qualifier, region)
     if any(
-        not isinstance(row.get(field), str) or not row[field]
-        for field in filter_fields
+        not isinstance(value, str) or not value
+        for value in filter_values
     ):
         return "undetermined"
-
-    region_eligible = (
-        row["TournamentLevel"] == "Primary"
-        and row["IsQualifier"] == "0"
-        and row["Region"] in regions
-    )
-    return "eligible" if region_eligible else "ineligible"
+    return "eligible"
 
 
 def deduplicate_source_rows(rows: list) -> list:

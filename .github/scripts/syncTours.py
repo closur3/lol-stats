@@ -34,10 +34,6 @@ REGIONS = ["International", "China", "Korea"]
 WHITELIST = []
 BLACKLIST = ["Opening"]
 
-NAME_MAPPING = {
-    "Rounds 1-4": ["Rounds 1-2", "Rounds 3-4"],
-}
-
 CARGO_FIELDS = [
     "Name", "OverviewPage",
     "DateStart=startDate", "Date=endDate",
@@ -159,13 +155,6 @@ def validate_filters() -> None:
     validate_filter_values(REGIONS, "REGIONS")
     validate_filter_values(WHITELIST, "WHITELIST", allow_empty=True)
     validate_filter_values(BLACKLIST, "BLACKLIST", allow_empty=True)
-
-def apply_name_mapping(name: str):
-    for canonical, keywords in NAME_MAPPING.items():
-        for k in keywords:
-            if k.lower() in name.lower():
-                return re.compile(re.escape(k), re.IGNORECASE).sub(canonical, name)
-    return None
 
 def make_session(url: str, bot_user: str, bot_pass: str) -> requests.Session:
     MAX_LOGIN_ATTEMPTS = 3
@@ -391,6 +380,100 @@ def read_league_group_short_map(session, url: str, fandom_leagues: list) -> dict
     return league_short_by_fandom_league
 
 
+def parse_cargo_args(value: str, label: str) -> dict:
+    if not isinstance(value, str):
+        raise ValueError(f"{label} Args must be a string")
+    if not value:
+        return {}
+
+    args = {}
+    for entry in value.split(";@;"):
+        parts = entry.split(":@:", 1)
+        if len(parts) != 2 or not parts[0]:
+            raise ValueError(f"Invalid {label} Args: {value}")
+        key, argument = parts
+        existing = args.get(key)
+        if existing is not None and existing != argument:
+            raise ValueError(f"Conflicting {label} Args key: {key}")
+        args[key] = argument
+    return args
+
+
+def normalize_wiki_page(value: str) -> str:
+    page = value.strip().lstrip(":").replace("_", " ")
+    return page.split("#", 1)[0].strip()
+
+
+def extract_wiki_link_targets(value: str) -> set:
+    if not isinstance(value, str):
+        raise ValueError("Wiki link value must be a string")
+    return {
+        normalize_wiki_page(match.group(1).split("|", 1)[0])
+        for match in re.finditer(r"\[\[([^\]]+)\]\]", value)
+        if normalize_wiki_page(match.group(1).split("|", 1)[0])
+    }
+
+
+def read_tournament_relationships(session, url: str, overview_pages: list) -> dict:
+    validate_filter_values(overview_pages, "Tournament relationship pages", allow_empty=True)
+    carried_over_from = {}
+    seed_sources = {page: set() for page in overview_pages}
+
+    for pages in chunked(overview_pages, 40):
+        page_condition = build_field_condition("OverviewPage", pages)
+        standings_rows = fetch_cargo(session, url, {
+            "action": "cargoquery",
+            "format": "json",
+            "tables": "StandingsArgs",
+            "fields": "OverviewPage, TournamentGroup, Args",
+            "where": page_condition,
+            "order_by": "OverviewPage ASC, TournamentGroup ASC",
+        })
+        for item in standings_rows:
+            row = item.get("title")
+            if not isinstance(row, dict):
+                raise ValueError("Cargo StandingsArgs row missing title")
+            overview_page = row.get("OverviewPage")
+            if overview_page not in seed_sources:
+                raise ValueError(f"Unexpected StandingsArgs OverviewPage: {overview_page}")
+            args = parse_cargo_args(row.get("Args"), f"StandingsArgs:{overview_page}")
+            source_value = args.get("carried_over_from")
+            if not source_value:
+                continue
+            source = normalize_wiki_page(source_value)
+            if not source:
+                raise ValueError(f"Empty carried_over_from: {overview_page}")
+            existing = carried_over_from.get(overview_page)
+            if existing is not None and existing != source:
+                raise ValueError(f"Conflicting carried_over_from: {overview_page}")
+            carried_over_from[overview_page] = source
+
+        participant_rows = fetch_cargo(session, url, {
+            "action": "cargoquery",
+            "format": "json",
+            "tables": "ParticipantsArgs",
+            "fields": "OverviewPage, N_TeamInPage, Args",
+            "where": page_condition,
+            "order_by": "OverviewPage ASC, N_TeamInPage ASC",
+        })
+        for item in participant_rows:
+            row = item.get("title")
+            if not isinstance(row, dict):
+                raise ValueError("Cargo ParticipantsArgs row missing title")
+            overview_page = row.get("OverviewPage")
+            if overview_page not in seed_sources:
+                raise ValueError(f"Unexpected ParticipantsArgs OverviewPage: {overview_page}")
+            args = parse_cargo_args(row.get("Args"), f"ParticipantsArgs:{overview_page}")
+            seed = args.get("seed")
+            if seed:
+                seed_sources[overview_page].update(extract_wiki_link_targets(seed))
+
+    return {
+        "carriedOverFrom": carried_over_from,
+        "seedSources": seed_sources,
+    }
+
+
 def missing_string_fields(row: dict, fields: tuple) -> list:
     return [
         field
@@ -456,153 +539,320 @@ def classify_tournament_rows(source_rows: list, active_overview_pages: set) -> d
     }
 
 
-def group_tournament_rows(eligible_rows: list, league_short_map: dict, active_overview_pages: set) -> dict:
-    main_events, playoff_events = {}, []
+def build_tournament_nodes(
+    eligible_rows: list,
+    league_short_map: dict,
+    active_overview_pages: set,
+) -> dict:
+    nodes = {}
     deferred_rows = []
-    mapped_names = []
 
     for item in eligible_rows:
-        t = item["title"]
-        ov = t["OverviewPage"]
-        name = t["Name"]
-
+        row = item["title"]
+        overview_page = row["OverviewPage"]
         missing_projection_fields = missing_string_fields(
-            t,
-            ("Region", "Year", "League", "IsPlayoffs", "startDate", "endDate"),
+            row,
+            ("League", "IsPlayoffs", "startDate", "endDate"),
         )
         if missing_projection_fields:
-            if ov in active_overview_pages:
-                raise ValueError(f"Active tournament projection incomplete: {ov} | missing: {', '.join(missing_projection_fields)}")
-            deferred_rows.append({"overviewPage": ov, "missingFields": missing_projection_fields})
-            continue
-
-        region = t["Region"]
-        y = t["Year"]
-        fandom_league = t["League"]
-        is_playoffs = t["IsPlayoffs"]
-        league_short = league_short_map.get(fandom_league)
-        if not league_short:
-            if ov in active_overview_pages:
+            if overview_page in active_overview_pages:
                 raise ValueError(
-                    f"Active tournament League Short missing: {ov} | league: {fandom_league}"
+                    f"Active tournament projection incomplete: {overview_page} | "
+                    f"missing: {', '.join(missing_projection_fields)}"
                 )
             deferred_rows.append({
-                "overviewPage": ov,
+                "overviewPage": overview_page,
+                "missingFields": missing_projection_fields,
+            })
+            continue
+
+        fandom_league = row["League"]
+        league_short = league_short_map.get(fandom_league)
+        if not league_short:
+            if overview_page in active_overview_pages:
+                raise ValueError(
+                    f"Active tournament League Short missing: {overview_page} | "
+                    f"league: {fandom_league}"
+                )
+            deferred_rows.append({
+                "overviewPage": overview_page,
                 "missingFields": [f"LeagueShort:{fandom_league}"],
             })
             continue
 
-        start_date = parse_date(t["startDate"])
-        end_date = parse_date(t["endDate"])
+        start_date = parse_date(row["startDate"])
+        end_date = parse_date(row["endDate"])
         if start_date > end_date:
-            raise ValueError(f"Tournament date range invalid: {ov}")
-
-        mapped_name = apply_name_mapping(name)
-        if mapped_name:
-            mapped_names.append(f"{name} → {mapped_name}")
-            name = mapped_name
-
-        ev = {
-            "overviewPageDates": {ov: (start_date, end_date)},
-            "year": y,
-            "name": name,
-            "region": region,
+            raise ValueError(f"Tournament date range invalid: {overview_page}")
+        nodes[overview_page] = {
+            "overviewPage": overview_page,
+            "name": row["Name"],
+            "isPlayoffs": row["IsPlayoffs"] == "1",
+            "leagueShort": league_short,
             "startDate": start_date,
             "endDate": end_date,
-            "leagueShort": league_short,
         }
 
-        if is_playoffs == "1" and region != "International":
-            playoff_events.append(ev)
-        else:
-            key = f"INTL_{name}_{y}" if region == "International" else (f"{name}_{y}" if mapped_name else f"{ov}_{y}")
-            if key not in main_events:
-                main_events[key] = ev
-            else:
-                main_events[key]["startDate"] = min(main_events[key]["startDate"], start_date)
-                main_events[key]["endDate"] = max(main_events[key]["endDate"], end_date)
-                add_overview_page(main_events[key], ov, start_date, end_date)
+    return {"nodes": nodes, "deferredRows": deferred_rows}
+
+
+def node_sort_key(node: dict) -> tuple:
+    return (node["startDate"], node["endDate"], node["overviewPage"])
+
+
+def order_record_component(pages: set, nodes: dict, successors: dict) -> list:
+    indegrees = {
+        page: sum(page in successors[source] for source in pages)
+        for page in pages
+    }
+    available = sorted(
+        (page for page, degree in indegrees.items() if degree == 0),
+        key=lambda page: node_sort_key(nodes[page]),
+    )
+    ordered = []
+
+    while available:
+        page = available.pop(0)
+        ordered.append(page)
+        for target in sorted(successors[page], key=lambda item: node_sort_key(nodes[item])):
+            indegrees[target] -= 1
+            if indegrees[target] == 0:
+                available.append(target)
+                available.sort(key=lambda item: node_sort_key(nodes[item]))
+
+    if len(ordered) != len(pages):
+        raise ValueError(f"Tournament carried_over_from cycle: {', '.join(sorted(pages))}")
+    return ordered
+
+
+def build_component_name(ordered_pages: list, nodes: dict) -> str:
+    names = [nodes[page]["name"] for page in ordered_pages]
+    if len(names) == 1:
+        return names[0]
+
+    token_lists = [name.split() for name in names]
+    prefix_length = 0
+    for tokens in zip(*token_lists):
+        if len(set(tokens)) != 1:
+            break
+        prefix_length += 1
+
+    if prefix_length == 0:
+        return " + ".join(names)
+    prefix = " ".join(token_lists[0][:prefix_length])
+    suffixes = [
+        " ".join(tokens[prefix_length:])
+        for tokens in token_lists
+        if tokens[prefix_length:]
+    ]
+    return prefix if not suffixes else f"{prefix} {' + '.join(suffixes)}"
+
+
+def build_record_components(nodes: dict, carried_over_from: dict) -> dict:
+    record_pages = {page for page, node in nodes.items() if not node["isPlayoffs"]}
+    successors = {page: set() for page in record_pages}
+    neighbors = {page: set() for page in record_pages}
+
+    for target, source in carried_over_from.items():
+        if target not in nodes:
+            continue
+        if source not in nodes:
+            raise ValueError(
+                f"Tournament carried_over_from source missing: {target} -> {source}"
+            )
+        if nodes[target]["isPlayoffs"] or nodes[source]["isPlayoffs"]:
+            raise ValueError(
+                f"carried_over_from must connect record tournaments: {target} -> {source}"
+            )
+        successors[source].add(target)
+        neighbors[source].add(target)
+        neighbors[target].add(source)
+
+    components = {}
+    owner_by_page = {}
+    terminal_pages = {}
+    unseen = set(record_pages)
+    while unseen:
+        first = min(unseen, key=lambda page: node_sort_key(nodes[page]))
+        component_pages = set()
+        pending = [first]
+        while pending:
+            page = pending.pop()
+            if page in component_pages:
+                continue
+            component_pages.add(page)
+            pending.extend(neighbors[page] - component_pages)
+        unseen -= component_pages
+
+        ordered_pages = order_record_component(component_pages, nodes, successors)
+        owner = ordered_pages[0]
+        event = {
+            "overviewPageDates": {},
+            "name": build_component_name(ordered_pages, nodes),
+            "leagueShort": nodes[owner]["leagueShort"],
+            "startDate": min(nodes[page]["startDate"] for page in component_pages),
+            "endDate": max(nodes[page]["endDate"] for page in component_pages),
+        }
+        for page in ordered_pages:
+            node = nodes[page]
+            add_overview_page(event, page, node["startDate"], node["endDate"])
+            owner_by_page[page] = owner
+        components[owner] = event
+        terminal_pages[owner] = {
+            page for page in component_pages if not successors[page]
+        }
 
     return {
-        "mainEvents": main_events,
-        "playoffEvents": playoff_events,
-        "deferredRows": deferred_rows,
-        "mappedNames": mapped_names,
+        "events": components,
+        "ownerByPage": owner_by_page,
+        "terminalPages": terminal_pages,
+    }
+
+
+def create_single_node_event(node: dict) -> dict:
+    return {
+        "overviewPageDates": {
+            node["overviewPage"]: (node["startDate"], node["endDate"]),
+        },
+        "name": node["name"],
+        "leagueShort": node["leagueShort"],
+        "startDate": node["startDate"],
+        "endDate": node["endDate"],
+    }
+
+
+def attach_postseason(event: dict, node: dict) -> None:
+    add_overview_page(
+        event,
+        node["overviewPage"],
+        node["startDate"],
+        node["endDate"],
+    )
+    event["startDate"] = min(event["startDate"], node["startDate"])
+    event["endDate"] = max(event["endDate"], node["endDate"])
+
+
+def attach_postseason_nodes(nodes: dict, record_components: dict, seed_sources: dict) -> dict:
+    events = record_components["events"]
+    owner_by_page = dict(record_components["ownerByPage"])
+    playoff_pages = {
+        page for page, node in nodes.items() if node["isPlayoffs"]
+    }
+    pending = set(playoff_pages)
+    attached = []
+    independent = []
+
+    while pending:
+        progressed = False
+        for page in sorted(pending, key=lambda item: node_sort_key(nodes[item])):
+            tournament_sources = {
+                source
+                for source in seed_sources.get(page, set())
+                if source in nodes
+            }
+            unresolved = {
+                source for source in tournament_sources
+                if source in playoff_pages and source not in owner_by_page
+            }
+            if unresolved:
+                continue
+
+            anchors = set()
+            has_nonterminal_record_source = False
+            for source in tournament_sources:
+                owner = owner_by_page[source]
+                if (
+                    source not in playoff_pages
+                    and source not in record_components["terminalPages"][owner]
+                ):
+                    has_nonterminal_record_source = True
+                anchors.add(owner)
+
+            node = nodes[page]
+            if (
+                tournament_sources
+                and not has_nonterminal_record_source
+                and len(anchors) == 1
+            ):
+                owner = next(iter(anchors))
+                attach_postseason(events[owner], node)
+                owner_by_page[page] = owner
+                attached.append((events[owner]["name"], node["name"]))
+            else:
+                owner = page
+                events[owner] = create_single_node_event(node)
+                owner_by_page[page] = owner
+                independent.append(node["name"])
+
+            pending.remove(page)
+            progressed = True
+
+        if not progressed:
+            raise ValueError(
+                f"Tournament postseason seed cycle: {', '.join(sorted(pending))}"
+            )
+
+    return {
+        "events": events,
+        "attached": attached,
+        "independent": independent,
+    }
+
+
+def group_tournament_rows(
+    eligible_rows: list,
+    league_short_map: dict,
+    active_overview_pages: set,
+    relationships: dict,
+) -> dict:
+    node_result = build_tournament_nodes(
+        eligible_rows,
+        league_short_map,
+        active_overview_pages,
+    )
+    record_components = build_record_components(
+        node_result["nodes"],
+        relationships["carriedOverFrom"],
+    )
+    postseason_result = attach_postseason_nodes(
+        node_result["nodes"],
+        record_components,
+        relationships["seedSources"],
+    )
+    return {
+        "mainEvents": postseason_result["events"],
+        "deferredRows": node_result["deferredRows"],
+        "carriedOverFrom": relationships["carriedOverFrom"],
+        "attachedPostseason": postseason_result["attached"],
+        "independentPostseason": postseason_result["independent"],
     }
 
 
 def log_group_summary(source_count: int, classification: dict, groups: dict) -> None:
-    main_events = groups["mainEvents"]
-    playoff_events = groups["playoffEvents"]
     deferred_rows = classification["deferredRows"] + groups["deferredRows"]
-    total_after = len(main_events) + len(playoff_events)
     log("")
-    log(f"⚙️ 处理阶段 ({source_count} 条 → {total_after} 条)")
+    log(f"⚙️ 处理阶段 ({source_count} 条 → {len(groups['mainEvents'])} 条)")
     lines = [f"├─ 🚫 拦截: {classification['blockedCount']} 条"]
     if deferred_rows:
         lines.append(f"├─ ⏳ 待完善: {len(deferred_rows)} 条")
         for row in deferred_rows:
-            lines.append(f"│  └─ {row['overviewPage']} | missing: {', '.join(row['missingFields'])}")
+            lines.append(
+                f"│  └─ {row['overviewPage']} | "
+                f"missing: {', '.join(row['missingFields'])}"
+            )
     else:
         lines.append("├─ ⏳ 待完善: 无")
-    if groups["mappedNames"]:
-        for mapping in groups["mappedNames"]:
-            lines.append(f"├─ 🔗 聚合: {mapping}")
+
+    if groups["carriedOverFrom"]:
+        for target, source in sorted(groups["carriedOverFrom"].items()):
+            lines.append(f"├─ 🔗 战绩继承: {source} → {target}")
     else:
-        lines.append("├─ 🔗 聚合: 无")
-    lines.append(f"└─ 🏟️ 季后赛: {len(playoff_events)} 条待匹配")
-    log_tree(lines)
-
-
-def merge_playoff_events(main_events: dict, playoff_events: list) -> dict:
-    merged_playoffs = []
-    independent_playoffs = []
-
-    for p in playoff_events:
-        playoff_overview_page = project_overview_pages(p)[0]
-        m_key = next((
-            k for k, m in main_events.items()
-            if m["region"] != "International"
-            and m["year"] == p["year"]
-            and (
-                m["name"] in p["name"]
-                or playoff_overview_page.startswith(project_overview_pages(m)[0])
-            )
-        ), None)
-
-        if m_key:
-            old_end = main_events[m_key]["endDate"]
-            new_end = max(old_end, p["endDate"])
-            main_events[m_key]["endDate"] = new_end
-            add_overview_page(
-                main_events[m_key],
-                playoff_overview_page,
-                p["startDate"],
-                p["endDate"],
-            )
-            merged_playoffs.append((main_events[m_key]["name"], p["name"], str(new_end)))
-        else:
-            independent_playoffs.append(p["name"])
-            main_events[f"{playoff_overview_page}_{p['year']}_PO"] = p
-
-    return {
-        "merged": merged_playoffs,
-        "independent": independent_playoffs,
-    }
-
-
-def log_playoff_summary(playoff_count: int, result: dict) -> None:
-    if playoff_count == 0:
-        return
-    log("")
-    log(f"📋 赛程合并 ({playoff_count} 条季后赛)")
-    lines = []
-    for i, (main_name, playoff_name, end_date) in enumerate(result["merged"]):
-        prefix = "├─" if i < len(result["merged"]) - 1 or result["independent"] else "└─"
-        lines.append(f"{prefix} ✅ {main_name} + {playoff_name} → {end_date}")
-    for i, playoff_name in enumerate(result["independent"]):
-        prefix = "├─" if i < len(result["independent"]) - 1 else "└─"
-        lines.append(f"{prefix} 📌 {playoff_name} (独立保留)")
+        lines.append("├─ 🔗 战绩继承: 无")
+    for event_name, postseason_name in groups["attachedPostseason"]:
+        lines.append(f"├─ ✅ 附加季后赛: {event_name} ← {postseason_name}")
+    for postseason_name in groups["independentPostseason"]:
+        lines.append(f"├─ 📌 独立季后赛: {postseason_name}")
+    lines.append(f"└─ 🏟️ 最终赛事: {len(groups['mainEvents'])} 条")
     log_tree(lines)
 
 
@@ -823,12 +1073,24 @@ def run_tournament_sync():
     classification = classify_tournament_rows(source_rows, active_overview_pages)
     fandom_leagues = collect_fandom_leagues(classification["eligibleRows"])
     league_short_map = read_league_group_short_map(session, url, fandom_leagues) if fandom_leagues else {}
+    eligible_overview_pages = sorted(
+        item["title"]["OverviewPage"]
+        for item in classification["eligibleRows"]
+    )
+    relationships = read_tournament_relationships(
+        session,
+        url,
+        eligible_overview_pages,
+    )
     log(f"📥 抓取完成 | 原始: {len(source_rows)} 条 | 耗时: {time.time() - start_time:.1f}s")
 
-    groups = group_tournament_rows(classification["eligibleRows"], league_short_map, active_overview_pages)
+    groups = group_tournament_rows(
+        classification["eligibleRows"],
+        league_short_map,
+        active_overview_pages,
+        relationships,
+    )
     log_group_summary(len(source_rows), classification, groups)
-    playoff_result = merge_playoff_events(groups["mainEvents"], groups["playoffEvents"])
-    log_playoff_summary(len(groups["playoffEvents"]), playoff_result)
 
     candidates = project_tournament_candidates(groups["mainEvents"])
     transition = resolve_config_transition(old_active, old_archive, candidates)
