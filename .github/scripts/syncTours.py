@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import re
 import sys
 import time
 from datetime import datetime, timedelta
@@ -13,7 +12,7 @@ from tournamentConfig import (
     assert_config_digest,
     assert_active_source_complete,
     assert_configs_disjoint,
-    assign_stable_slugs,
+    assign_name_slugs,
     build_tournament_config,
     build_membership_transition,
     build_transition_manifest,
@@ -37,7 +36,7 @@ BLACKLIST = ["Opening"]
 CARGO_FIELDS = [
     "Name", "OverviewPage",
     "DateStart=startDate", "Date=endDate",
-    "League", "Region", "IsPlayoffs", "Year",
+    "League", "Region", "IsPlayoffs", "Year", "BasePage",
     "TournamentLevel", "IsQualifier",
 ]
 # ================================================
@@ -404,20 +403,10 @@ def normalize_wiki_page(value: str) -> str:
     return page.split("#", 1)[0].strip()
 
 
-def extract_wiki_link_targets(value: str) -> set:
-    if not isinstance(value, str):
-        raise ValueError("Wiki link value must be a string")
-    return {
-        normalize_wiki_page(match.group(1).split("|", 1)[0])
-        for match in re.finditer(r"\[\[([^\]]+)\]\]", value)
-        if normalize_wiki_page(match.group(1).split("|", 1)[0])
-    }
-
-
-def read_tournament_relationships(session, url: str, overview_pages: list) -> dict:
-    validate_filter_values(overview_pages, "Tournament relationship pages", allow_empty=True)
+def read_carried_over_relationships(session, url: str, overview_pages: list) -> dict:
+    validate_filter_values(overview_pages, "Tournament record pages", allow_empty=True)
     carried_over_from = {}
-    seed_sources = {page: set() for page in overview_pages}
+    page_set = set(overview_pages)
 
     for pages in chunked(overview_pages, 40):
         page_condition = build_field_condition("OverviewPage", pages)
@@ -434,7 +423,7 @@ def read_tournament_relationships(session, url: str, overview_pages: list) -> di
             if not isinstance(row, dict):
                 raise ValueError("Cargo StandingsArgs row missing title")
             overview_page = row.get("OverviewPage")
-            if overview_page not in seed_sources:
+            if overview_page not in page_set:
                 raise ValueError(f"Unexpected StandingsArgs OverviewPage: {overview_page}")
             args = parse_cargo_args(row.get("Args"), f"StandingsArgs:{overview_page}")
             source_value = args.get("carried_over_from")
@@ -448,30 +437,7 @@ def read_tournament_relationships(session, url: str, overview_pages: list) -> di
                 raise ValueError(f"Conflicting carried_over_from: {overview_page}")
             carried_over_from[overview_page] = source
 
-        participant_rows = fetch_cargo(session, url, {
-            "action": "cargoquery",
-            "format": "json",
-            "tables": "ParticipantsArgs",
-            "fields": "OverviewPage, N_TeamInPage, Args",
-            "where": page_condition,
-            "order_by": "OverviewPage ASC, N_TeamInPage ASC",
-        })
-        for item in participant_rows:
-            row = item.get("title")
-            if not isinstance(row, dict):
-                raise ValueError("Cargo ParticipantsArgs row missing title")
-            overview_page = row.get("OverviewPage")
-            if overview_page not in seed_sources:
-                raise ValueError(f"Unexpected ParticipantsArgs OverviewPage: {overview_page}")
-            args = parse_cargo_args(row.get("Args"), f"ParticipantsArgs:{overview_page}")
-            seed = args.get("seed")
-            if seed:
-                seed_sources[overview_page].update(extract_wiki_link_targets(seed))
-
-    return {
-        "carriedOverFrom": carried_over_from,
-        "seedSources": seed_sources,
-    }
+    return carried_over_from
 
 
 def missing_string_fields(row: dict, fields: tuple) -> list:
@@ -588,6 +554,7 @@ def build_tournament_nodes(
             "overviewPage": overview_page,
             "name": row["Name"],
             "isPlayoffs": row["IsPlayoffs"] == "1",
+            "basePage": normalize_wiki_page(row.get("BasePage", "")),
             "leagueShort": league_short,
             "startDate": start_date,
             "endDate": end_date,
@@ -732,70 +699,45 @@ def attach_postseason(event: dict, node: dict) -> None:
     event["endDate"] = max(event["endDate"], node["endDate"])
 
 
-def attach_postseason_nodes(nodes: dict, record_components: dict, seed_sources: dict) -> dict:
+def attach_postseason_nodes(nodes: dict, record_components: dict) -> dict:
     events = record_components["events"]
-    owner_by_page = dict(record_components["ownerByPage"])
-    playoff_pages = {
-        page for page, node in nodes.items() if node["isPlayoffs"]
-    }
-    pending = set(playoff_pages)
+    playoff_pages = sorted(
+        (page for page, node in nodes.items() if node["isPlayoffs"]),
+        key=lambda page: node_sort_key(nodes[page]),
+    )
     attached = []
-    independent = []
+    standalone = []
 
-    while pending:
-        progressed = False
-        for page in sorted(pending, key=lambda item: node_sort_key(nodes[item])):
-            tournament_sources = {
-                source
-                for source in seed_sources.get(page, set())
-                if source in nodes
-            }
-            unresolved = {
-                source for source in tournament_sources
-                if source in playoff_pages and source not in owner_by_page
-            }
-            if unresolved:
-                continue
-
-            anchors = set()
-            has_nonterminal_record_source = False
-            for source in tournament_sources:
-                owner = owner_by_page[source]
-                if (
-                    source not in playoff_pages
-                    and source not in record_components["terminalPages"][owner]
-                ):
-                    has_nonterminal_record_source = True
-                anchors.add(owner)
-
-            node = nodes[page]
+    for page in playoff_pages:
+        node = nodes[page]
+        owners = {
+            owner
+            for terminal_page, owner in record_components["ownerByPage"].items()
             if (
-                tournament_sources
-                and not has_nonterminal_record_source
-                and len(anchors) == 1
-            ):
-                owner = next(iter(anchors))
-                attach_postseason(events[owner], node)
-                owner_by_page[page] = owner
-                attached.append((events[owner]["name"], node["name"]))
-            else:
-                owner = page
-                events[owner] = create_single_node_event(node)
-                owner_by_page[page] = owner
-                independent.append(node["name"])
-
-            pending.remove(page)
-            progressed = True
-
-        if not progressed:
-            raise ValueError(
-                f"Tournament postseason seed cycle: {', '.join(sorted(pending))}"
+                terminal_page in record_components["terminalPages"][owner]
+                and nodes[terminal_page]["basePage"]
+                and nodes[terminal_page]["basePage"] == node["basePage"]
             )
+        }
+        if len(owners) == 1:
+            owner = next(iter(owners))
+            attach_postseason(events[owner], node)
+            attached.append((events[owner]["name"], node["name"]))
+        else:
+            events[page] = create_single_node_event(node)
+            if not node["basePage"]:
+                reason = "BasePage missing"
+            else:
+                reason = (
+                    f"BasePage record components: {len(owners)} "
+                    f"({node['basePage']})"
+                )
+            standalone.append((node["name"], reason))
 
     return {
         "events": events,
         "attached": attached,
-        "independent": independent,
+        "standalone": standalone,
     }
 
 
@@ -803,7 +745,7 @@ def group_tournament_rows(
     eligible_rows: list,
     league_short_map: dict,
     active_overview_pages: set,
-    relationships: dict,
+    carried_over_from: dict,
 ) -> dict:
     node_result = build_tournament_nodes(
         eligible_rows,
@@ -812,19 +754,18 @@ def group_tournament_rows(
     )
     record_components = build_record_components(
         node_result["nodes"],
-        relationships["carriedOverFrom"],
+        carried_over_from,
     )
     postseason_result = attach_postseason_nodes(
         node_result["nodes"],
         record_components,
-        relationships["seedSources"],
     )
     return {
         "mainEvents": postseason_result["events"],
         "deferredRows": node_result["deferredRows"],
-        "carriedOverFrom": relationships["carriedOverFrom"],
+        "carriedOverFrom": carried_over_from,
         "attachedPostseason": postseason_result["attached"],
-        "independentPostseason": postseason_result["independent"],
+        "independentPostseason": postseason_result["standalone"],
     }
 
 
@@ -849,9 +790,11 @@ def log_group_summary(source_count: int, classification: dict, groups: dict) -> 
     else:
         lines.append("├─ 🔗 战绩继承: 无")
     for event_name, postseason_name in groups["attachedPostseason"]:
-        lines.append(f"├─ ✅ 附加季后赛: {event_name} ← {postseason_name}")
-    for postseason_name in groups["independentPostseason"]:
-        lines.append(f"├─ 📌 独立季后赛: {postseason_name}")
+        lines.append(
+            f"├─ ✅ 附加季后赛: {event_name} ← {postseason_name} (BasePage)"
+        )
+    for postseason_name, reason in groups["independentPostseason"]:
+        lines.append(f"├─ 📌 独立季后赛: {postseason_name} | {reason}")
     lines.append(f"└─ 🏟️ 最终赛事: {len(groups['mainEvents'])} 条")
     log_tree(lines)
 
@@ -870,11 +813,11 @@ def project_tournament_candidates(main_events: dict) -> list:
 
 
 def resolve_config_transition(old_active: list, old_archive: list, candidates: list) -> dict:
-    stable_candidates = assign_stable_slugs(candidates, old_active, old_archive)
+    named_candidates = assign_name_slugs(candidates, old_active, old_archive)
     return build_membership_transition(
         old_active,
         old_archive,
-        stable_candidates,
+        named_candidates,
         today_dt,
         PREHEAT_DAYS,
         EXPIRE_DAYS,
@@ -1077,7 +1020,7 @@ def run_tournament_sync():
         item["title"]["OverviewPage"]
         for item in classification["eligibleRows"]
     )
-    relationships = read_tournament_relationships(
+    carried_over_from = read_carried_over_relationships(
         session,
         url,
         eligible_overview_pages,
@@ -1088,7 +1031,7 @@ def run_tournament_sync():
         classification["eligibleRows"],
         league_short_map,
         active_overview_pages,
-        relationships,
+        carried_over_from,
     )
     log_group_summary(len(source_rows), classification, groups)
 

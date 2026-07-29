@@ -148,24 +148,18 @@ def assert_configs_disjoint(active: list, archive: list) -> None:
                 page_owners[page] = owner
 
 
-def assign_stable_slugs(candidates: list, old_active: list, archive: list) -> list:
-    old_by_page = {}
-    for tournament in old_active:
-        for page in tournament["overviewPage"]:
-            existing = old_by_page.get(page)
-            if existing is not None and existing != tournament["slug"]:
-                raise ValueError(f"Active overviewPage identity conflict: {page}")
-            old_by_page[page] = tournament["slug"]
-
+def assign_name_slugs(candidates: list, old_active: list, archive: list) -> list:
     archive_by_page = {}
     for tournament in archive:
         for page in tournament["overviewPage"]:
             archive_by_page.setdefault(page, set()).add(tournament["slug"])
 
-    old_slugs = {tournament["slug"] for tournament in old_active}
+    old_by_slug = {
+        tournament["slug"]: set(tournament["overviewPage"])
+        for tournament in old_active
+    }
     archive_slugs = {tournament["slug"] for tournament in archive}
     assigned_slugs = set()
-    matched_old_slugs = set()
     assigned = []
 
     for candidate in candidates:
@@ -180,21 +174,12 @@ def assign_stable_slugs(candidates: list, old_active: list, archive: list) -> li
                 f"Current tournament matches TournamentConfig.archive: {candidate['name']}:{','.join(sorted(archived_matches))}"
             )
 
-        old_matches = {old_by_page[page] for page in pages if page in old_by_page}
-        if len(old_matches) > 1:
-            raise ValueError(f"Current tournament matches multiple Active slugs: {candidate['name']}")
-
-        if old_matches:
-            slug = next(iter(old_matches))
-            if slug in matched_old_slugs:
-                raise ValueError(f"Active tournament split detected: {slug}")
-            matched_old_slugs.add(slug)
-        else:
-            slug = slugify_name(candidate["name"])
-            if slug in old_slugs:
-                raise ValueError(f"Generated slug collides with unmatched Active tournament: {slug}")
-            if slug in archive_slugs:
-                raise ValueError(f"Generated slug collides with TournamentConfig.archive: {slug}")
+        slug = slugify_name(candidate["name"])
+        old_pages = old_by_slug.get(slug)
+        if old_pages is not None and old_pages.isdisjoint(pages):
+            raise ValueError(f"Generated slug collides with another Active tournament: {slug}")
+        if slug in archive_slugs:
+            raise ValueError(f"Generated slug collides with TournamentConfig.archive: {slug}")
 
         if slug in assigned_slugs:
             raise ValueError(f"Duplicate current tournament slug: {slug}")
