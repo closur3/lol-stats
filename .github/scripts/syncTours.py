@@ -367,13 +367,14 @@ def collect_fandom_leagues(source_rows: list) -> list:
 
 def read_league_group_short_map(session, url: str, fandom_leagues: list) -> dict:
     validate_filter_values(fandom_leagues, "Fandom leagues")
+    league_condition = build_field_condition("LeagueGroups__Leagues._value", fandom_leagues)
     league_short_rows = fetch_cargo(session, url, {
         "action": "cargoquery",
         "format": "json",
         "tables": "LeagueGroups,LeagueGroups__Leagues",
         "fields": "LeagueGroups__Leagues._value=League,LeagueGroups.ShortName=leagueShort",
         "join_on": "LeagueGroups._ID=LeagueGroups__Leagues._rowID",
-        "where": build_field_condition("LeagueGroups__Leagues._value", fandom_leagues),
+        "where": f"({league_condition}) AND LeagueGroups.ShortName IS NOT NULL AND LeagueGroups.ShortName != ''",
         "order_by": "LeagueGroups__Leagues._value ASC",
     })
     league_short_by_fandom_league = {}
