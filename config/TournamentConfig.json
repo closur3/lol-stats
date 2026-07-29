@@ -1,5 +1,5 @@
 {
-    "configDigest": "dd92bdc54e6ad21d8f907e65ac3cfc5977d2a69fe4b1b015b03dc3c4cf25da0c",
+    "configDigest": "17c7237bb73d44b2ce74afa3fed0a2a03deffa374caae3bac99ef5928ba99451",
     "active": [
         {
             "slug": "lpl-2026-split-3",
@@ -69,8 +69,7 @@
                 "KT Rolster": "KT",
                 "Kiwoom DRX": "KRX",
                 "Nongshim RedForce": "NS",
-                "T1": "T1",
-                "TBD": "TBD"
+                "T1": "T1"
             }
         }
     ],
