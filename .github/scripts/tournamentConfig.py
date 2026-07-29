@@ -67,7 +67,6 @@ def assert_boolean_field(row: dict, field: str) -> None:
 def classify_tournament_eligibility(row: dict, regions: list, whitelist: list, blacklist: list) -> str:
     name = row["Name"]
     overview_page = row["OverviewPage"]
-    assert_boolean_field(row, "IsQualifier")
     assert_boolean_field(row, "IsPlayoffs")
     whitelisted = matches_tournament_filter(name, overview_page, whitelist)
     blacklisted = matches_tournament_filter(name, overview_page, blacklist)
@@ -77,16 +76,13 @@ def classify_tournament_eligibility(row: dict, regions: list, whitelist: list, b
         return "ineligible"
 
     tournament_level = row.get("TournamentLevel")
-    is_qualifier = row.get("IsQualifier")
     region = row.get("Region")
     if isinstance(tournament_level, str) and tournament_level and tournament_level != "Primary":
-        return "ineligible"
-    if isinstance(is_qualifier, str) and is_qualifier and is_qualifier != "0":
         return "ineligible"
     if isinstance(region, str) and region and region not in regions:
         return "ineligible"
 
-    filter_values = (tournament_level, is_qualifier, region)
+    filter_values = (tournament_level, region)
     if any(
         not isinstance(value, str) or not value
         for value in filter_values

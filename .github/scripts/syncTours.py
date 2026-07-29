@@ -36,8 +36,8 @@ BLACKLIST = ["Opening"]
 CARGO_FIELDS = [
     "Name", "OverviewPage",
     "DateStart=startDate", "Date=endDate",
-    "League", "Region", "IsPlayoffs", "Year", "BasePage",
-    "TournamentLevel", "IsQualifier",
+    "League", "Region", "IsPlayoffs", "Split",
+    "TournamentLevel",
 ]
 # ================================================
 
@@ -302,20 +302,38 @@ def fetch_tournament_source_rows(session, url: str, old_active: list) -> list:
     assert_active_source_complete(old_active, source_rows)
     return source_rows
 
-def attach_team_maps(session, url: str, tournaments: list) -> None:
-    overviewPages = sorted({page for tournament in tournaments for page in tournament["overviewPage"]})
-    if not overviewPages:
+def attach_team_maps(
+    session,
+    url: str,
+    tournaments: list,
+    required_overview_pages: set,
+) -> None:
+    overview_pages = sorted({
+        page
+        for tournament in tournaments
+        for page in tournament["overviewPage"]
+    })
+    if not overview_pages:
         return
+    unexpected_required_pages = required_overview_pages - set(overview_pages)
+    if unexpected_required_pages:
+        raise ValueError(
+            "Required tournament team-map pages are outside the write set: "
+            f"{', '.join(sorted(unexpected_required_pages))}"
+        )
     roster_rows = fetch_cargo(session, url, {
         "action": "cargoquery",
         "format": "json",
         "tables": "TournamentRosters=TR,Teamnames=TN",
         "fields": "TR.OverviewPage=OverviewPage,TR.Team=Team,TN.Short=Short",
         "join_on": "TR.Team=TN.Link",
-        "where": f"TR.OverviewPage IN ({', '.join(cargo_string_literal(page, 'OverviewPage') for page in overviewPages)})",
+        "where": (
+            "TR.OverviewPage IN "
+            f"({', '.join(cargo_string_literal(page, 'OverviewPage') for page in overview_pages)})"
+        ),
         "order_by": "TR.OverviewPage ASC,TR.Team ASC",
     })
-    maps_by_page = {page: {} for page in overviewPages}
+    maps_by_page = {page: {} for page in overview_pages}
     for item in roster_rows:
         row = item.get("title", {})
         overviewPage = row.get("OverviewPage", "")
@@ -332,13 +350,15 @@ def attach_team_maps(session, url: str, tournaments: list) -> None:
         team_map = {}
         for overviewPage in tournament["overviewPage"]:
             page_map = maps_by_page[overviewPage]
-            if not page_map:
+            if not page_map and overviewPage in required_overview_pages:
                 raise ValueError(f"Tournament team map missing: {overviewPage}")
             for team, short in page_map.items():
                 existing = team_map.get(team)
                 if existing is not None and existing != short:
                     raise ValueError(f"Conflicting tournament team short: {tournament['slug']}:{team}")
                 team_map[team] = short
+        if not team_map:
+            raise ValueError(f"Tournament team map missing: {tournament['slug']}")
         tournament["teamMap"] = dict(sorted(team_map.items()))
 
 def collect_fandom_leagues(source_rows: list) -> list:
@@ -379,6 +399,94 @@ def read_league_group_short_map(session, url: str, fandom_leagues: list) -> dict
     return league_short_by_fandom_league
 
 
+def resolve_tab_event_page(tab_scope: str, event: str) -> str:
+    normalized_scope = normalize_wiki_page(tab_scope)
+    normalized_event = normalize_wiki_page(event)
+    if not normalized_scope or not normalized_event:
+        raise ValueError("TournamentTabs scope and event must be non-empty")
+    if normalized_event == "Overview":
+        return normalized_scope
+    return normalize_wiki_page(f"{normalized_scope}/{normalized_event}")
+
+
+def collect_tab_scope_candidates(overview_pages: list) -> list:
+    candidates = set()
+    for overview_page in overview_pages:
+        normalized_page = normalize_wiki_page(overview_page)
+        parts = normalized_page.split("/")
+        candidates.update(
+            "/".join(parts[:length])
+            for length in range(1, len(parts) + 1)
+        )
+    return sorted(candidates)
+
+
+def read_tournament_tab_memberships(session, url: str, overview_pages: list) -> dict:
+    validate_filter_values(overview_pages, "Tournament tab pages", allow_empty=True)
+    target_pages = {normalize_wiki_page(page) for page in overview_pages}
+    scope_by_page = {}
+    for scopes in chunked(collect_tab_scope_candidates(overview_pages), 40):
+        scope_condition = build_field_condition("TournamentTabs.BasePage", scopes)
+        rows = fetch_cargo(session, url, {
+            "action": "cargoquery",
+            "format": "json",
+            "tables": "TournamentTabs,TournamentTabs__Events",
+            "fields": (
+                "TournamentTabs__Events._value=event,"
+                "TournamentTabs.BasePage=tabScope"
+            ),
+            "join_on": "TournamentTabs._ID=TournamentTabs__Events._rowID",
+            "where": scope_condition,
+            "order_by": "TournamentTabs.BasePage ASC,TournamentTabs__Events._value ASC",
+        })
+        for item in rows:
+            row = item.get("title")
+            if not isinstance(row, dict):
+                raise ValueError("Cargo TournamentTabs row missing title")
+            event = row.get("event")
+            tab_scope = row.get("tabScope")
+            if (
+                not isinstance(event, str)
+                or not event
+                or not isinstance(tab_scope, str)
+                or not tab_scope
+            ):
+                raise ValueError(f"Invalid TournamentTabs row: {row}")
+            normalized_scope = normalize_wiki_page(tab_scope)
+            event_page = resolve_tab_event_page(normalized_scope, event)
+            existing = scope_by_page.get(event_page)
+            if existing is not None and existing != normalized_scope:
+                raise ValueError(f"Conflicting TournamentTabs scope: {event_page}")
+            scope_by_page[event_page] = normalized_scope
+
+    relevant_scopes = {
+        scope_by_page[page]
+        for page in target_pages
+        if page in scope_by_page
+    }
+    relevant_scope_by_page = {
+        page: scope
+        for page, scope in scope_by_page.items()
+        if scope in relevant_scopes
+    }
+    return {
+        "scopeByPage": relevant_scope_by_page,
+        "memberPages": sorted(relevant_scope_by_page),
+    }
+
+
+def read_tournament_rows(session, url: str, overview_pages: list) -> list:
+    validate_filter_values(overview_pages, "Tournament pages", allow_empty=True)
+    rows = []
+    for pages in chunked(overview_pages, 40):
+        rows.extend(fetch_cargo(
+            session,
+            url,
+            tournament_query(build_field_condition("OverviewPage", pages)),
+        ))
+    return deduplicate_source_rows(rows)
+
+
 def parse_cargo_args(value: str, label: str) -> dict:
     if not isinstance(value, str):
         raise ValueError(f"{label} Args must be a string")
@@ -403,7 +511,7 @@ def normalize_wiki_page(value: str) -> str:
     return page.split("#", 1)[0].strip()
 
 
-def read_carried_over_relationships(session, url: str, overview_pages: list) -> dict:
+def read_carried_over_from(session, url: str, overview_pages: list) -> dict:
     validate_filter_values(overview_pages, "Tournament record pages", allow_empty=True)
     carried_over_from = {}
     page_set = set(overview_pages)
@@ -448,6 +556,16 @@ def missing_string_fields(row: dict, fields: tuple) -> list:
     ]
 
 
+def read_optional_string(row: dict, field: str):
+    value = row.get(field)
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"Tournament {field} must be a string: {row['OverviewPage']}")
+    normalized = value.strip()
+    return normalized or None
+
+
 def classify_tournament_rows(source_rows: list, active_overview_pages: set) -> dict:
     eligible_rows = []
     blocked_count = 0
@@ -477,9 +595,7 @@ def classify_tournament_rows(source_rows: list, active_overview_pages: set) -> d
                 row,
                 (
                     "TournamentLevel",
-                    "IsQualifier",
                     "Region",
-                    "Year",
                     "League",
                     "IsPlayoffs",
                     "startDate",
@@ -508,6 +624,7 @@ def classify_tournament_rows(source_rows: list, active_overview_pages: set) -> d
 def build_tournament_nodes(
     eligible_rows: list,
     league_short_map: dict,
+    tab_scope_by_page: dict,
     active_overview_pages: set,
 ) -> dict:
     nodes = {}
@@ -554,7 +671,8 @@ def build_tournament_nodes(
             "overviewPage": overview_page,
             "name": row["Name"],
             "isPlayoffs": row["IsPlayoffs"] == "1",
-            "basePage": normalize_wiki_page(row.get("BasePage", "")),
+            "split": read_optional_string(row, "Split"),
+            "tabScope": tab_scope_by_page.get(overview_page),
             "leagueShort": league_short,
             "startDate": start_date,
             "endDate": end_date,
@@ -567,32 +685,7 @@ def node_sort_key(node: dict) -> tuple:
     return (node["startDate"], node["endDate"], node["overviewPage"])
 
 
-def order_record_component(pages: set, nodes: dict, successors: dict) -> list:
-    indegrees = {
-        page: sum(page in successors[source] for source in pages)
-        for page in pages
-    }
-    available = sorted(
-        (page for page, degree in indegrees.items() if degree == 0),
-        key=lambda page: node_sort_key(nodes[page]),
-    )
-    ordered = []
-
-    while available:
-        page = available.pop(0)
-        ordered.append(page)
-        for target in sorted(successors[page], key=lambda item: node_sort_key(nodes[item])):
-            indegrees[target] -= 1
-            if indegrees[target] == 0:
-                available.append(target)
-                available.sort(key=lambda item: node_sort_key(nodes[item]))
-
-    if len(ordered) != len(pages):
-        raise ValueError(f"Tournament carried_over_from cycle: {', '.join(sorted(pages))}")
-    return ordered
-
-
-def build_component_name(ordered_pages: list, nodes: dict) -> str:
+def build_chain_name(ordered_pages: list, nodes: dict) -> str:
     names = [nodes[page]["name"] for page in ordered_pages]
     if len(names) == 1:
         return names[0]
@@ -615,65 +708,58 @@ def build_component_name(ordered_pages: list, nodes: dict) -> str:
     return prefix if not suffixes else f"{prefix} {' + '.join(suffixes)}"
 
 
-def build_record_components(nodes: dict, carried_over_from: dict) -> dict:
+def build_record_chains(nodes: dict, carried_over_from: dict) -> dict:
     record_pages = {page for page, node in nodes.items() if not node["isPlayoffs"]}
-    successors = {page: set() for page in record_pages}
-    neighbors = {page: set() for page in record_pages}
+    predecessor_by_target = {}
+    successor_by_source = {}
 
-    for target, source in carried_over_from.items():
+    for target, source in sorted(carried_over_from.items()):
         if target not in nodes:
-            continue
+            raise ValueError(f"Tournament carried_over_from target missing: {target}")
         if source not in nodes:
-            raise ValueError(
-                f"Tournament carried_over_from source missing: {target} -> {source}"
-            )
-        if nodes[target]["isPlayoffs"] or nodes[source]["isPlayoffs"]:
+            raise ValueError(f"Tournament carried_over_from source missing: {target} -> {source}")
+        if target == source:
+            raise ValueError(f"Tournament carried_over_from self-reference: {target}")
+        if target not in record_pages or source not in record_pages:
             raise ValueError(
                 f"carried_over_from must connect record tournaments: {target} -> {source}"
             )
-        successors[source].add(target)
-        neighbors[source].add(target)
-        neighbors[target].add(source)
+        existing_source = predecessor_by_target.get(target)
+        if existing_source is not None and existing_source != source:
+            raise ValueError(f"Conflicting carried_over_from source: {target}")
+        existing_target = successor_by_source.get(source)
+        if existing_target is not None and existing_target != target:
+            raise ValueError(
+                f"Tournament carried_over_from branch: {source} -> "
+                f"{existing_target}, {target}"
+            )
+        predecessor_by_target[target] = source
+        successor_by_source[source] = target
 
-    components = {}
-    owner_by_page = {}
-    terminal_pages = {}
-    unseen = set(record_pages)
-    while unseen:
-        first = min(unseen, key=lambda page: node_sort_key(nodes[page]))
-        component_pages = set()
-        pending = [first]
-        while pending:
-            page = pending.pop()
-            if page in component_pages:
-                continue
-            component_pages.add(page)
-            pending.extend(neighbors[page] - component_pages)
-        unseen -= component_pages
-
-        ordered_pages = order_record_component(component_pages, nodes, successors)
-        owner = ordered_pages[0]
-        event = {
-            "overviewPageDates": {},
-            "name": build_component_name(ordered_pages, nodes),
-            "leagueShort": nodes[owner]["leagueShort"],
-            "startDate": min(nodes[page]["startDate"] for page in component_pages),
-            "endDate": max(nodes[page]["endDate"] for page in component_pages),
-        }
-        for page in ordered_pages:
-            node = nodes[page]
-            add_overview_page(event, page, node["startDate"], node["endDate"])
-            owner_by_page[page] = owner
-        components[owner] = event
-        terminal_pages[owner] = {
-            page for page in component_pages if not successors[page]
+    chains = {}
+    visited = set()
+    roots = sorted(record_pages - set(predecessor_by_target))
+    for root in roots:
+        ordered_pages = []
+        page = root
+        while True:
+            if page in visited:
+                raise ValueError(f"Tournament carried_over_from cycle: {page}")
+            visited.add(page)
+            ordered_pages.append(page)
+            successor = successor_by_source.get(page)
+            if successor is None:
+                break
+            page = successor
+        chains[root] = {
+            "pages": ordered_pages,
+            "terminalPage": ordered_pages[-1],
         }
 
-    return {
-        "events": components,
-        "ownerByPage": owner_by_page,
-        "terminalPages": terminal_pages,
-    }
+    cycle_pages = sorted(record_pages - visited)
+    if cycle_pages:
+        raise ValueError(f"Tournament carried_over_from cycle: {', '.join(cycle_pages)}")
+    return chains
 
 
 def create_single_node_event(node: dict) -> dict:
@@ -688,7 +774,7 @@ def create_single_node_event(node: dict) -> dict:
     }
 
 
-def attach_postseason(event: dict, node: dict) -> None:
+def append_node_to_event(event: dict, node: dict) -> None:
     add_overview_page(
         event,
         node["overviewPage"],
@@ -699,78 +785,186 @@ def attach_postseason(event: dict, node: dict) -> None:
     event["endDate"] = max(event["endDate"], node["endDate"])
 
 
-def attach_postseason_nodes(nodes: dict, record_components: dict) -> dict:
-    events = record_components["events"]
+def index_terminal_record_owners(nodes: dict, record_chains: dict) -> dict:
+    owners_by_key = {}
+    for owner, chain in record_chains.items():
+        terminal = nodes[chain["terminalPage"]]
+        if terminal["tabScope"] is None or terminal["split"] is None:
+            continue
+        key = (terminal["tabScope"], terminal["split"])
+        owners_by_key.setdefault(key, set()).add(owner)
+    return owners_by_key
+
+
+def match_postseason_owners(
+    nodes: dict,
+    record_chains: dict,
+    selected_overview_pages: set,
+) -> dict:
+    owners_by_key = index_terminal_record_owners(nodes, record_chains)
+    owner_by_postseason = {}
+    standalone = []
     playoff_pages = sorted(
         (page for page, node in nodes.items() if node["isPlayoffs"]),
         key=lambda page: node_sort_key(nodes[page]),
     )
-    attached = []
-    standalone = []
 
     for page in playoff_pages:
         node = nodes[page]
-        owners = {
-            owner
-            for terminal_page, owner in record_components["ownerByPage"].items()
-            if (
-                terminal_page in record_components["terminalPages"][owner]
-                and nodes[terminal_page]["basePage"]
-                and nodes[terminal_page]["basePage"] == node["basePage"]
-            )
-        }
-        if len(owners) == 1:
-            owner = next(iter(owners))
-            attach_postseason(events[owner], node)
-            attached.append((events[owner]["name"], node["name"]))
-        else:
-            events[page] = create_single_node_event(node)
-            if not node["basePage"]:
-                reason = "BasePage missing"
-            else:
-                reason = (
-                    f"BasePage record components: {len(owners)} "
-                    f"({node['basePage']})"
+        if node["tabScope"] is None:
+            if page in selected_overview_pages:
+                standalone.append((node["name"], "TournamentTabs scope missing"))
+            continue
+        if node["split"] is None:
+            if page in selected_overview_pages:
+                standalone.append((node["name"], "Split missing"))
+            continue
+
+        key = (node["tabScope"], node["split"])
+        owners = owners_by_key.get(key, set())
+        if len(owners) > 1:
+            if page in selected_overview_pages:
+                raise ValueError(
+                    f"Ambiguous postseason owner: {page} | "
+                    f"scope: {node['tabScope']} | split: {node['split']} | "
+                    f"owners: {', '.join(sorted(owners))}"
                 )
-            standalone.append((node["name"], reason))
+            continue
+        if not owners:
+            if page in selected_overview_pages:
+                standalone.append((
+                    node["name"],
+                    f"terminal record chain missing ({node['tabScope']} | {node['split']})",
+                ))
+            continue
+        owner_by_postseason[page] = next(iter(owners))
 
     return {
-        "events": events,
-        "attached": attached,
+        "ownerByPostseason": owner_by_postseason,
         "standalone": standalone,
     }
 
 
-def group_tournament_rows(
-    eligible_rows: list,
-    league_short_map: dict,
-    active_overview_pages: set,
-    carried_over_from: dict,
+def build_record_event(ordered_pages: list, nodes: dict) -> dict:
+    owner = ordered_pages[0]
+    event = {
+        "overviewPageDates": {},
+        "name": build_chain_name(ordered_pages, nodes),
+        "leagueShort": nodes[owner]["leagueShort"],
+        "startDate": min(nodes[page]["startDate"] for page in ordered_pages),
+        "endDate": max(nodes[page]["endDate"] for page in ordered_pages),
+    }
+    for page in ordered_pages:
+        node = nodes[page]
+        add_overview_page(event, page, node["startDate"], node["endDate"])
+    return event
+
+
+def build_grouped_events(
+    nodes: dict,
+    record_chains: dict,
+    postseason_matches: dict,
+    selected_overview_pages: set,
 ) -> dict:
-    node_result = build_tournament_nodes(
-        eligible_rows,
-        league_short_map,
-        active_overview_pages,
+    owner_by_postseason = postseason_matches["ownerByPostseason"]
+    selected_record_owners = {
+        owner
+        for owner, chain in record_chains.items()
+        if selected_overview_pages.intersection(chain["pages"])
+    }
+    selected_record_owners.update(
+        owner
+        for page, owner in owner_by_postseason.items()
+        if page in selected_overview_pages
     )
-    record_components = build_record_components(
-        node_result["nodes"],
-        carried_over_from,
-    )
-    postseason_result = attach_postseason_nodes(
-        node_result["nodes"],
-        record_components,
-    )
+
+    events = {
+        owner: build_record_event(record_chains[owner]["pages"], nodes)
+        for owner in sorted(selected_record_owners)
+    }
+    attached = []
+    for page, owner in sorted(
+        (
+            (page, owner)
+            for page, owner in owner_by_postseason.items()
+            if owner in selected_record_owners
+        ),
+        key=lambda item: node_sort_key(nodes[item[0]]),
+    ):
+        node = nodes[page]
+        append_node_to_event(events[owner], node)
+        attached.append((events[owner]["name"], node["name"]))
+
+    for page in sorted(
+        (
+            page
+            for page, node in nodes.items()
+            if (
+                node["isPlayoffs"]
+                and page in selected_overview_pages
+                and page not in owner_by_postseason
+            )
+        ),
+        key=lambda page: node_sort_key(nodes[page]),
+    ):
+        events[page] = create_single_node_event(nodes[page])
+
+    assigned_pages = {
+        page
+        for event in events.values()
+        for page in event["overviewPageDates"]
+    }
+    expected_pages = selected_overview_pages.intersection(nodes)
+    missing_pages = sorted(expected_pages - assigned_pages)
+    if missing_pages:
+        raise ValueError(f"Tournament pages not grouped: {', '.join(missing_pages)}")
+
     return {
-        "mainEvents": postseason_result["events"],
-        "deferredRows": node_result["deferredRows"],
-        "carriedOverFrom": carried_over_from,
-        "attachedPostseason": postseason_result["attached"],
-        "independentPostseason": postseason_result["standalone"],
+        "events": events,
+        "attached": attached,
+        "standalone": postseason_matches["standalone"],
+        "assignedPages": assigned_pages,
     }
 
 
-def log_group_summary(source_count: int, classification: dict, groups: dict) -> None:
-    deferred_rows = classification["deferredRows"] + groups["deferredRows"]
+def group_tournament_nodes(
+    nodes: dict,
+    selected_overview_pages: set,
+    carried_over_from: dict,
+) -> dict:
+    record_chains = build_record_chains(nodes, carried_over_from)
+    postseason_matches = match_postseason_owners(
+        nodes,
+        record_chains,
+        selected_overview_pages,
+    )
+    grouped_events = build_grouped_events(
+        nodes,
+        record_chains,
+        postseason_matches,
+        selected_overview_pages,
+    )
+    assigned_pages = grouped_events["assignedPages"]
+    relevant_carried_over_from = {
+        target: source
+        for target, source in carried_over_from.items()
+        if target in assigned_pages or source in assigned_pages
+    }
+    return {
+        "mainEvents": grouped_events["events"],
+        "carriedOverFrom": relevant_carried_over_from,
+        "attachedPostseason": grouped_events["attached"],
+        "independentPostseason": grouped_events["standalone"],
+    }
+
+
+def log_group_summary(
+    source_count: int,
+    classification: dict,
+    groups: dict,
+    projection_deferred_rows: list,
+) -> None:
+    deferred_rows = classification["deferredRows"] + projection_deferred_rows
     log("")
     log(f"⚙️ 处理阶段 ({source_count} 条 → {len(groups['mainEvents'])} 条)")
     lines = [f"├─ 🚫 拦截: {classification['blockedCount']} 条"]
@@ -791,7 +985,8 @@ def log_group_summary(source_count: int, classification: dict, groups: dict) -> 
         lines.append("├─ 🔗 战绩继承: 无")
     for event_name, postseason_name in groups["attachedPostseason"]:
         lines.append(
-            f"├─ ✅ 附加季后赛: {event_name} ← {postseason_name} (BasePage)"
+            f"├─ ✅ 附加季后赛: {event_name} ← {postseason_name} "
+            "(TournamentTabs + Split)"
         )
     for postseason_name, reason in groups["independentPostseason"]:
         lines.append(f"├─ 📌 独立季后赛: {postseason_name} | {reason}")
@@ -876,14 +1071,43 @@ def log_active_table(active: list) -> None:
         log("  (无准入赛事)")
 
 
-def attach_transition_team_maps(session, url: str, transition: dict) -> None:
+def collect_required_team_map_pages(
+    nodes: dict,
+    current_date,
+    preheat_days: int,
+) -> set:
+    latest_start = current_date + timedelta(days=preheat_days)
+    return {
+        page
+        for page, node in nodes.items()
+        if node["startDate"] <= latest_start
+    }
+
+
+def attach_transition_team_maps(
+    session,
+    url: str,
+    transition: dict,
+    required_overview_pages: set,
+) -> None:
     archived_slugs = set(transition["archivedSlugs"])
     new_archive_tournaments = [
         tournament
         for tournament in transition["archive"]
         if tournament["slug"] in archived_slugs
     ]
-    attach_team_maps(session, url, transition["active"] + new_archive_tournaments)
+    write_tournaments = transition["active"] + new_archive_tournaments
+    write_pages = {
+        page
+        for tournament in write_tournaments
+        for page in tournament["overviewPage"]
+    }
+    attach_team_maps(
+        session,
+        url,
+        write_tournaments,
+        required_overview_pages.intersection(write_pages),
+    )
 
 
 def build_manifest(old_active: list, transition: dict) -> dict:
@@ -1007,40 +1231,83 @@ def run_tournament_sync():
 
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
-    source_rows = fetch_tournament_source_rows(session, url, old_active)
+    discovery_rows = fetch_tournament_source_rows(session, url, old_active)
     active_overview_pages = {
         page
         for tournament in old_active
         for page in tournament["overviewPage"]
     }
+    discovery_classification = classify_tournament_rows(
+        discovery_rows,
+        active_overview_pages,
+    )
+    selected_overview_pages = {
+        item["title"]["OverviewPage"]
+        for item in discovery_classification["eligibleRows"]
+    }
+    tab_memberships = read_tournament_tab_memberships(
+        session,
+        url,
+        sorted(selected_overview_pages),
+    )
+    discovery_pages = {
+        item["title"]["OverviewPage"]
+        for item in discovery_rows
+    }
+    scope_rows = read_tournament_rows(
+        session,
+        url,
+        sorted(set(tab_memberships["memberPages"]) - discovery_pages),
+    )
+    source_rows = deduplicate_source_rows(discovery_rows + scope_rows)
     classification = classify_tournament_rows(source_rows, active_overview_pages)
     fandom_leagues = collect_fandom_leagues(classification["eligibleRows"])
     league_short_map = read_league_group_short_map(session, url, fandom_leagues) if fandom_leagues else {}
-    eligible_overview_pages = sorted(
-        item["title"]["OverviewPage"]
-        for item in classification["eligibleRows"]
-    )
-    carried_over_from = read_carried_over_relationships(
-        session,
-        url,
-        eligible_overview_pages,
-    )
-    log(f"📥 抓取完成 | 原始: {len(source_rows)} 条 | 耗时: {time.time() - start_time:.1f}s")
-
-    groups = group_tournament_rows(
+    node_result = build_tournament_nodes(
         classification["eligibleRows"],
         league_short_map,
+        tab_memberships["scopeByPage"],
         active_overview_pages,
+    )
+    carried_over_from = read_carried_over_from(
+        session,
+        url,
+        sorted(node_result["nodes"]),
+    )
+    log(
+        f"📥 抓取完成 | 发现: {len(discovery_rows)} 条 | "
+        f"作用域补全: {len(scope_rows)} 条 | 总计: {len(source_rows)} 条 | "
+        f"耗时: {time.time() - start_time:.1f}s"
+    )
+
+    groups = group_tournament_nodes(
+        node_result["nodes"],
+        selected_overview_pages,
         carried_over_from,
     )
-    log_group_summary(len(source_rows), classification, groups)
+    log_group_summary(
+        len(source_rows),
+        classification,
+        groups,
+        node_result["deferredRows"],
+    )
 
     candidates = project_tournament_candidates(groups["mainEvents"])
     transition = resolve_config_transition(old_active, old_archive, candidates)
     log_lifecycle_summary(transition)
     log_active_table(transition["active"])
 
-    attach_transition_team_maps(session, url, transition)
+    required_team_map_pages = collect_required_team_map_pages(
+        node_result["nodes"],
+        today_dt,
+        PREHEAT_DAYS,
+    )
+    attach_transition_team_maps(
+        session,
+        url,
+        transition,
+        required_team_map_pages,
+    )
     assert_configs_disjoint(transition["active"], transition["archive"])
     manifest = build_manifest(old_active, transition)
     write_config(transition["active"], transition["archive"])
