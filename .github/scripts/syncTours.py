@@ -399,32 +399,33 @@ def missing_string_fields(row: dict, fields: tuple) -> list:
     ]
 
 
-def group_tournament_rows(source_rows: list, league_short_map: dict, active_overview_pages: set) -> dict:
-    main_events, playoff_events = {}, []
+def classify_tournament_rows(source_rows: list, active_overview_pages: set) -> dict:
+    eligible_rows = []
     blocked_count = 0
     deferred_rows = []
-    mapped_names = []
 
     for item in source_rows:
-        t = item.get("title")
-        if not isinstance(t, dict):
+        row = item.get("title")
+        if not isinstance(row, dict):
             raise ValueError("Cargo tournament row missing title")
-        ov = t.get("OverviewPage")
-        if not isinstance(ov, str) or not ov:
-            raise ValueError(f"Tournament row identity missing: {t}")
+        overview_page = row.get("OverviewPage")
+        if not isinstance(overview_page, str) or not overview_page:
+            raise ValueError(f"Tournament row identity missing: {row}")
 
-        missing_identity_fields = missing_string_fields(t, ("Name",))
+        missing_identity_fields = missing_string_fields(row, ("Name",))
         if missing_identity_fields:
-            if ov in active_overview_pages:
-                raise ValueError(f"Active tournament row incomplete: {ov} | missing: {', '.join(missing_identity_fields)}")
-            deferred_rows.append({"overviewPage": ov, "missingFields": missing_identity_fields})
+            if overview_page in active_overview_pages:
+                raise ValueError(
+                    f"Active tournament row incomplete: {overview_page} | "
+                    f"missing: {', '.join(missing_identity_fields)}"
+                )
+            deferred_rows.append({"overviewPage": overview_page, "missingFields": missing_identity_fields})
             continue
 
-        name = t["Name"]
-        eligibility = classify_tournament_eligibility(t, REGIONS, WHITELIST, BLACKLIST)
+        eligibility = classify_tournament_eligibility(row, REGIONS, WHITELIST, BLACKLIST)
         if eligibility == "undetermined":
             missing_fields = missing_string_fields(
-                t,
+                row,
                 (
                     "TournamentLevel",
                     "IsQualifier",
@@ -436,13 +437,34 @@ def group_tournament_rows(source_rows: list, league_short_map: dict, active_over
                     "endDate",
                 ),
             )
-            if ov in active_overview_pages:
-                raise ValueError(f"Active tournament row incomplete: {ov} | missing: {', '.join(missing_fields)}")
-            deferred_rows.append({"overviewPage": ov, "missingFields": missing_fields})
+            if overview_page in active_overview_pages:
+                raise ValueError(
+                    f"Active tournament row incomplete: {overview_page} | "
+                    f"missing: {', '.join(missing_fields)}"
+                )
+            deferred_rows.append({"overviewPage": overview_page, "missingFields": missing_fields})
             continue
         if eligibility == "ineligible":
             blocked_count += 1
             continue
+        eligible_rows.append(item)
+
+    return {
+        "eligibleRows": eligible_rows,
+        "blockedCount": blocked_count,
+        "deferredRows": deferred_rows,
+    }
+
+
+def group_tournament_rows(eligible_rows: list, league_short_map: dict, active_overview_pages: set) -> dict:
+    main_events, playoff_events = {}, []
+    deferred_rows = []
+    mapped_names = []
+
+    for item in eligible_rows:
+        t = item["title"]
+        ov = t["OverviewPage"]
+        name = t["Name"]
 
         missing_projection_fields = missing_string_fields(
             t,
@@ -504,22 +526,22 @@ def group_tournament_rows(source_rows: list, league_short_map: dict, active_over
     return {
         "mainEvents": main_events,
         "playoffEvents": playoff_events,
-        "blockedCount": blocked_count,
         "deferredRows": deferred_rows,
         "mappedNames": mapped_names,
     }
 
 
-def log_group_summary(source_count: int, groups: dict) -> None:
+def log_group_summary(source_count: int, classification: dict, groups: dict) -> None:
     main_events = groups["mainEvents"]
     playoff_events = groups["playoffEvents"]
+    deferred_rows = classification["deferredRows"] + groups["deferredRows"]
     total_after = len(main_events) + len(playoff_events)
     log("")
     log(f"⚙️ 处理阶段 ({source_count} 条 → {total_after} 条)")
-    lines = [f"├─ 🚫 拦截: {groups['blockedCount']} 条"]
-    if groups["deferredRows"]:
-        lines.append(f"├─ ⏳ 待完善: {len(groups['deferredRows'])} 条")
-        for row in groups["deferredRows"]:
+    lines = [f"├─ 🚫 拦截: {classification['blockedCount']} 条"]
+    if deferred_rows:
+        lines.append(f"├─ ⏳ 待完善: {len(deferred_rows)} 条")
+        for row in deferred_rows:
             lines.append(f"│  └─ {row['overviewPage']} | missing: {', '.join(row['missingFields'])}")
     else:
         lines.append("├─ ⏳ 待完善: 无")
@@ -793,17 +815,18 @@ def run_tournament_sync():
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
     source_rows = fetch_tournament_source_rows(session, url, old_active)
-    fandom_leagues = collect_fandom_leagues(source_rows)
-    league_short_map = read_league_group_short_map(session, url, fandom_leagues) if fandom_leagues else {}
-    log(f"📥 抓取完成 | 原始: {len(source_rows)} 条 | 耗时: {time.time() - start_time:.1f}s")
-
     active_overview_pages = {
         page
         for tournament in old_active
         for page in tournament["overviewPage"]
     }
-    groups = group_tournament_rows(source_rows, league_short_map, active_overview_pages)
-    log_group_summary(len(source_rows), groups)
+    classification = classify_tournament_rows(source_rows, active_overview_pages)
+    fandom_leagues = collect_fandom_leagues(classification["eligibleRows"])
+    league_short_map = read_league_group_short_map(session, url, fandom_leagues) if fandom_leagues else {}
+    log(f"📥 抓取完成 | 原始: {len(source_rows)} 条 | 耗时: {time.time() - start_time:.1f}s")
+
+    groups = group_tournament_rows(classification["eligibleRows"], league_short_map, active_overview_pages)
+    log_group_summary(len(source_rows), classification, groups)
     playoff_result = merge_playoff_events(groups["mainEvents"], groups["playoffEvents"])
     log_playoff_summary(len(groups["playoffEvents"]), playoff_result)
 
