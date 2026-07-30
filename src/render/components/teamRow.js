@@ -5,7 +5,7 @@ import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 import { escapeHtml, escapeJsArg } from '../../utils/htmlEscape.js';
 
-export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta) {
+export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta, showGroupMark) {
   validateTurnaroundStats(teamStats);
   const bo3Rate = rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount);
   const bo5Rate = rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount);
@@ -27,6 +27,7 @@ export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta) {
   const scopeArgument = escapeJsArg(statisticsScope);
   const teamNameArgument = escapeJsArg(teamStats.name);
   const safeDisplayName = escapeHtml(teamStats.name);
+  const groupMark = showGroupMark ? `<span class="team-group-row-mark" aria-hidden="true"></span>` : "";
 
   const getClass = (baseClass, count) => count > 0 ? `${baseClass} team-clickable` : baseClass;
   const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${slugArgument}, ${scopeArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
@@ -53,7 +54,7 @@ export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta) {
   const lastStyle = teamStats.last ? `style="color:${lastMatchColor}"` : "";
   const streakEmpty = teamStats.winStreakCount === 0 && teamStats.lossStreakCount === 0;
   const streakClass = streakEmpty ? "col-streak is-empty-stat" : "col-streak";
-  return `<tr><td class="team-col team-clickable" onclick="openTeam(${teamNameArgument})">${safeDisplayName}</td>` +
+  return `<tr><td class="team-col team-clickable" onclick="openTeam(${teamNameArgument})">${groupMark}${safeDisplayName}</td>` +
     `<td class="${getClass('col-bo3', teamStats.bestOf3TotalMatchCount)} metric-record${emptyClass(teamStats.bestOf3TotalMatchCount)}" ${getClickHandler('bo3', teamStats.bestOf3TotalMatchCount)}>${bo3Text}</td>` +
     `<td class="col-bo3-pct metric-rate rate-cell" data-bayes-tie="${bo3BayesTieBreakRate}" data-sample-size="${teamStats.bestOf3TotalMatchCount || 0}" ${percentStyle(bo3Rate, true)}>${pct(bo3Rate)}</td>` +
     `<td class="${getClass('col-bo5', teamStats.bestOf5TotalMatchCount)} metric-record${emptyClass(teamStats.bestOf5TotalMatchCount)}" ${getClickHandler('bo5', teamStats.bestOf5TotalMatchCount)}>${bo5Text}</td>` +

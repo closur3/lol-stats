@@ -4,14 +4,16 @@ const columnTeam=0, columnBo3=1, columnBo3Percent=2, columnBo5=3, columnBo5Perce
 
 function doSort(columnIndex, tableId) {
     const table = document.getElementById(tableId);
-    const tbody = table.tBodies[0];
-    const rows = Array.from(tbody.rows);
+    const rowGroups = Array.from(table.tBodies, tbody => ({
+        tbody,
+        rows: Array.from(tbody.rows)
+    }));
     const sortDirKey = 'data-sort-dir-' + columnIndex;
     const currentDir = table.getAttribute(sortDirKey);
     const defaultAscCols = [columnTeam, columnBo3Percent, columnBo5Percent, columnSeriesTrailedPercent, columnSeriesLedPercent];
     const nextDir = (!currentDir) ? (defaultAscCols.includes(columnIndex) ? 'asc' : 'desc') : (currentDir === 'desc' ? 'asc' : 'desc');
 
-    rows.sort((rowA, rowB) => {
+    const compareRows = (rowA, rowB) => {
         const rawA = (rowA.cells[columnIndex].innerText || "").replace(/\\s+/g, "");
         const rawB = (rowB.cells[columnIndex].innerText || "").replace(/\\s+/g, "");
         const isMissingA = rawA === "-";
@@ -113,10 +115,13 @@ function doSort(columnIndex, tableId) {
             if (netA !== netB) return netB - netA;
         }
         return compareTeamName();
-    });
+    };
 
     table.setAttribute(sortDirKey, nextDir);
-    rows.forEach(row => tbody.appendChild(row));
+    rowGroups.forEach(({ tbody, rows }) => {
+        rows.sort(compareRows);
+        rows.forEach(row => tbody.appendChild(row));
+    });
 }
 
 function parseValue(value) {

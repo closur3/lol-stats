@@ -36,37 +36,53 @@ function normalizeId(value) {
   return String(value).replace(/[^A-Za-z0-9_-]/g, '_');
 }
 
-function buildTournamentTable(tournament, stats, scope, tableSuffix) {
+function renderStatisticsBody(tournament, section, scope, sectionIndex) {
+  const sortMeta = buildSortMeta(section.stats);
+  const rows = section.stats
+    .map(teamStats => renderTeamRow(teamStats, tournament.slug, scope, sortMeta, Boolean(section.groupDisplay)))
+    .join("");
+  if (!section.groupDisplay) return `<tbody>${rows}</tbody>`;
+  return `<tbody class="stats-group-body stats-group-color-${sectionIndex % 4}">${rows}</tbody>`;
+}
+
+function buildTournamentTable(tournament, sections, scope, tableSuffix) {
   const tableId = `t_${normalizeId(tournament.slug)}_${normalizeId(tableSuffix)}`;
-  const sortMeta = buildSortMeta(stats);
-  const rows = stats.map(teamStats => renderTeamRow(teamStats, tournament.slug, scope, sortMeta)).join("");
+  const bodies = sections
+    .map((section, sectionIndex) => renderStatisticsBody(tournament, section, scope, sectionIndex))
+    .join("");
   const columnWidths = `<colgroup><col class="width-team"><col span="12" class="width-stat"><col class="width-streak"><col class="width-last"></colgroup>`;
-  return `<table id="${tableId}" class="stats-table" data-sort-col="2" data-sort-dir-2="asc">${columnWidths}<thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th colspan="2" onclick="doSort(10, '${tableId}')">COME BACK</th><th colspan="2" onclick="doSort(12, '${tableId}')">LOST LEAD</th><th class="col-streak" onclick="doSort(13, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(14, '${tableId}')">LAST DATE</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table id="${tableId}" class="stats-table" data-sort-col="2" data-sort-dir-2="asc">${columnWidths}<thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th colspan="2" onclick="doSort(10, '${tableId}')">COME BACK</th><th colspan="2" onclick="doSort(12, '${tableId}')">LOST LEAD</th><th class="col-streak" onclick="doSort(13, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(14, '${tableId}')">LAST DATE</th></tr></thead>${bodies}</table>`;
+}
+
+function readStatisticsSections(page) {
+  const visibleStats = sortTeams(page.stats);
+  if (visibleStats.length === 0) return [];
+  if (page.groups.length === 0) {
+    return [{ groupDisplay: null, stats: visibleStats }];
+  }
+
+  return page.groups.flatMap(group => {
+    const groupTeams = new Set(group.teams);
+    const groupStats = visibleStats.filter(teamStats => groupTeams.has(teamStats.name));
+    return groupStats.length === 0
+      ? []
+      : [{ groupDisplay: group.groupDisplay, stats: groupStats }];
+  });
+}
+
+function renderGroupLegend(page) {
+  const sections = readStatisticsSections(page).filter(section => section.groupDisplay);
+  if (sections.length === 0) return "";
+  const entries = sections.map((section, sectionIndex) => (
+    `<span class="stats-group-legend-item stats-group-color-${sectionIndex % 4}"><span class="stats-group-legend-mark" aria-hidden="true"></span><span class="stats-group-legend-name">${escapeHtml(section.groupDisplay)}</span><span class="stats-group-legend-count" aria-label="${section.stats.length} teams">${section.stats.length}</span></span>`
+  )).join("");
+  return `<div class="stats-group-legend" aria-label="Participant groups">${entries}</div>`;
 }
 
 function renderStatisticsView(tournament, page, tablePrefix) {
-  const visibleStats = sortTeams(page.stats);
-  if (visibleStats.length === 0) {
-    return `<div class="stats-view-empty">NO SCHEDULED TEAMS</div>`;
-  }
-  if (page.groups.length === 0) {
-    return buildTournamentTable(tournament, visibleStats, page.overviewPage, tablePrefix);
-  }
-
-  const groupBlocks = page.groups.map((group, groupIndex) => {
-    const groupTeams = new Set(group.teams);
-    const groupStats = visibleStats.filter(teamStats => groupTeams.has(teamStats.name));
-    if (groupStats.length === 0) return "";
-    const table = buildTournamentTable(
-      tournament,
-      groupStats,
-      page.overviewPage,
-      `${tablePrefix}_g${groupIndex}`
-    );
-    return `<section class="stats-group-block"><div class="stats-group-heading"><span class="stats-group-mark" aria-hidden="true"></span><span class="stats-heading-name">${escapeHtml(group.groupDisplay)}</span><span class="stats-heading-count">${groupStats.length} TEAMS</span></div>${table}</section>`;
-  }).join("");
-  return groupBlocks
-    ? `<div class="stats-group-list">${groupBlocks}</div>`
+  const sections = readStatisticsSections(page);
+  return sections.length > 0
+    ? buildTournamentTable(tournament, sections, page.overviewPage, tablePrefix)
     : `<div class="stats-view-empty">NO SCHEDULED TEAMS</div>`;
 }
 
@@ -78,10 +94,12 @@ function readOverviewPageLabel(overviewPage) {
 function renderPageStatistics(tournament, page, pageIndex) {
   const pageUrl = `https://lol.fandom.com/wiki/${page.overviewPage}`;
   const pageTitle = readOverviewPageLabel(page.overviewPage);
-  const teamCount = sortTeams(page.stats).length;
   const pageNumber = String(pageIndex + 1).padStart(2, "0");
+  const groupLegend = renderGroupLegend(page);
   const jumpButton = `<a class="stats-page-jump" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(pageTitle)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
-  return `<section class="stats-page-block"><div class="stats-page-heading"><span class="stats-page-index">${pageNumber}</span><span class="stats-heading-name">${escapeHtml(pageTitle)}</span>${jumpButton}<span class="stats-heading-count">${teamCount} TEAMS</span></div>${renderStatisticsView(tournament, page, `p${pageIndex}`)}</section>`;
+  const headingLeft = `<div class="stats-page-title-row"><span class="stats-page-index">${pageNumber}</span><span class="stats-heading-name">${escapeHtml(pageTitle)}</span>${jumpButton}</div>`;
+  const headingRight = `<div class="stats-page-heading-meta">${groupLegend}</div>`;
+  return `<section class="stats-page-block"><div class="stats-page-heading">${headingLeft}${headingRight}</div>${renderStatisticsView(tournament, page, `p${pageIndex}`)}</section>`;
 }
 
 function assertStatistics(tournament, statistics) {
@@ -108,23 +126,54 @@ function assertStatistics(tournament, statistics) {
   });
 }
 
+function renderStatisticsControls(rootId) {
+  const rootIdArgument = escapeJsArg(rootId);
+  const stopSummaryToggle = "event.preventDefault(); event.stopPropagation();";
+  return `<div class="statistics-toolbar"><div class="statistics-switch" role="group" aria-label="Statistics view"><button type="button" class="statistics-switch-option is-active" data-statistics-target="combined" aria-pressed="true" onclick="${stopSummaryToggle} setStatisticsView(${rootIdArgument}, 'combined')">MERGED</button><button type="button" class="statistics-switch-option" data-statistics-target="separated" aria-pressed="false" onclick="${stopSummaryToggle} setStatisticsView(${rootIdArgument}, 'separated')">SPLIT</button></div></div>`;
+}
+
 function renderStatistics(tournament, statistics) {
   assertStatistics(tournament, statistics);
   if (statistics.pages.length === 1) {
-    return renderStatisticsView(tournament, statistics.pages[0], "single");
+    return {
+      content: renderStatisticsView(tournament, statistics.pages[0], "single"),
+      controls: "",
+      legend: renderGroupLegend(statistics.pages[0]),
+      rootId: null
+    };
+  }
+
+  const combined = renderStatisticsView(
+    tournament,
+    { overviewPage: "combined", groups: [], stats: statistics.combined },
+    "combined"
+  );
+  const visiblePages = statistics.pages
+    .map((page, index) => ({ page, index }))
+    .filter(({ page }) => sortTeams(page.stats).length > 0);
+  if (visiblePages.length < 2) {
+    const visiblePage = visiblePages[0]?.page;
+    return visiblePage
+      ? {
+          content: renderStatisticsView(tournament, visiblePage, "single"),
+          controls: "",
+          legend: renderGroupLegend(visiblePage),
+          rootId: null
+        }
+      : { content: combined, controls: "", legend: "", rootId: null };
   }
 
   const rootId = `statistics_${normalizeId(tournament.slug)}`;
-  const rootIdArgument = escapeJsArg(rootId);
-  const combinedStats = sortTeams(statistics.combined);
-  const combined = buildTournamentTable(tournament, combinedStats, "combined", "combined");
-  const separated = statistics.pages
-    .map((page, index) => renderPageStatistics(tournament, page, index))
+  const separated = visiblePages
+    .reverse()
+    .map(({ page, index }) => renderPageStatistics(tournament, page, index))
     .join("");
-  const mergedIcon = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 7h12M6 3v10"/></svg>`;
-  const splitIcon = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3" width="5.5" height="10" rx="1.5"/><rect x="9" y="3" width="5.5" height="10" rx="1.5"/></svg>`;
-  const toolbar = `<div class="statistics-toolbar"><span class="statistics-toolbar-label">TABLE VIEW</span><div class="statistics-switch" role="group" aria-label="Statistics view"><button type="button" class="statistics-switch-option is-active" data-statistics-target="combined" aria-pressed="true" onclick="setStatisticsView(${rootIdArgument}, 'combined')">${mergedIcon}<span>MERGED</span></button><button type="button" class="statistics-switch-option" data-statistics-target="separated" aria-pressed="false" onclick="setStatisticsView(${rootIdArgument}, 'separated')">${splitIcon}<span>SPLIT</span></button></div><span class="statistics-toolbar-meta">${statistics.pages.length} SOURCE PAGES</span></div>`;
-  return `<div id="${rootId}" class="statistics-root" data-statistics-view="combined">${toolbar}<div class="statistics-view" data-statistics-mode="combined">${combined}</div><div class="statistics-view is-hidden" data-statistics-mode="separated" aria-hidden="true"><div class="stats-page-list">${separated}</div></div></div>`;
+  return {
+    content: `<div class="statistics-view" data-statistics-mode="combined">${combined}</div><div class="statistics-view is-hidden" data-statistics-mode="separated" aria-hidden="true"><div class="stats-page-list">${separated}</div></div>`,
+    controls: renderStatisticsControls(rootId),
+    legend: "",
+    rootId
+  };
 }
 
 export function renderTournamentSection(tournament, statisticsBySlug, timeGridBySlug, scheduleSessionsBySlug, isArchive) {
@@ -137,7 +186,7 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
   }
   const combinedStats = sortTeams(statistics.combined);
   const summaryHtml = renderTournamentSummary(combinedStats);
-  const statisticsHtml = renderStatistics(tournament, statistics);
+  const statisticsLayout = renderStatistics(tournament, statistics);
   const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveHome"}_${tournament.slug}`;
   const timeTableHtml = renderTimeTable(tournamentTimeGrid, artifactKey);
 
@@ -151,13 +200,19 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
   const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
   const jumpBtn = `<a class="tournament-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
-  const headerRight = `<div class="title-right-area">${summaryHtml}</div>`;
-  const sectionBody = `<div class="wrapper">${statisticsHtml}${timeTableHtml}</div>`;
+  const headerDetails = `${statisticsLayout.controls}${statisticsLayout.legend}`;
+  const headerStatistics = `<div class="statistics-heading-meta">${summaryHtml}${headerDetails}</div>`;
+  const headerRight = `<div class="title-right-area">${headerStatistics}</div>`;
+  const sectionBody = `<div class="wrapper">${statisticsLayout.content}${timeTableHtml}</div>`;
+  const statisticsRoot = statisticsLayout.rootId
+    ? ` id="${statisticsLayout.rootId}" data-statistics-view="combined"`
+    : "";
+  const detailsClass = statisticsLayout.rootId ? "home-sec statistics-root" : "home-sec";
 
   if (isArchive) {
-    return `<details class="home-sec"><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary>${sectionBody}</details>`;
+    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary>${sectionBody}</details>`;
   }
 
   const openAttr = phase === "offday" ? "" : " open";
-  return `<details class="home-sec"${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${jumpBtn}</div> ${headerRight}</summary>${sectionBody}</details>`;
+  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${jumpBtn}</div> ${headerRight}</summary>${sectionBody}</details>`;
 }
