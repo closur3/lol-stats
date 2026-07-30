@@ -51,8 +51,8 @@ export default `${baseCSS}
     .statistics-heading-meta .statistics-switch { width: auto; gap: 12px; }
     .statistics-heading-meta .statistics-switch-option { min-height: 18px; }
     .stats-group-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; }
-    .stats-group-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: 0.025em; line-height: 1; }
-    .stats-group-legend-name { min-width: 0; padding-right: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .stats-group-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: 0.025em; line-height: normal; }
+    .stats-group-legend-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .stats-group-legend-count { color: #94a3b8; font-size: 8px; font-variant-numeric: tabular-nums; }
     .stats-group-legend-count::before { content: "·"; margin-right: 4px; color: #cbd5e1; }
     .stats-group-legend-mark, .team-group-row-mark { display: inline-block; flex: 0 0 auto; border-radius: 50%; background: var(--stats-group-color); }
@@ -70,7 +70,6 @@ export default `${baseCSS}
     .stats-page-title-row { display: flex; align-items: center; gap: 9px; min-width: 0; }
     .stats-page-heading-meta { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
     .stats-page-heading-meta .stats-group-legend { flex-wrap: nowrap; justify-content: flex-end; }
-    .stats-page-heading-meta .stats-group-legend-name { overflow: hidden; text-overflow: ellipsis; }
     .stats-heading-name { font-size: 11px; font-weight: 800; letter-spacing: 0.025em; }
     .stats-page-heading { min-height: 44px; padding: 0 14px; background: linear-gradient(90deg, #eaf2fb 0%, #f5f8fc 70%); }
     .stats-page-index { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 22px; border-radius: 5px; background: #1d4ed8; color: #ffffff; font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 2px 5px rgba(29, 78, 216, 0.2); }
@@ -181,11 +180,11 @@ export default `${baseCSS}
         .statistics-heading-meta .stats-group-legend { flex: 0 1 auto; max-width: 100%; margin-left: 0; padding-left: 0; border-left: 0; }
         .statistics-heading-meta .stats-group-legend { justify-content: flex-end; }
         .statistics-heading-meta .statistics-switch-option { min-height: 26px; padding: 0 3px; }
-        .stats-page-heading { flex-wrap: wrap; gap: 0; min-height: 0; padding: 0; }
+        .stats-page-heading { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; justify-content: stretch; align-content: start; gap: 0; min-height: 0; height: auto; padding: 0; overflow: visible; }
         .stats-page-title-row { width: 100%; min-height: 40px; padding: 0 15px; box-sizing: border-box; gap: 6px; }
         .stats-page-heading-meta { width: 100%; min-height: 32px; padding: 0 15px; box-sizing: border-box; border-top: 1px dashed #dbe3ec; }
         .stats-page-heading-meta:empty { display: none; }
-        .stats-page-heading-meta .stats-group-legend { width: 100%; flex-wrap: nowrap; justify-content: flex-end; overflow: hidden; }
+        .stats-page-heading-meta .stats-group-legend { width: 100%; flex-wrap: nowrap; justify-content: flex-end; overflow: visible; }
         .stats-page-heading-meta .stats-group-legend-item { flex: 0 1 auto; min-width: 0; }
         .time-box-select { width: 66px; }
         .floating-actions { position: fixed; top: auto; right: auto; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); flex-direction: row; gap: 6px; padding: 5px; border-radius: var(--radius-card); }
