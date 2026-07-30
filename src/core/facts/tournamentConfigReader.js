@@ -1,9 +1,10 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { assertTeamMap } from "../../utils/data/teamMaps.js";
+import { assertParticipantGroups } from "../../utils/data/participantGroups.js";
 import { assertTournamentConfigDigest, calculateTournamentConfigDigest } from "./tournamentConfigDigest.js";
 
 const TournamentConfigFields = ["configDigest", "active", "archive"];
-const TournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate", "teamMap"];
+const TournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate", "teamMap", "participantGroups"];
 const DatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function isDate(value) {
@@ -41,6 +42,7 @@ function normalizeTournament(configName, tournament) {
     throw new Error(`Invalid ${configName} date range: ${slug}`);
   }
 
+  const teamMap = assertTeamMap(tournament.teamMap, `${configName}.${slug}.teamMap`);
   return {
     slug,
     name,
@@ -48,7 +50,13 @@ function normalizeTournament(configName, tournament) {
     overviewPage,
     startDate,
     endDate,
-    teamMap: assertTeamMap(tournament.teamMap, `${configName}.${slug}.teamMap`)
+    teamMap,
+    participantGroups: assertParticipantGroups(
+      tournament.participantGroups,
+      overviewPage,
+      teamMap,
+      `${configName}.${slug}.participantGroups`
+    )
   };
 }
 

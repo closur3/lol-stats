@@ -8,7 +8,8 @@ function canonicalTournament(tournament) {
     overviewPage: tournament.overviewPage,
     startDate: tournament.startDate,
     endDate: tournament.endDate,
-    teamMap: Object.fromEntries(Object.entries(tournament.teamMap).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0))
+    teamMap: Object.fromEntries(Object.entries(tournament.teamMap).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)),
+    participantGroups: tournament.participantGroups
   };
 }
 

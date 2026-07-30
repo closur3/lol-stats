@@ -2,7 +2,7 @@ import { escapeHtml } from '../../../utils/htmlEscape.js';
 import { timePolicy } from '../../../utils/timePolicy.js';
 import { renderScheduleRow } from '../../components/scheduleRow.js';
 
-export function renderScheduleSection(scheduleMap, globalStats) {
+export function renderScheduleSection(scheduleMap, combinedStatsBySlug) {
   const dates = Object.keys(scheduleMap).sort();
   if (dates.length === 0) return `<div class="sch-empty">NO FUTURE MATCHES SCHEDULED</div>`;
 
@@ -22,7 +22,7 @@ export function renderScheduleSection(scheduleMap, globalStats) {
         cardHtml += `<div class="sch-group-header"><div class="spine-row sch-group-row"><span class="spine-l sch-group-name">${escapeHtml(match.leagueShort)}</span>${blockHtml}</div></div>`;
         lastGroupKey = groupKey;
       }
-      cardHtml += renderScheduleRow(match, globalStats);
+      cardHtml += renderScheduleRow(match, combinedStatsBySlug);
     });
 
     cardHtml += `</div></div>`;

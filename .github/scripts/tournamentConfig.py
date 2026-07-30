@@ -12,6 +12,7 @@ TOURNAMENT_FIELDS = (
     "startDate",
     "endDate",
     "teamMap",
+    "participantGroups",
 )
 CONFIG_DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 

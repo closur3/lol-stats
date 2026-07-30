@@ -1,12 +1,23 @@
 export const modalHistory = `
-function requireModalTeamStats(slug, teamName) {
-    const tournamentStats = window.gStats && window.gStats[slug];
-    if (!tournamentStats || !tournamentStats[teamName]) {
-        throw new Error('Team stats missing: ' + slug + ':' + teamName);
+function requireModalTeamStats(slug, statisticsScope, teamName) {
+    const statistics = window.tournamentStatistics && window.tournamentStatistics[slug];
+    if (!statistics || !statistics.combined || !Array.isArray(statistics.pages)) {
+        throw new Error('Tournament statistics missing: ' + slug);
     }
-    const teamStats = tournamentStats[teamName];
+    let scopedStats;
+    if (statisticsScope === 'combined') {
+        scopedStats = statistics.combined;
+    } else {
+        const page = statistics.pages.find(item => item.overviewPage === statisticsScope);
+        if (!page || !page.stats) throw new Error('Tournament statistics scope missing: ' + slug + ':' + statisticsScope);
+        scopedStats = page.stats;
+    }
+    if (!scopedStats[teamName]) {
+        throw new Error('Team stats missing: ' + slug + ':' + statisticsScope + ':' + teamName);
+    }
+    const teamStats = scopedStats[teamName];
     if (!Array.isArray(teamStats.history)) {
-        throw new Error('Team history missing: ' + slug + ':' + teamName);
+        throw new Error('Team history missing: ' + slug + ':' + statisticsScope + ':' + teamName);
     }
     return teamStats;
 }
@@ -260,8 +271,8 @@ function formatHistoryRecord(history, label) {
     return formatStatsRecord(wins, history.length, label);
 }
 
-function openStats(slug, teamName, type) {
-    const teamStats = requireModalTeamStats(slug, teamName);
+function openStats(slug, statisticsScope, teamName, type) {
+    const teamStats = requireModalTeamStats(slug, statisticsScope, teamName);
     const finishedHistory = teamStats.history.filter(isFinishedHistoryMatch);
     let historyByType;
     let statLabel;

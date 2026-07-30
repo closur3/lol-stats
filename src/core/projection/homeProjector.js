@@ -17,20 +17,21 @@ function buildHomeSnapshot(tournament, analysis) {
   const slug = tournament.slug;
   const tournamentStored = { ...tournament };
   delete tournamentStored.teamMap;
+  delete tournamentStored.participantGroups;
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) throw new Error("analysis must be a JSON object");
-  if (!analysis.globalStats || typeof analysis.globalStats !== "object" || Array.isArray(analysis.globalStats)) {
-    throw new Error("analysis.globalStats must be a JSON object");
+  if (!analysis.statisticsBySlug || typeof analysis.statisticsBySlug !== "object" || Array.isArray(analysis.statisticsBySlug)) {
+    throw new Error("analysis.statisticsBySlug must be a JSON object");
   }
   if (!analysis.timeGrid || typeof analysis.timeGrid !== "object" || Array.isArray(analysis.timeGrid)) {
     throw new Error("analysis.timeGrid must be a JSON object");
   }
-  const stats = analysis.globalStats[slug];
+  const statistics = analysis.statisticsBySlug[slug];
   const timeGrid = analysis.timeGrid[slug];
-  if (!stats || typeof stats !== "object" || Array.isArray(stats)) throw new Error(`analysis.globalStats missing: ${slug}`);
+  if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) throw new Error(`analysis.statisticsBySlug missing: ${slug}`);
   if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) throw new Error(`analysis.timeGrid missing: ${slug}`);
   return {
     tournament: tournamentStored,
-    stats,
+    statistics,
     timeGrid
   };
 }

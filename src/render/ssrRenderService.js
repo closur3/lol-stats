@@ -59,7 +59,7 @@ export async function renderHomeFromFacts(env) {
   const modalHistory = modalInspection.history;
 
   const homeFragment = renderContentFragment(
-    renderInput.globalStats,
+    renderInput.statisticsBySlug,
     renderInput.timeGrid,
     scheduleMap,
     renderInput.tournaments,
@@ -93,14 +93,14 @@ export async function renderArchiveFromFacts(env) {
   ];
   throwIfArtifactsUnavailable("archive snapshots", archiveIssues);
 
-  const globalStats = {};
+  const statisticsBySlug = {};
   const timeGridBySlug = {};
   for (const snapshot of archiveSnapshots) {
     const snapshotTournament = snapshot.tournament;
-    globalStats[snapshotTournament.slug] = snapshot.stats;
+    statisticsBySlug[snapshotTournament.slug] = snapshot.statistics;
     timeGridBySlug[snapshotTournament.slug] = snapshot.timeGrid;
   }
-  const combined = renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments, modalInspection.history);
+  const combined = renderArchiveContentFragment(statisticsBySlug, timeGridBySlug, tournaments, modalInspection.history);
 
   const hasActiveCron = await readHasActiveCron(env);
   return renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, hasActiveCron);

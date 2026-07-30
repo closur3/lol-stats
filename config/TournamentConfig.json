@@ -1,5 +1,5 @@
 {
-    "configDigest": "17c7237bb73d44b2ce74afa3fed0a2a03deffa374caae3bac99ef5928ba99451",
+    "configDigest": "7937158572be9c74cb9cf89c33cfc8abedef80d78775497c3137bab7f4d6559d",
     "active": [
         {
             "slug": "lpl-2026-split-3",
@@ -23,7 +23,33 @@
                 "ThunderTalk Gaming": "TT",
                 "Top Esports": "TES",
                 "Weibo Gaming": "WBG"
-            }
+            },
+            "participantGroups": [
+                {
+                    "overviewPage": "LPL/2026 Season/Split 3",
+                    "groupDisplay": "Group Ascend",
+                    "teams": [
+                        "Anyone's Legend",
+                        "Bilibili Gaming",
+                        "EDward Gaming",
+                        "JD Gaming",
+                        "LGD Gaming",
+                        "Team WE",
+                        "ThunderTalk Gaming",
+                        "Top Esports"
+                    ]
+                },
+                {
+                    "overviewPage": "LPL/2026 Season/Split 3",
+                    "groupDisplay": "Group Nirvana",
+                    "teams": [
+                        "Invictus Gaming",
+                        "LNG Esports",
+                        "Ninjas in Pyjamas.CN",
+                        "Weibo Gaming"
+                    ]
+                }
+            ]
         },
         {
             "slug": "kespa-cup-2026",
@@ -45,7 +71,8 @@
                 "Kiwoom DRX": "KRX",
                 "Nongshim RedForce": "NS",
                 "T1": "T1"
-            }
+            },
+            "participantGroups": []
         },
         {
             "slug": "lck-2026-rounds-1-2-3-4",
@@ -70,7 +97,31 @@
                 "Kiwoom DRX": "KRX",
                 "Nongshim RedForce": "NS",
                 "T1": "T1"
-            }
+            },
+            "participantGroups": [
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
+                    "groupDisplay": "Legend",
+                    "teams": [
+                        "Dplus Kia",
+                        "Gen.G",
+                        "Hanwha Life Esports",
+                        "KT Rolster",
+                        "T1"
+                    ]
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
+                    "groupDisplay": "Rise",
+                    "teams": [
+                        "BNK FEARX",
+                        "DN SOOPers",
+                        "HANJIN BRION",
+                        "Kiwoom DRX",
+                        "Nongshim RedForce"
+                    ]
+                }
+            ]
         }
     ],
     "archive": [
@@ -100,7 +151,8 @@
                 "Sentinels": "SEN",
                 "T1": "T1",
                 "Team Secret (Vietnamese Team)": "TS"
-            }
+            },
+            "participantGroups": []
         },
         {
             "slug": "msi-2026",
@@ -123,7 +175,8 @@
                 "Team Liquid": "TL",
                 "Team Secret Whales": "TSW",
                 "Top Esports": "TES"
-            }
+            },
+            "participantGroups": []
         },
         {
             "slug": "lck-2026-road-to-msi",
@@ -141,7 +194,8 @@
                 "Hanwha Life Esports": "HLE",
                 "KT Rolster": "KT",
                 "T1": "T1"
-            }
+            },
+            "participantGroups": []
         },
         {
             "slug": "lpl-2026-split-2",
@@ -168,7 +222,35 @@
                 "Top Esports": "TES",
                 "Ultra Prime": "UP",
                 "Weibo Gaming": "WBG"
-            }
+            },
+            "participantGroups": [
+                {
+                    "overviewPage": "LPL/2026 Season/Split 2",
+                    "groupDisplay": "Group Ascend",
+                    "teams": [
+                        "Anyone's Legend",
+                        "Bilibili Gaming",
+                        "Invictus Gaming",
+                        "JD Gaming",
+                        "Ninjas in Pyjamas.CN",
+                        "Team WE",
+                        "Top Esports",
+                        "Weibo Gaming"
+                    ]
+                },
+                {
+                    "overviewPage": "LPL/2026 Season/Split 2",
+                    "groupDisplay": "Group Nirvana",
+                    "teams": [
+                        "EDward Gaming",
+                        "LGD Gaming",
+                        "LNG Esports",
+                        "Oh My God",
+                        "ThunderTalk Gaming",
+                        "Ultra Prime"
+                    ]
+                }
+            ]
         },
         {
             "slug": "first-stand-2026",
@@ -188,7 +270,8 @@
                 "LOUD": "LOUD",
                 "LYON (2024 American Team)": "LYON",
                 "Team Secret Whales": "TSW"
-            }
+            },
+            "participantGroups": []
         },
         {
             "slug": "lpl-2026-split-1",
@@ -215,7 +298,41 @@
                 "Top Esports": "TES",
                 "Ultra Prime": "UP",
                 "Weibo Gaming": "WBG"
-            }
+            },
+            "participantGroups": [
+                {
+                    "overviewPage": "LPL/2026 Season/Split 1",
+                    "groupDisplay": "Group Ascend",
+                    "teams": [
+                        "Anyone's Legend",
+                        "Bilibili Gaming",
+                        "Invictus Gaming",
+                        "JD Gaming",
+                        "Top Esports",
+                        "Weibo Gaming"
+                    ]
+                },
+                {
+                    "overviewPage": "LPL/2026 Season/Split 1",
+                    "groupDisplay": "Group Perseverance",
+                    "teams": [
+                        "EDward Gaming",
+                        "Ninjas in Pyjamas.CN",
+                        "Team WE",
+                        "ThunderTalk Gaming"
+                    ]
+                },
+                {
+                    "overviewPage": "LPL/2026 Season/Split 1",
+                    "groupDisplay": "Group Nirvana",
+                    "teams": [
+                        "LGD Gaming",
+                        "LNG Esports",
+                        "Oh My God",
+                        "Ultra Prime"
+                    ]
+                }
+            ]
         },
         {
             "slug": "lck-cup-2026",
@@ -237,7 +354,8 @@
                 "KT Rolster": "KT",
                 "Nongshim RedForce": "NS",
                 "T1": "T1"
-            }
+            },
+            "participantGroups": []
         }
     ]
 }

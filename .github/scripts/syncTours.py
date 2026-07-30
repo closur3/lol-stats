@@ -1,8 +1,10 @@
 import json
 import os
 import random
+import re
 import sys
 import time
+import unicodedata
 from datetime import datetime, timedelta
 
 import requests
@@ -32,6 +34,7 @@ EXPIRE_DAYS = 0
 REGIONS = ["International", "China", "Korea"]
 WHITELIST = []
 BLACKLIST = ["Opening"]
+MEDIAWIKI_TITLE_BATCH_SIZE = 50
 
 CARGO_FIELDS = [
     "Name", "OverviewPage",
@@ -75,6 +78,39 @@ def validate_tournament_list(value, label: str) -> list:
             raise ValueError(f"{label}[{index}].overviewPage must be a non-empty string array")
         if len(set(overviewPages)) != len(overviewPages):
             raise ValueError(f"{label}[{index}].overviewPage contains duplicates")
+        participant_groups = item.get("participantGroups")
+        if not isinstance(participant_groups, list):
+            raise ValueError(f"{label}[{index}].participantGroups must be an array")
+        group_keys = set()
+        group_teams = set()
+        for group_index, group in enumerate(participant_groups):
+            group_label = f"{label}[{index}].participantGroups[{group_index}]"
+            if not isinstance(group, dict) or set(group) != {"overviewPage", "groupDisplay", "teams"}:
+                raise ValueError(f"{group_label} fields must match the team group schema")
+            overview_page = group.get("overviewPage")
+            group_display = group.get("groupDisplay")
+            teams = group.get("teams")
+            if (
+                not isinstance(overview_page, str)
+                or overview_page not in overviewPages
+                or not isinstance(group_display, str)
+                or not group_display.strip()
+                or not isinstance(teams, list)
+                or not teams
+                or any(not isinstance(team, str) or not team.strip() for team in teams)
+            ):
+                raise ValueError(f"{group_label} is invalid")
+            group_key = (overview_page, group_display)
+            if group_key in group_keys:
+                raise ValueError(f"{group_label} duplicates a team group")
+            group_keys.add(group_key)
+            for team in teams:
+                membership_key = (overview_page, team)
+                if membership_key in group_teams:
+                    raise ValueError(f"{group_label} duplicates a team membership")
+                if team not in team_map:
+                    raise ValueError(f"{group_label} team missing from teamMap: {team}")
+                group_teams.add(membership_key)
         start_date = parse_date(item["startDate"])
         end_date = parse_date(item["endDate"])
         if start_date > end_date:
@@ -194,7 +230,7 @@ def make_session(url: str, bot_user: str, bot_pass: str) -> requests.Session:
     print("::error::Fandom API login failed after max retries", flush=True)
     sys.exit(1)
 
-def calculate_cargo_retry_delay(attempt: int, response=None) -> float:
+def calculate_api_retry_delay(attempt: int, response=None) -> float:
     retry_after = 0
     if response is not None:
         value = response.headers.get("Retry-After")
@@ -203,51 +239,67 @@ def calculate_cargo_retry_delay(attempt: int, response=None) -> float:
     return max(30 * (2 ** (attempt - 1)), retry_after) + random.uniform(0, 5)
 
 
-def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> list:
-    all_data, offset, limit, max_attempts = [], 0, 100, 4
+def fetch_api_object(
+    session: requests.Session,
+    url: str,
+    params: dict,
+    label: str,
+) -> dict:
+    max_attempts = 4
+    last_error = None
 
+    for attempt in range(1, max_attempts + 1):
+        time.sleep(1)
+        try:
+            response = session.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            response_json = response.json()
+        except requests.exceptions.RequestException as error:
+            last_error = error
+            if attempt == max_attempts:
+                break
+            delay = calculate_api_retry_delay(attempt, getattr(error, "response", None))
+            print(
+                f"⚠️ 网络异常 | {delay:.0f}s 后重试 {attempt}/{max_attempts} | {error}",
+                flush=True,
+            )
+            time.sleep(delay)
+            continue
+
+        if not isinstance(response_json, dict):
+            raise ValueError(f"{label} response must be an object")
+        api_error = response_json.get("error")
+        if api_error is None:
+            return response_json
+        code = api_error.get("code") if isinstance(api_error, dict) else None
+        if code not in {"ratelimited", "maxlag"}:
+            raise RuntimeError(f"{label} API error: {api_error}")
+        last_error = api_error
+        if attempt == max_attempts:
+            break
+        delay = calculate_api_retry_delay(attempt, response)
+        print(
+            f"⚠️ API受限 | {delay:.0f}s 后重试 {attempt}/{max_attempts} | {api_error}",
+            flush=True,
+        )
+        time.sleep(delay)
+
+    raise RuntimeError(f"{label} failed after retries: {last_error}")
+
+
+def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> list:
+    all_data, offset, limit = [], 0, 100
     while True:
         params = {**base_params, "limit": str(limit), "offset": str(offset)}
-        page_data = None
-        last_error = None
-
-        for attempt in range(1, max_attempts + 1):
-            time.sleep(1)
-            try:
-                resp = session.get(url, params=params, timeout=30)
-                resp.raise_for_status()
-                resp_json = resp.json()
-            except requests.exceptions.RequestException as error:
-                last_error = error
-                if attempt == max_attempts:
-                    break
-                delay = calculate_cargo_retry_delay(attempt, getattr(error, "response", None))
-                print(f"⚠️ 网络异常 | {delay:.0f}s 后重试 {attempt}/{max_attempts} | {error}", flush=True)
-                time.sleep(delay)
-                continue
-
-            if not isinstance(resp_json, dict):
-                raise ValueError("Cargo response must be an object")
-            api_error = resp_json.get("error")
-            if api_error is not None:
-                code = api_error.get("code") if isinstance(api_error, dict) else None
-                if code not in {"ratelimited", "maxlag"}:
-                    raise RuntimeError(f"Cargo API error: {api_error}")
-                last_error = api_error
-                if attempt == max_attempts:
-                    break
-                delay = calculate_cargo_retry_delay(attempt, resp)
-                print(f"⚠️ API受限 | {delay:.0f}s 后重试 {attempt}/{max_attempts} | {api_error}", flush=True)
-                time.sleep(delay)
-                continue
-
-            page_data = resp_json.get("cargoquery")
-            if not isinstance(page_data, list):
-                raise ValueError("Cargo response cargoquery must be an array")
-            break
-
-        if page_data is None:
-            raise RuntimeError(f"Cargo page failed after retries: offset={offset} | {last_error}")
+        response_json = fetch_api_object(
+            session,
+            url,
+            params,
+            f"Cargo page offset={offset}",
+        )
+        page_data = response_json.get("cargoquery")
+        if not isinstance(page_data, list):
+            raise ValueError("Cargo response cargoquery must be an array")
 
         if not page_data:
             break
@@ -259,6 +311,84 @@ def fetch_cargo(session: requests.Session, url: str, base_params: dict) -> list:
         offset += limit
 
     return all_data
+
+
+def fetch_page_sources(
+    session: requests.Session,
+    url: str,
+    titles: list,
+    optional_titles: set,
+) -> dict:
+    validate_filter_values(titles, "MediaWiki titles")
+    if not isinstance(optional_titles, set) or not optional_titles.issubset(set(titles)):
+        raise ValueError("Optional MediaWiki titles must be a subset of titles")
+
+    sources = {}
+    for offset in range(0, len(titles), MEDIAWIKI_TITLE_BATCH_SIZE):
+        batch = titles[offset:offset + MEDIAWIKI_TITLE_BATCH_SIZE]
+        response_json = fetch_api_object(
+            session,
+            url,
+            {
+                "action": "query",
+                "format": "json",
+                "formatversion": "2",
+                "prop": "revisions",
+                "rvprop": "content",
+                "rvslots": "main",
+                "redirects": "1",
+                "titles": "|".join(batch),
+            },
+            f"MediaWiki source batch offset={offset}",
+        )
+        query = response_json.get("query")
+        if not isinstance(query, dict) or not isinstance(query.get("pages"), list):
+            raise ValueError("MediaWiki source response query.pages must be an array")
+
+        resolved_titles = {title: title for title in batch}
+        for mapping_name in ("normalized", "redirects"):
+            mappings = query.get(mapping_name, [])
+            if not isinstance(mappings, list):
+                raise ValueError(f"MediaWiki source response query.{mapping_name} must be an array")
+            for mapping in mappings:
+                if (
+                    not isinstance(mapping, dict)
+                    or not isinstance(mapping.get("from"), str)
+                    or not isinstance(mapping.get("to"), str)
+                ):
+                    raise ValueError(f"Invalid MediaWiki {mapping_name} mapping: {mapping}")
+                for requested_title, resolved_title in resolved_titles.items():
+                    if resolved_title == mapping["from"]:
+                        resolved_titles[requested_title] = mapping["to"]
+
+        pages_by_title = {}
+        for page in query["pages"]:
+            if not isinstance(page, dict) or not isinstance(page.get("title"), str):
+                raise ValueError(f"Invalid MediaWiki source page: {page}")
+            if page["title"] in pages_by_title:
+                raise ValueError(f"Duplicate MediaWiki source page: {page['title']}")
+            pages_by_title[page["title"]] = page
+
+        for requested_title, resolved_title in resolved_titles.items():
+            page = pages_by_title.get(resolved_title)
+            if page is None:
+                raise ValueError(f"MediaWiki source page missing from response: {requested_title}")
+            if page.get("missing") is True:
+                if requested_title not in optional_titles:
+                    raise ValueError(f"MediaWiki source page does not exist: {requested_title}")
+                sources[requested_title] = None
+                continue
+            revisions = page.get("revisions")
+            if not isinstance(revisions, list) or len(revisions) != 1:
+                raise ValueError(f"MediaWiki source page revisions invalid: {requested_title}")
+            slots = revisions[0].get("slots")
+            main = slots.get("main") if isinstance(slots, dict) else None
+            content = main.get("content") if isinstance(main, dict) else None
+            if not isinstance(content, str):
+                raise ValueError(f"MediaWiki source page content invalid: {requested_title}")
+            sources[requested_title] = content
+
+    return sources
 
 def tournament_query(where: str) -> dict:
     return {
@@ -356,6 +486,259 @@ def attach_team_maps(
                     raise ValueError(f"Conflicting tournament team short: {tournament['slug']}:{team}")
                 team_map[team] = short
         tournament["teamMap"] = dict(sorted(team_map.items()))
+
+
+def parse_positive_integer(value, label: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{label} must be a positive integer") from error
+    if parsed < 1 or str(parsed) != str(value):
+        raise ValueError(f"{label} must be a positive integer")
+    return parsed
+
+
+WIKI_HEADING_PATTERN = re.compile(
+    r"^(?P<marks>={2,6})[ \t]*(?P<title>.*?)[ \t]*(?P=marks)[ \t]*$",
+    re.MULTILINE,
+)
+PARTICIPANT_SECTION_KEYS = {"participants", "notable participants"}
+
+
+def normalize_wiki_heading(value: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError("Wiki heading must be a string")
+    text = re.sub(r"<!--.*?-->", "", value, flags=re.DOTALL)
+    text = re.sub(
+        r"\[\[(?:[^\]|]+\|)?([^\]]+)\]\]",
+        lambda match: match.group(1),
+        text,
+    )
+    text = re.sub(r"<[^>]+>", "", text)
+    text = text.replace("'''", "").replace("''", "")
+    text = "".join(
+        character
+        for character in text
+        if unicodedata.category(character) != "Cf"
+    )
+    return " ".join(text.split()).casefold()
+
+
+def read_wiki_headings(source: str) -> list:
+    if not isinstance(source, str):
+        raise ValueError("Wiki source must be a string")
+    uncommented_source = re.sub(r"<!--.*?-->", "", source, flags=re.DOTALL)
+    headings = []
+    for match in WIKI_HEADING_PATTERN.finditer(uncommented_source):
+        key = normalize_wiki_heading(match.group("title"))
+        if key:
+            headings.append({
+                "level": len(match.group("marks")),
+                "key": key,
+                "offset": match.start(),
+            })
+    return headings
+
+
+def read_participant_group_heading_keys(source: str, body_only: bool = False) -> set:
+    headings = read_wiki_headings(source)
+    if body_only:
+        group_keys = [
+            heading["key"]
+            for heading in headings
+            if heading["level"] == 3
+        ]
+    else:
+        participant_headings = [
+            heading
+            for heading in headings
+            if (
+                heading["level"] == 2
+                and heading["key"] in PARTICIPANT_SECTION_KEYS
+            )
+        ]
+        if len(participant_headings) > 1:
+            raise ValueError("Wiki source contains duplicate Participants sections")
+        if not participant_headings:
+            return set()
+        participant_heading = participant_headings[0]
+        section_end = next(
+            (
+                heading["offset"]
+                for heading in headings
+                if (
+                    heading["offset"] > participant_heading["offset"]
+                    and heading["level"] <= participant_heading["level"]
+                )
+            ),
+            len(source),
+        )
+        group_keys = [
+            heading["key"]
+            for heading in headings
+            if (
+                heading["level"] == 3
+                and participant_heading["offset"] < heading["offset"] < section_end
+            )
+        ]
+
+    if len(group_keys) != len(set(group_keys)):
+        raise ValueError("Wiki Participants section contains duplicate group headings")
+    return set(group_keys)
+
+
+def read_participant_group_headings(
+    session,
+    url: str,
+    overview_pages: list,
+) -> dict:
+    data_titles = {
+        overview_page: f"Data:{overview_page}/Participants"
+        for overview_page in overview_pages
+    }
+    optional_titles = set(data_titles.values())
+    sources = fetch_page_sources(
+        session,
+        url,
+        overview_pages + sorted(optional_titles),
+        optional_titles,
+    )
+    headings_by_page = {}
+    for overview_page in overview_pages:
+        data_source = sources[data_titles[overview_page]]
+        if data_source is not None:
+            headings_by_page[overview_page] = read_participant_group_heading_keys(
+                data_source,
+                body_only=True,
+            )
+            continue
+        headings_by_page[overview_page] = read_participant_group_heading_keys(
+            sources[overview_page],
+        )
+    return headings_by_page
+
+
+def attach_participant_groups(
+    session,
+    url: str,
+    tournaments: list,
+) -> None:
+    overview_pages = sorted({
+        page
+        for tournament in tournaments
+        for page in tournament["overviewPage"]
+    })
+    if not overview_pages:
+        return
+    participant_headings = read_participant_group_headings(
+        session,
+        url,
+        overview_pages,
+    )
+    group_rows = fetch_cargo(session, url, {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "TournamentGroups=TG,Teamnames=TN",
+        "fields": (
+            "TG.OverviewPage=OverviewPage,TG.Team=Team,"
+            "TG.GroupName=GroupName,TG.GroupDisplay=GroupDisplay,"
+            "TG.GroupN=GroupN,TN.Exception=isException"
+        ),
+        "join_on": "TG.Team=TN.Link",
+        "where": (
+            "TG.OverviewPage IN "
+            f"({', '.join(cargo_string_literal(page, 'OverviewPage') for page in overview_pages)})"
+        ),
+        "order_by": "TG.OverviewPage ASC,TG.GroupN ASC,TG.Team ASC",
+    })
+    groups_by_page = {page: {} for page in overview_pages}
+    memberships_by_page = {page: {} for page in overview_pages}
+    for item in group_rows:
+        row = item.get("title", {})
+        overview_page = row.get("OverviewPage", "")
+        team = row.get("Team", "")
+        group_name = row.get("GroupName", "")
+        group_display = row.get("GroupDisplay", "")
+        is_exception = row.get("isException")
+        if overview_page not in groups_by_page or is_exception not in {"0", "1"}:
+            raise ValueError(f"Invalid tournament group row: {row}")
+        if is_exception == "1":
+            continue
+        if not isinstance(group_name, str) or not group_name.strip():
+            continue
+        if normalize_wiki_heading(group_name) not in participant_headings[overview_page]:
+            continue
+        if (
+            not isinstance(team, str)
+            or not team.strip()
+            or not isinstance(group_display, str)
+            or not group_display.strip()
+        ):
+            raise ValueError(f"Invalid tournament group row: {row}")
+        order = parse_positive_integer(
+            row.get("GroupN"),
+            f"TournamentGroups.{overview_page}.{group_name}.GroupN",
+        )
+        normalized_group_display = group_display.strip()
+        group = groups_by_page[overview_page].get(group_name)
+        if group is None:
+            group = {
+                "overviewPage": overview_page,
+                "groupName": group_name,
+                "groupDisplay": normalized_group_display,
+                "order": order,
+                "teams": [],
+            }
+            groups_by_page[overview_page][group_name] = group
+        elif group["groupDisplay"] != normalized_group_display or group["order"] != order:
+            raise ValueError(f"Conflicting tournament group: {overview_page}:{group_name}")
+        membership = (group_name, normalized_group_display, order)
+        existing_membership = memberships_by_page[overview_page].get(team)
+        if existing_membership is not None:
+            if existing_membership != membership:
+                raise ValueError(f"Conflicting tournament group membership: {overview_page}:{team}")
+            continue
+        memberships_by_page[overview_page][team] = membership
+        group["teams"].append(team)
+
+    for tournament in tournaments:
+        participant_groups = []
+        for overview_page in tournament["overviewPage"]:
+            page_groups = sorted(
+                groups_by_page[overview_page].values(),
+                key=lambda group: (group["order"], group["groupName"]),
+            )
+            seen_orders = set()
+            seen_group_displays = set()
+            for group in page_groups:
+                if group["order"] in seen_orders:
+                    raise ValueError(
+                        f"Duplicate tournament group order: {overview_page}:{group['order']}"
+                    )
+                seen_orders.add(group["order"])
+                if group["groupDisplay"] in seen_group_displays:
+                    raise ValueError(
+                        f"Duplicate tournament group display: "
+                        f"{overview_page}:{group['groupDisplay']}"
+                    )
+                seen_group_displays.add(group["groupDisplay"])
+                missing_teams = sorted(set(group["teams"]) - set(tournament["teamMap"]))
+                if missing_teams:
+                    raise ValueError(
+                        f"Tournament group teams missing from teamMap: "
+                        f"{overview_page}:{','.join(missing_teams)}"
+                    )
+                participant_groups.append({
+                    "overviewPage": overview_page,
+                    "groupDisplay": group["groupDisplay"],
+                    "teams": sorted(group["teams"]),
+                })
+            if len(page_groups) == 1:
+                raise ValueError(
+                    f"Participant group partition incomplete: {overview_page}"
+                )
+        tournament["participantGroups"] = participant_groups
+
 
 def collect_fandom_leagues(source_rows: list) -> list:
     leagues = set()
@@ -1085,6 +1468,18 @@ def attach_transition_team_maps(
     )
 
 
+def attach_transition_participant_groups(
+    session,
+    url: str,
+    transition: dict,
+) -> None:
+    attach_participant_groups(
+        session,
+        url,
+        transition["active"] + transition["archive"],
+    )
+
+
 def build_manifest(old_active: list, transition: dict) -> dict:
     return build_transition_manifest(
         old_active,
@@ -1273,6 +1668,7 @@ def run_tournament_sync():
     log_active_table(transition["active"])
 
     attach_transition_team_maps(session, url, transition)
+    attach_transition_participant_groups(session, url, transition)
     assert_configs_disjoint(transition["active"], transition["archive"])
     manifest = build_manifest(old_active, transition)
     write_config(transition["active"], transition["archive"])

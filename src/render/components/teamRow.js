@@ -5,7 +5,7 @@ import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 import { escapeHtml, escapeJsArg } from '../../utils/htmlEscape.js';
 
-export function renderTeamRow(teamStats, slug, sortMeta = {}) {
+export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta) {
   validateTurnaroundStats(teamStats);
   const bo3Rate = rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount);
   const bo5Rate = rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount);
@@ -24,11 +24,12 @@ export function renderTeamRow(teamStats, slug, sortMeta = {}) {
   const lastMatchColor = dateUtils.colorDate(teamStats.last);
 
   const slugArgument = escapeJsArg(slug);
+  const scopeArgument = escapeJsArg(statisticsScope);
   const teamNameArgument = escapeJsArg(teamStats.name);
   const safeDisplayName = escapeHtml(teamStats.name);
 
   const getClass = (baseClass, count) => count > 0 ? `${baseClass} team-clickable` : baseClass;
-  const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${slugArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
+  const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${slugArgument}, ${scopeArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
   const gameHistoryCount = teamStats.history.filter(match => Array.isArray(match.gameResults)).length;
   const comebackText = renderTurnaroundCells(
     teamStats.comebackCount,

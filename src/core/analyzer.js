@@ -1,12 +1,12 @@
 import { buildTeamNameResolver } from './analysis/teamResolver.js';
-import { parseTournamentMatches } from './analysis/matchParser.js';
+import { buildTournamentStatistics } from './analysis/tournamentStatistics.js';
 import { buildTournamentTimeGrid } from './analysis/gridBuilder.js';
 
 export function analyzeTournaments(rawMatchesBySlug, tournaments) {
     if (!Array.isArray(tournaments)) {
       throw new Error("tournaments must be an array");
     }
-    const globalStats = {};
+    const statisticsBySlug = {};
     const timeGrid = {};
 
     tournaments.forEach(tournament => {
@@ -14,15 +14,19 @@ export function analyzeTournaments(rawMatchesBySlug, tournaments) {
       if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in analyzer input: ${tournament.slug}`);
 
       const resolveTeamName = buildTeamNameResolver(tournament.teamMap);
-      const { stats, timeGridLayoutMatches, timeGridMatches } = parseTournamentMatches(rawMatches, resolveTeamName, tournament.slug);
+      const {
+        statistics,
+        timeGridLayoutMatches,
+        timeGridMatches
+      } = buildTournamentStatistics(rawMatches, tournament, resolveTeamName);
 
-      globalStats[tournament.slug] = stats;
+      statisticsBySlug[tournament.slug] = statistics;
 
       buildTournamentTimeGrid(tournament.slug, timeGridLayoutMatches, timeGridMatches, timeGrid);
     });
 
     return {
-      globalStats,
+      statisticsBySlug,
       timeGrid
     };
 }

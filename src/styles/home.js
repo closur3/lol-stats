@@ -36,6 +36,33 @@ export default `${baseCSS}
     .home-indicator { font-size: 18px; color: #2563eb; font-weight: 600; transition: transform 0.3s ease; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; margin-right: 8px; }
     details.home-sec[open] .home-indicator { transform: rotate(90deg); }
     .table-title a { color: #2563eb; text-decoration: none; }
+    .statistics-root { width: 100%; }
+    .statistics-toolbar { display: flex; align-items: center; justify-content: flex-start; gap: 12px; min-width: var(--min-table-width); min-height: 48px; padding: 8px 14px; box-sizing: border-box; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #dbe3ec; background: linear-gradient(180deg, #fbfdff 0%, #f4f7fb 100%); }
+    .statistics-toolbar-label { color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; }
+    .statistics-toolbar-meta { color: #94a3b8; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
+    .statistics-switch { display: inline-grid; grid-template-columns: repeat(2, auto); gap: 2px; padding: 3px; border: 1px solid #cbd5e1; border-radius: 8px; background: #e8edf4; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06); }
+    .statistics-switch-option { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 82px; min-height: 28px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #64748b; cursor: pointer; font: inherit; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease; }
+    .statistics-switch-option svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+    .statistics-switch-option:hover { color: #1d4ed8; }
+    .statistics-switch-option.is-active { background: #ffffff; color: #1d4ed8; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14); }
+    .statistics-switch-option:focus-visible { outline: none; box-shadow: 0 0 0 2px #bfdbfe; }
+    .statistics-view.is-hidden { display: none; }
+    .stats-group-list, .stats-page-list { min-width: var(--min-table-width); background: #ffffff; }
+    .stats-page-block, .stats-group-block { min-width: var(--min-table-width); }
+    .stats-page-heading, .stats-group-heading { display: flex; align-items: center; gap: 9px; box-sizing: border-box; border-bottom: 1px solid #dbe3ec; color: #334155; }
+    .stats-heading-name { font-size: 11px; font-weight: 800; letter-spacing: 0.025em; }
+    .stats-heading-count { display: inline-flex; align-items: center; min-height: 18px; padding: 0 7px; border: 1px solid #dbe3ec; border-radius: var(--radius-pill); background: rgba(255,255,255,0.78); color: #64748b; font-size: 8px; font-weight: 800; letter-spacing: 0.07em; }
+    .stats-page-heading { min-height: 44px; padding: 0 14px; background: linear-gradient(90deg, #eaf2fb 0%, #f5f8fc 70%); }
+    .stats-page-index { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 22px; border-radius: 5px; background: #1d4ed8; color: #ffffff; font-size: 9px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 2px 5px rgba(29, 78, 216, 0.2); }
+    .stats-page-jump { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; color: #64748b; transition: color 0.15s ease, background 0.15s ease; }
+    .stats-page-jump:hover { background: #dbeafe; color: #1d4ed8; }
+    .stats-page-jump svg { width: 12px; height: 12px; stroke-width: 2.5; }
+    .stats-group-heading { min-height: 40px; padding: 0 14px; background: linear-gradient(90deg, #f8fafc 0%, #ffffff 72%); }
+    .stats-group-mark { width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 0 3px #dbeafe; }
+    .stats-group-block:nth-child(4n+2) .stats-group-mark { background: #8b5cf6; box-shadow: 0 0 0 3px #ede9fe; }
+    .stats-group-block:nth-child(4n+3) .stats-group-mark { background: #f59e0b; box-shadow: 0 0 0 3px #fef3c7; }
+    .stats-group-block:nth-child(4n) .stats-group-mark { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
+    .stats-view-empty { min-width: var(--min-table-width); padding: 28px 15px; box-sizing: border-box; color: #94a3b8; background: #ffffff; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
     .col-bo3 { width: 90px; } .col-bo3-pct { width: 90px; } .col-bo5 { width: 90px; } .col-bo5-pct { width: 90px; }
     .col-series { width: 90px; } .col-series-wr { width: 90px; } .col-game { width: 90px; } .col-game-wr { width: 90px; }
     .width-team { width: var(--table-label-width); } .width-streak { width: 70px; } .width-last { width: 110px; }
@@ -125,6 +152,8 @@ export default `${baseCSS}
     @media (max-width: 650px) {
         .table-title { flex-wrap: wrap; gap: 0; padding: 12px 15px 0 15px; }
         .container { padding-bottom: 31px; }
+        .statistics-toolbar { gap: 8px; padding-left: 12px; }
+        .statistics-toolbar-meta { display: none; }
         .table-title { display: flex; flex-direction: column; align-items: flex-start; padding: 0; background: #fff; border-bottom: none; width: 100%; border-radius: var(--radius-card) var(--radius-card) 0 0; }
         .table-title > div:first-child { width: 100%; padding: 8px 15px; display: flex; align-items: center; flex: 1 1 0; gap: 6px; min-width: 0; }
         .table-title > div:first-child .tournament-title-text { white-space: normal; line-height: 1.4; word-break: break-word; }

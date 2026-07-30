@@ -27,11 +27,12 @@ function projectArtifactHistory(artifact, artifactType) {
   const slug = requireText(artifact.tournament.slug, initialArtifactKey, "tournament.slug");
   const artifactKey = `${artifactType}_${slug}`;
   const tournamentName = requireText(artifact.tournament.name, artifactKey, "tournament.name");
-  requireObject(artifact.stats, artifactKey, "stats");
+  requireObject(artifact.statistics, artifactKey, "statistics");
+  requireObject(artifact.statistics.combined, artifactKey, "statistics.combined");
 
   const historyEntries = [];
-  for (const [teamName, teamStats] of Object.entries(artifact.stats)) {
-    const teamPath = `stats.${teamName}`;
+  for (const [teamName, teamStats] of Object.entries(artifact.statistics.combined)) {
+    const teamPath = `statistics.combined.${teamName}`;
     const historyPath = `${teamPath}.history`;
     requireText(teamName, artifactKey, teamPath);
     requireObject(teamStats, artifactKey, teamPath);

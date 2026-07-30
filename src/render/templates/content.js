@@ -14,8 +14,8 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, modalHistory) {
-  assertObject(globalStats, "globalStats");
+export function renderContentFragment(statisticsBySlug, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, modalHistory) {
+  assertObject(statisticsBySlug, "statisticsBySlug");
   assertObject(timeGridBySlug, "timeGridBySlug");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
@@ -24,16 +24,26 @@ export function renderContentFragment(globalStats, timeGridBySlug, scheduleMap, 
     assertObject(scheduleSessionsBySlug, "scheduleSessionsBySlug");
   }
 
-  const injectedData = `<script>window.gStats = Object.assign(window.gStats ?? {}, ${serializeForInlineScript(globalStats)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
+  const combinedStatsBySlug = Object.fromEntries(tournaments.map(tournament => {
+    const statistics = statisticsBySlug[tournament.slug];
+    if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
+      throw new Error(`statisticsBySlug missing: ${tournament.slug}`);
+    }
+    if (!statistics.combined || typeof statistics.combined !== "object" || Array.isArray(statistics.combined)) {
+      throw new Error(`statistics.combined missing: ${tournament.slug}`);
+    }
+    return [tournament.slug, statistics.combined];
+  }));
+  const injectedData = `<script>window.tournamentStatistics = Object.assign(window.tournamentStatistics ?? {}, ${serializeForInlineScript(statisticsBySlug)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
-    .map(tournament => renderTournamentSection(tournament, globalStats, timeGridBySlug, scheduleSessionsBySlug, isArchive))
+    .map(tournament => renderTournamentSection(tournament, statisticsBySlug, timeGridBySlug, scheduleSessionsBySlug, isArchive))
     .join("");
-  const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, globalStats);
+  const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, combinedStatsBySlug);
 
   return `${tablesHtml} ${scheduleHtml} ${injectedData}`;
 }
 
-export function renderArchiveContentFragment(globalStats, timeGridBySlug, tournaments, modalHistory) {
-  return renderContentFragment(globalStats, timeGridBySlug, {}, tournaments, true, null, modalHistory);
+export function renderArchiveContentFragment(statisticsBySlug, timeGridBySlug, tournaments, modalHistory) {
+  return renderContentFragment(statisticsBySlug, timeGridBySlug, {}, tournaments, true, null, modalHistory);
 }
