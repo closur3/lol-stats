@@ -1,9 +1,10 @@
 node_modules/
-package-lock.json
 dist/
 .wrangler/
 .dev.vars
 *.log
+__pycache__/
+*.pyc
 # Local-only tests
 /tests/
 AGENTS.md
