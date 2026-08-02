@@ -1,3 +1,5 @@
+import { getOverviewPageNames } from "../../utils/data/overviewPages.js";
+
 export function selectFetchCandidates(tournaments, targetSlugs) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   if (!(targetSlugs instanceof Set)) throw new Error("targetSlugs must be a Set");
@@ -13,7 +15,7 @@ export function selectFetchCandidates(tournaments, targetSlugs) {
 
     candidates.push({
       slug,
-      overviewPage: tournament.overviewPage
+      overviewPage: getOverviewPageNames(tournament.overviewPages)
     });
   });
 

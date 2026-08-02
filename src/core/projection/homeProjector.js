@@ -15,9 +15,6 @@ export function buildWriteScopeSlugs(updateItems, rebuildSlugs) {
 
 function buildHomeSnapshot(tournament, analysis) {
   const slug = tournament.slug;
-  const tournamentStored = { ...tournament };
-  delete tournamentStored.teamMap;
-  delete tournamentStored.participantGroups;
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) throw new Error("analysis must be a JSON object");
   if (!analysis.statisticsBySlug || typeof analysis.statisticsBySlug !== "object" || Array.isArray(analysis.statisticsBySlug)) {
     throw new Error("analysis.statisticsBySlug must be a JSON object");
@@ -30,7 +27,7 @@ function buildHomeSnapshot(tournament, analysis) {
   if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) throw new Error(`analysis.statisticsBySlug missing: ${slug}`);
   if (!timeGrid || typeof timeGrid !== "object" || Array.isArray(timeGrid)) throw new Error(`analysis.timeGrid missing: ${slug}`);
   return {
-    tournament: tournamentStored,
+    tournamentSlug: slug,
     statistics,
     timeGrid
   };

@@ -32,3 +32,12 @@ export async function readExistingRawMatchesBySlug(env, tournaments) {
   }));
   return Object.fromEntries(entries);
 }
+
+export async function assertRawMatchesAvailable(env, tournaments) {
+  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
+  await Promise.all(tournaments.map(tournament => {
+    const slug = tournament?.slug;
+    if (!slug) throw new Error("Tournament slug missing");
+    return readRawMatches(env, slug);
+  }));
+}

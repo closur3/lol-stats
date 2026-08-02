@@ -1,6 +1,7 @@
 import { buildTeamNameResolver } from './analysis/teamResolver.js';
 import { buildTournamentStatistics } from './analysis/tournamentStatistics.js';
 import { buildTournamentTimeGrid } from './analysis/gridBuilder.js';
+import { getOverviewPageNames } from '../utils/data/overviewPages.js';
 
 export function analyzeTournaments(rawMatchesBySlug, tournaments) {
     if (!Array.isArray(tournaments)) {
@@ -10,6 +11,7 @@ export function analyzeTournaments(rawMatchesBySlug, tournaments) {
     const timeGrid = {};
 
     tournaments.forEach(tournament => {
+      const overviewPages = getOverviewPageNames(tournament.overviewPages);
       const rawMatches = rawMatchesBySlug[tournament.slug];
       if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in analyzer input: ${tournament.slug}`);
 
@@ -23,7 +25,7 @@ export function analyzeTournaments(rawMatchesBySlug, tournaments) {
       buildTournamentTimeGrid(tournament.slug, timeGridLayoutMatches, timeGridMatches, combinedGridContainer);
       tournamentTimeGrid.combined = combinedGridContainer[tournament.slug];
       pageAnalyses.forEach((pageAnalysis, index) => {
-        const overviewPage = tournament.overviewPage[index];
+        const overviewPage = overviewPages[index];
         const pageGridContainer = {};
         const pageGridKey = `${tournament.slug}:${overviewPage}`;
         buildTournamentTimeGrid(pageGridKey, pageAnalysis.timeGridLayoutMatches, pageAnalysis.timeGridMatches, pageGridContainer);

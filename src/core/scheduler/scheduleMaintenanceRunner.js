@@ -12,6 +12,7 @@ import {
   ScheduleStateSchemaError,
   writeScheduleState
 } from "./scheduleState.js";
+import { repairActiveHomeProjections } from "../updater/activeProjectionMaintenance.js";
 
 function readScheduleNow(scheduledTimeMs) {
   const now = new Date(scheduledTimeMs);
@@ -57,7 +58,15 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
   assertTournaments(tournaments);
   const now = readScheduleNow(scheduledTimeMs);
   const runtime = await ensureScheduleRuntime(env, tournaments);
-  const previousState = await readScheduleState(env);
+  await repairActiveHomeProjections(env, tournaments);
+  let previousState;
+  try {
+    previousState = await readScheduleState(env);
+  } catch (error) {
+    if (!(error instanceof ScheduleStateSchemaError)) throw error;
+    console.error(`[SCHED:STATE] replacing invalid ScheduleState: ${error.cause.message}`);
+    previousState = null;
+  }
   await runScheduleStateUpdate(
     env,
     tournaments,
@@ -74,6 +83,7 @@ export async function rebuildSchedule(env, tournaments, scheduledTimeMs = Date.n
   assertTournaments(tournaments);
   const now = readScheduleNow(scheduledTimeMs);
   const runtime = await rebuildScheduleRuntime(env, tournaments);
+  await repairActiveHomeProjections(env, tournaments);
   let previousState;
   try {
     previousState = await readScheduleState(env);

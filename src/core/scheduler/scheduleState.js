@@ -67,9 +67,10 @@ function normalizeScheduleState(state) {
 }
 
 export async function readScheduleState(env) {
-  const state = await env["lol-stats-kv"].get(kvKeys.scheduleState(), { type: "json" });
-  if (state == null) return null;
+  const stored = await env["lol-stats-kv"].get(kvKeys.scheduleState());
+  if (stored == null) return null;
   try {
+    const state = typeof stored === "string" ? JSON.parse(stored) : stored;
     return normalizeScheduleState(state);
   } catch (error) {
     throw new ScheduleStateSchemaError(error);

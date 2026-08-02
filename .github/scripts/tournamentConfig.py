@@ -8,23 +8,32 @@ TOURNAMENT_FIELDS = (
     "slug",
     "name",
     "leagueShort",
-    "overviewPage",
+    "overviewPages",
     "startDate",
     "endDate",
     "teamMap",
     "participantGroups",
 )
 CONFIG_DIGEST_PATTERN = re.compile(r"^[a-f0-9]{64}$")
+OVERVIEW_PAGE_FIELDS = ("overviewPage", "startDate", "endDate", "participantCount")
 
 
 def parse_date(value: str):
     return datetime.strptime(value, "%Y-%m-%d").date()
 
 
+def overview_page_names(tournament: dict) -> list:
+    return [entry["overviewPage"] for entry in tournament["overviewPages"]]
+
+
 def order_tournament_fields(tournament: dict) -> dict:
     if set(tournament) != set(TOURNAMENT_FIELDS):
         raise ValueError("Tournament fields must match the Config schema")
     ordered = {field: tournament[field] for field in TOURNAMENT_FIELDS}
+    ordered["overviewPages"] = [
+        {field: page[field] for field in OVERVIEW_PAGE_FIELDS}
+        for page in ordered["overviewPages"]
+    ]
     ordered["teamMap"] = dict(sorted(ordered["teamMap"].items()))
     return ordered
 
@@ -117,7 +126,7 @@ def assert_active_source_complete(old_active: list, source_rows: list) -> None:
     missing = [
         f"{tournament['slug']}:{page}"
         for tournament in old_active
-        for page in tournament["overviewPage"]
+        for page in overview_page_names(tournament)
         if page not in source_pages
     ]
     if missing:
@@ -137,7 +146,7 @@ def assert_configs_disjoint(active: list, archive: list) -> None:
     page_owners = {}
     for label, tournaments in (("TournamentConfig.active", active), ("TournamentConfig.archive", archive)):
         for tournament in tournaments:
-            for page in tournament["overviewPage"]:
+            for page in overview_page_names(tournament):
                 owner = f"{label}:{tournament['slug']}"
                 existing = page_owners.get(page)
                 if existing is not None and existing != owner:
@@ -148,11 +157,11 @@ def assert_configs_disjoint(active: list, archive: list) -> None:
 def assign_name_slugs(candidates: list, old_active: list, archive: list) -> list:
     archive_by_page = {}
     for tournament in archive:
-        for page in tournament["overviewPage"]:
+        for page in overview_page_names(tournament):
             archive_by_page.setdefault(page, set()).add(tournament["slug"])
 
     old_by_slug = {
-        tournament["slug"]: set(tournament["overviewPage"])
+        tournament["slug"]: set(overview_page_names(tournament))
         for tournament in old_active
     }
     archive_slugs = {tournament["slug"] for tournament in archive}
@@ -160,7 +169,7 @@ def assign_name_slugs(candidates: list, old_active: list, archive: list) -> list
     assigned = []
 
     for candidate in candidates:
-        pages = candidate["overviewPage"]
+        pages = overview_page_names(candidate)
         archived_matches = {
             slug
             for page in pages

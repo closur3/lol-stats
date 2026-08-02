@@ -1,6 +1,8 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { readExistingTournamentApplyState } from "../facts/tournamentApplyState.js";
-import { assertActiveRuntimeMatchesConfig } from "./activeRuntimeValidator.js";
+import {
+  readExistingTournamentApplyState,
+  TournamentApplyStateSchemaError
+} from "../facts/tournamentApplyState.js";
 
 const ActiveRuntimePrefixes = [
   kvKeys.ActiveHomePrefix,
@@ -39,27 +41,33 @@ async function readActiveRuntimeSlugs(env) {
   return new Set(keyGroups.flatMap((keys, index) => keys.map(key => key.slice(ActiveRuntimePrefixes[index].length))));
 }
 
-function assertKnownRuntimeSlugs(runtimeSlugs, activeTournaments) {
-  const activeSlugs = new Set(activeTournaments.map(tournament => tournament.slug));
-  const unknownSlugs = [...runtimeSlugs].filter(slug => !activeSlugs.has(slug)).sort();
+function assertKnownRuntimeSlugs(runtimeSlugs, config) {
+  const configuredSlugs = new Set([...config.active, ...config.archive].map(tournament => tournament.slug));
+  const unknownSlugs = [...runtimeSlugs].filter(slug => !configuredSlugs.has(slug)).sort();
   if (unknownSlugs.length > 0) {
     throw new Error(`TournamentApplyState missing with unknown Active runtime: ${unknownSlugs.join(",")}`);
   }
 }
 
-export async function resolveTournamentApplyBaseline(env, config, desiredApplyState) {
-  const existingApplyState = await readExistingTournamentApplyState(env);
-  if (existingApplyState) return { applyState: existingApplyState, checkpointPresent: true };
+function buildRecoveryApplyState(runtimeSlugs) {
+  return {
+    configDigest: "0".repeat(64),
+    activeFingerprints: Object.fromEntries([...runtimeSlugs].sort().map(slug => [slug, "0".repeat(64)]))
+  };
+}
+
+export async function resolveTournamentApplyBaseline(env, config) {
+  let existingApplyState;
+  try {
+    existingApplyState = await readExistingTournamentApplyState(env);
+  } catch (error) {
+    if (!(error instanceof TournamentApplyStateSchemaError)) throw error;
+    console.error(`[TOURNAMENT:CHECKPOINT] replacing invalid TournamentApplyState: ${error.message}`);
+    existingApplyState = null;
+  }
+  if (existingApplyState) return existingApplyState;
 
   const runtimeSlugs = await readActiveRuntimeSlugs(env);
-  assertKnownRuntimeSlugs(runtimeSlugs, config.active);
-  if (runtimeSlugs.size === 0) {
-    return {
-      applyState: { configDigest: "0".repeat(64), activeFingerprints: {} },
-      checkpointPresent: false
-    };
-  }
-
-  await assertActiveRuntimeMatchesConfig(env, config.active);
-  return { applyState: desiredApplyState, checkpointPresent: false };
+  assertKnownRuntimeSlugs(runtimeSlugs, config);
+  return buildRecoveryApplyState(runtimeSlugs);
 }

@@ -2,6 +2,13 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
 const DigestPattern = /^[a-f0-9]{64}$/;
 
+export class TournamentApplyStateSchemaError extends Error {
+  constructor(cause) {
+    super(`TournamentApplyState schema invalid: ${cause.message}`, { cause });
+    this.name = "TournamentApplyStateSchemaError";
+  }
+}
+
 function assertDigest(value, label) {
   if (typeof value !== "string" || !DigestPattern.test(value)) {
     throw new Error(`${label} must be a SHA-256 digest`);
@@ -36,9 +43,14 @@ function normalizeApplyState(value) {
 }
 
 export async function readExistingTournamentApplyState(env) {
-  const value = await env["lol-stats-kv"].get(kvKeys.tournamentApplyState(), { type: "json" });
-  if (value == null) return null;
-  return normalizeApplyState(value);
+  const stored = await env["lol-stats-kv"].get(kvKeys.tournamentApplyState());
+  if (stored == null) return null;
+  try {
+    const value = typeof stored === "string" ? JSON.parse(stored) : stored;
+    return normalizeApplyState(value);
+  } catch (error) {
+    throw new TournamentApplyStateSchemaError(error);
+  }
 }
 
 export async function writeTournamentApplyState(env, state) {

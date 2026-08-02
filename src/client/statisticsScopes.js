@@ -1,33 +1,33 @@
 export const statisticsScopesScript = `
-function closeTournamentSourceMenus() {
-  document.querySelectorAll('.tournament-source-menu.is-open').forEach(menu => {
-    menu.classList.remove('is-open');
-    const trigger = menu.querySelector('.tournament-source-trigger');
-    const options = menu.querySelector('.tournament-source-options');
-    if (!trigger || !options) throw new Error('Tournament source menu invalid');
+function closeTournamentInfoPanels() {
+  document.querySelectorAll('.tournament-info.is-open').forEach(info => {
+    info.classList.remove('is-open');
+    const trigger = info.querySelector('.tournament-info-trigger');
+    const panel = info.querySelector('.tournament-info-panel');
+    if (!trigger || !panel) throw new Error('Tournament info structure invalid');
     trigger.setAttribute('aria-expanded', 'false');
-    options.setAttribute('aria-hidden', 'true');
+    panel.setAttribute('aria-hidden', 'true');
   });
 }
 
-function toggleTournamentSourceMenu(trigger) {
-  if (!(trigger instanceof HTMLButtonElement)) throw new Error('Tournament source trigger invalid');
-  const menu = trigger.closest('.tournament-source-menu');
-  if (!menu) throw new Error('Tournament source menu missing');
-  const options = menu.querySelector('.tournament-source-options');
-  if (!options) throw new Error('Tournament source options missing');
-  const shouldOpen = !menu.classList.contains('is-open');
-  closeTournamentSourceMenus();
+function toggleTournamentInfoPanel(trigger) {
+  if (!(trigger instanceof HTMLButtonElement)) throw new Error('Tournament info trigger invalid');
+  const info = trigger.closest('.tournament-info');
+  if (!info) throw new Error('Tournament info missing');
+  const panel = info.querySelector('.tournament-info-panel');
+  if (!panel) throw new Error('Tournament info panel missing');
+  const shouldOpen = !info.classList.contains('is-open');
+  closeTournamentInfoPanels();
   closeCompactMenus();
   if (!shouldOpen) return;
 
-  menu.classList.add('is-open');
+  info.classList.add('is-open');
   trigger.setAttribute('aria-expanded', 'true');
-  options.setAttribute('aria-hidden', 'false');
-  options.classList.remove('is-align-start', 'is-align-end');
-  const bounds = options.getBoundingClientRect();
-  if (bounds.left < 8) options.classList.add('is-align-start');
-  if (bounds.right > window.innerWidth - 8) options.classList.add('is-align-end');
+  panel.setAttribute('aria-hidden', 'false');
+  panel.classList.remove('is-align-start', 'is-align-end');
+  const bounds = panel.getBoundingClientRect();
+  if (bounds.left < 8) panel.classList.add('is-align-start');
+  if (bounds.right > window.innerWidth - 8) panel.classList.add('is-align-end');
 }
 
 function setStatisticsScope(scopeOption) {
@@ -39,8 +39,8 @@ function setStatisticsScope(scopeOption) {
   if (!scope) throw new Error('Statistics scope value missing');
   const scopeLabel = scopeOption.dataset.statisticsScopeLabel;
   if (!scopeLabel) throw new Error('Statistics scope label missing');
-  closeTournamentSourceMenus();
-  const targets = ['content', 'summary', 'legend', 'jump'];
+  closeTournamentInfoPanels();
+  const targets = ['content', 'summary', 'legend'];
   for (const target of targets) {
     const elements = [...root.querySelectorAll('[data-statistics-scope-' + target + ']')];
     const active = elements.filter(element => element.dataset['statisticsScope' + target[0].toUpperCase() + target.slice(1)] === scope);
@@ -66,11 +66,11 @@ function setStatisticsScope(scopeOption) {
   root.dataset.statisticsScope = scope;
   if (typeof syncFloatingActionsMobilePosition === 'function') syncFloatingActionsMobilePosition();
 }
-document.addEventListener('click', closeTournamentSourceMenus);
+document.addEventListener('click', closeTournamentInfoPanels);
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') closeTournamentSourceMenus();
+  if (event.key === 'Escape') closeTournamentInfoPanels();
 });
-window.closeTournamentSourceMenus = closeTournamentSourceMenus;
-window.toggleTournamentSourceMenu = toggleTournamentSourceMenu;
+window.closeTournamentInfoPanels = closeTournamentInfoPanels;
+window.toggleTournamentInfoPanel = toggleTournamentInfoPanel;
 window.setStatisticsScope = setStatisticsScope;
 `;

@@ -2,7 +2,7 @@ import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "./revisionDetector.js";
 import { runActiveUpdate } from "./activeUpdateRunner.js";
 
-const rebuildReasons = new Set(["added", "updated", "force"]);
+const rebuildReasons = new Set(["added", "updated"]);
 
 export async function rebuildActiveTournaments(env, activeTournaments, reasonsBySlug) {
   if (!Array.isArray(activeTournaments)) throw new Error("activeTournaments must be an array");

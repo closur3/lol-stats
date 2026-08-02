@@ -3,21 +3,6 @@ import { readScheduleSessions } from "../facts/scheduleSessionsStore.js";
 import { readScheduleState } from "../scheduler/scheduleState.js";
 import { readActiveHomes } from "./activeHomeReader.js";
 
-const SnapshotTournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate"];
-
-function assertSnapshotTournament(expected, snapshot) {
-  const actual = snapshot.tournament;
-  const actualFields = Object.keys(actual);
-  if (actualFields.length !== SnapshotTournamentFields.length || SnapshotTournamentFields.some(field => !Object.hasOwn(actual, field))) {
-    throw new Error(`ActiveHome tournament fields do not match TournamentConfig: ${expected.slug}`);
-  }
-  for (const field of SnapshotTournamentFields) {
-    if (JSON.stringify(actual[field]) !== JSON.stringify(expected[field])) {
-      throw new Error(`ActiveHome tournament does not match TournamentConfig: ${expected.slug}`);
-    }
-  }
-}
-
 async function assertActiveFactsAvailable(env, slugs) {
   const pairs = await Promise.all(slugs.map(async slug => {
     const [, scheduleSessions] = await Promise.all([
@@ -47,13 +32,11 @@ function assertScheduleStateScope(state, slugs, sessionsBySlug) {
 export async function assertActiveRuntimeMatchesConfig(env, activeTournaments) {
   const activeSlugs = activeTournaments.map(tournament => tournament.slug);
   const [activeHomes, sessionsBySlug, scheduleState] = await Promise.all([
-    readActiveHomes(env, activeSlugs),
+    readActiveHomes(env, activeTournaments),
     assertActiveFactsAvailable(env, activeSlugs),
     readScheduleState(env)
   ]);
   assertScheduleStateScope(scheduleState, activeSlugs, sessionsBySlug);
 
-  activeTournaments.forEach((tournament, index) => {
-    assertSnapshotTournament(tournament, activeHomes[index]);
-  });
+  if (activeHomes.length !== activeTournaments.length) throw new Error("ActiveHome count does not match TournamentConfig.active");
 }

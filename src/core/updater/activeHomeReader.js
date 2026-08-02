@@ -4,34 +4,55 @@ import { createSchemaIssue, describeSchemaValue } from '../facts/schemaIssue.js'
 import { readTournamentStatisticsIssue } from '../facts/tournamentStatistics.js';
 import { readTimeGridCollectionIssue } from '../facts/timeGridCollection.js';
 
-function readActiveHomeIssue(home, artifactKey) {
+export function readActiveHomeIssue(home, tournament, artifactKey) {
   if (home == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
   if (typeof home !== "object" || Array.isArray(home)) return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "JSON object", actual: describeSchemaValue(home) });
   const homeFields = Object.keys(home);
-  const expectedFields = ["tournament", "statistics", "timeGrid"];
+  const expectedFields = ["tournamentSlug", "statistics", "timeGrid"];
   if (homeFields.length !== expectedFields.length || expectedFields.some(field => !Object.hasOwn(home, field))) {
-    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournament, statistics, timeGrid", actual: homeFields.join(", ") });
+    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournamentSlug, statistics, timeGrid", actual: homeFields.length ? homeFields.join(", ") : "no fields" });
   }
-  if (!home.tournament || typeof home.tournament !== "object" || Array.isArray(home.tournament)) return createSchemaIssue({ artifactKey, path: "tournament", kind: "invalid", expected: "object", actual: describeSchemaValue(home.tournament) });
-  if (typeof home.tournament.slug !== "string" || !home.tournament.slug) return createSchemaIssue({ artifactKey, path: "tournament.slug", kind: "invalid", expected: "non-empty string", actual: describeSchemaValue(home.tournament.slug) });
-  if (Object.hasOwn(home, "teamMap")) return createSchemaIssue({ artifactKey, path: "teamMap", kind: "invalid", expected: "field absent in current schema", actual: "present" });
-  if (Object.hasOwn(home.tournament, "teamMap")) return createSchemaIssue({ artifactKey, path: "tournament.teamMap", kind: "invalid", expected: "field absent in current schema", actual: "present" });
-  if (Object.hasOwn(home.tournament, "participantGroups")) return createSchemaIssue({ artifactKey, path: "tournament.participantGroups", kind: "invalid", expected: "field absent in current schema", actual: "present" });
-  const statisticsIssue = readTournamentStatisticsIssue(home.statistics, home.tournament, artifactKey);
+  if (home.tournamentSlug !== tournament.slug) return createSchemaIssue({ artifactKey, path: "tournamentSlug", kind: "invalid", expected: tournament.slug, actual: describeSchemaValue(home.tournamentSlug) });
+  const statisticsIssue = readTournamentStatisticsIssue(home.statistics, tournament, artifactKey);
   if (statisticsIssue) return statisticsIssue;
-  const timeGridIssue = readTimeGridCollectionIssue(home.timeGrid, home.tournament, artifactKey);
+  const timeGridIssue = readTimeGridCollectionIssue(home.timeGrid, tournament, artifactKey);
   if (timeGridIssue) return timeGridIssue;
   return null;
 }
 
-export async function readActiveHomes(env, slugs) {
-  if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
+export async function inspectActiveHomes(env, tournaments) {
+  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const kv = env["lol-stats-kv"];
-  const activeHomes = await Promise.all(slugs.map(slug => kv.get(kvKeys.home(slug), { type: "json" })));
-  const issues = activeHomes.flatMap((activeHome, index) => {
-    const issue = readActiveHomeIssue(activeHome, kvKeys.home(slugs[index]));
-    return issue ? [issue] : [];
+  const storedValues = await Promise.all(tournaments.map(tournament => kv.get(kvKeys.home(tournament.slug))));
+  return storedValues.map((stored, index) => {
+    const tournament = tournaments[index];
+    const slug = tournament.slug;
+    let activeHome = stored;
+    if (typeof stored === "string") {
+      try {
+        activeHome = JSON.parse(stored);
+      } catch {
+        return {
+          slug,
+          activeHome: null,
+          issue: createSchemaIssue({ artifactKey: kvKeys.home(slug), path: "$", kind: "invalid", expected: "stored JSON object", actual: "malformed JSON" })
+        };
+      }
+    }
+    return { slug, activeHome, issue: readActiveHomeIssue(activeHome, tournament, kvKeys.home(slug)) };
   });
-  throwIfArtifactsUnavailable("ActiveHome", issues);
-  return activeHomes;
+}
+
+export async function readActiveHomes(env, tournaments) {
+  const entries = await inspectActiveHomes(env, tournaments);
+  throwIfArtifactsUnavailable("ActiveHome", entries.flatMap(entry => entry.issue ? [entry.issue] : []));
+  return entries.map(entry => entry.activeHome);
+}
+
+export async function readAvailableActiveHomes(env, tournaments) {
+  const entries = await inspectActiveHomes(env, tournaments);
+  return {
+    activeHomes: entries.filter(entry => !entry.issue).map(entry => entry.activeHome),
+    issues: entries.flatMap(entry => entry.issue ? [entry.issue] : [])
+  };
 }

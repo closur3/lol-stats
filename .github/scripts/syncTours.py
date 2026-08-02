@@ -20,6 +20,7 @@ from tournamentConfig import (
     build_transition_manifest,
     classify_tournament_eligibility,
     deduplicate_source_rows,
+    overview_page_names,
     parse_date,
 )
 
@@ -73,11 +74,30 @@ def validate_tournament_list(value, label: str) -> list:
             )
         ):
             raise ValueError(f"{label}[{index}].teamMap must be a string map")
-        overviewPages = item.get("overviewPage")
-        if not isinstance(overviewPages, list) or not overviewPages or any(not isinstance(page, str) or not page.strip() for page in overviewPages):
-            raise ValueError(f"{label}[{index}].overviewPage must be a non-empty string array")
-        if len(set(overviewPages)) != len(overviewPages):
-            raise ValueError(f"{label}[{index}].overviewPage contains duplicates")
+        overview_pages = item.get("overviewPages")
+        if not isinstance(overview_pages, list) or not overview_pages:
+            raise ValueError(f"{label}[{index}].overviewPages must be a non-empty array")
+        overview_page_names = []
+        for page_index, page in enumerate(overview_pages):
+            page_label = f"{label}[{index}].overviewPages[{page_index}]"
+            if not isinstance(page, dict) or set(page) != {"overviewPage", "startDate", "endDate", "participantCount"}:
+                raise ValueError(f"{page_label} fields must match the overview page schema")
+            overview_page = page.get("overviewPage")
+            if (
+                not isinstance(overview_page, str)
+                or not overview_page.strip()
+                or not isinstance(page.get("startDate"), str)
+                or not isinstance(page.get("endDate"), str)
+                or not isinstance(page.get("participantCount"), int)
+                or isinstance(page.get("participantCount"), bool)
+                or page["participantCount"] < 1
+            ):
+                raise ValueError(f"{page_label} is invalid")
+            if parse_date(page["startDate"]) > parse_date(page["endDate"]):
+                raise ValueError(f"{page_label} date range invalid")
+            overview_page_names.append(overview_page)
+        if len(set(overview_page_names)) != len(overview_page_names):
+            raise ValueError(f"{label}[{index}].overviewPages contains duplicate overviewPage")
         participant_groups = item.get("participantGroups")
         if not isinstance(participant_groups, list):
             raise ValueError(f"{label}[{index}].participantGroups must be an array")
@@ -92,7 +112,7 @@ def validate_tournament_list(value, label: str) -> list:
             teams = group.get("teams")
             if (
                 not isinstance(overview_page, str)
-                or overview_page not in overviewPages
+                or overview_page not in overview_page_names
                 or not isinstance(group_display, str)
                 or not group_display.strip()
                 or not isinstance(teams, list)
@@ -115,6 +135,10 @@ def validate_tournament_list(value, label: str) -> list:
         end_date = parse_date(item["endDate"])
         if start_date > end_date:
             raise ValueError(f"{label}[{index}] date range invalid")
+        if start_date != min(parse_date(page["startDate"]) for page in overview_pages):
+            raise ValueError(f"{label}[{index}].startDate must match the earliest overview page")
+        if end_date != max(parse_date(page["endDate"]) for page in overview_pages):
+            raise ValueError(f"{label}[{index}].endDate must match the latest overview page")
         if item["slug"] in slugs:
             raise ValueError(f"Duplicate slug in {label}: {item['slug']}")
         slugs.add(item["slug"])
@@ -145,8 +169,12 @@ def add_overview_page(event: dict, overview_page: str, start_date, end_date) -> 
 
 def project_overview_pages(event: dict) -> list:
     return [
-        overview_page
-        for overview_page, _ in sorted(
+        {
+            "overviewPage": overview_page,
+            "startDate": str(dates[0]),
+            "endDate": str(dates[1]),
+        }
+        for overview_page, dates in sorted(
             event["overviewPageDates"].items(),
             key=lambda item: (*item[1], item[0]),
         )
@@ -419,7 +447,7 @@ def fetch_tournament_source_rows(session, url: str, old_active: list) -> list:
     active_pages = {
         page
         for tournament in old_active
-        for page in tournament["overviewPage"]
+        for page in overview_page_names(tournament)
     }
     missing_active_pages = sorted(active_pages - discovery_pages)
     reconciliation_rows = []
@@ -439,7 +467,7 @@ def attach_team_maps(
     overview_pages = sorted({
         page
         for tournament in tournaments
-        for page in tournament["overviewPage"]
+        for page in overview_page_names(tournament)
     })
     if not overview_pages:
         return
@@ -478,7 +506,8 @@ def attach_team_maps(
 
     for tournament in tournaments:
         team_map = {}
-        for overview_page in tournament["overviewPage"]:
+        for source in tournament["overviewPages"]:
+            overview_page = source["overviewPage"]
             page_map = maps_by_page[overview_page]
             for team, short in page_map.items():
                 existing = team_map.get(team)
@@ -486,6 +515,55 @@ def attach_team_maps(
                     raise ValueError(f"Conflicting tournament team short: {tournament['slug']}:{team}")
                 team_map[team] = short
         tournament["teamMap"] = dict(sorted(team_map.items()))
+
+
+def attach_participant_counts(
+    session,
+    url: str,
+    tournaments: list,
+) -> None:
+    overview_pages = sorted({
+        page
+        for tournament in tournaments
+        for page in overview_page_names(tournament)
+    })
+    if not overview_pages:
+        return
+    participant_rows = fetch_cargo(session, url, {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "ParticipantsArgs=PA",
+        "fields": "PA.OverviewPage=OverviewPage,PA.N_TeamInPage=TeamSlot",
+        "where": (
+            "PA.OverviewPage IN "
+            f"({', '.join(cargo_string_literal(page, 'OverviewPage') for page in overview_pages)})"
+        ),
+        "order_by": "PA.OverviewPage ASC,PA.N_TeamInPage ASC",
+    })
+    slots_by_page = {page: set() for page in overview_pages}
+    for item in participant_rows:
+        row = item.get("title", {})
+        overview_page = row.get("OverviewPage", "")
+        if overview_page not in slots_by_page:
+            raise ValueError(f"Invalid tournament participant row: {row}")
+        team_slot = parse_positive_integer(
+            row.get("TeamSlot"),
+            f"ParticipantsArgs.{overview_page}.N_TeamInPage",
+        )
+        if team_slot in slots_by_page[overview_page]:
+            raise ValueError(f"Duplicate tournament participant slot: {overview_page}:{team_slot}")
+        slots_by_page[overview_page].add(team_slot)
+
+    for tournament in tournaments:
+        for source in tournament["overviewPages"]:
+            overview_page = source["overviewPage"]
+            slots = slots_by_page[overview_page]
+            if not slots:
+                raise ValueError(f"Tournament participant slots missing: {overview_page}")
+            expected_slots = set(range(1, len(slots) + 1))
+            if slots != expected_slots:
+                raise ValueError(f"Tournament participant slots invalid: {overview_page}")
+            source["participantCount"] = len(slots)
 
 
 def parse_positive_integer(value, label: str) -> int:
@@ -626,7 +704,7 @@ def attach_participant_groups(
     overview_pages = sorted({
         page
         for tournament in tournaments
-        for page in tournament["overviewPage"]
+        for page in overview_page_names(tournament)
     })
     if not overview_pages:
         return
@@ -703,7 +781,7 @@ def attach_participant_groups(
 
     for tournament in tournaments:
         participant_groups = []
-        for overview_page in tournament["overviewPage"]:
+        for overview_page in overview_page_names(tournament):
             page_groups = sorted(
                 groups_by_page[overview_page].values(),
                 key=lambda group: (group["order"], group["groupName"]),
@@ -1378,7 +1456,7 @@ def project_tournament_candidates(main_events: dict) -> list:
         {
             "name": event["name"],
             "leagueShort": event["leagueShort"],
-            "overviewPage": project_overview_pages(event),
+            "overviewPages": project_overview_pages(event),
             "startDate": str(event["startDate"]),
             "endDate": str(event["endDate"]),
         }
@@ -1455,16 +1533,22 @@ def attach_transition_team_maps(
     url: str,
     transition: dict,
 ) -> None:
-    archived_slugs = set(transition["archivedSlugs"])
-    new_archive_tournaments = [
-        tournament
-        for tournament in transition["archive"]
-        if tournament["slug"] in archived_slugs
-    ]
     attach_team_maps(
         session,
         url,
-        transition["active"] + new_archive_tournaments,
+        transition["active"] + transition["archive"],
+    )
+
+
+def attach_transition_participant_counts(
+    session,
+    url: str,
+    transition: dict,
+) -> None:
+    attach_participant_counts(
+        session,
+        url,
+        transition["active"] + transition["archive"],
     )
 
 
@@ -1605,7 +1689,7 @@ def run_tournament_sync():
     active_overview_pages = {
         page
         for tournament in old_active
-        for page in tournament["overviewPage"]
+        for page in overview_page_names(tournament)
     }
     discovery_classification = classify_tournament_rows(
         discovery_rows,
@@ -1668,6 +1752,7 @@ def run_tournament_sync():
     log_active_table(transition["active"])
 
     attach_transition_team_maps(session, url, transition)
+    attach_transition_participant_counts(session, url, transition)
     attach_transition_participant_groups(session, url, transition)
     assert_configs_disjoint(transition["active"], transition["archive"])
     manifest = build_manifest(old_active, transition)

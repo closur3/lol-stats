@@ -42,17 +42,12 @@ function assertReconcileInputs(scheduledTimeMs, scheduleOptions) {
 
 async function reconcileConfig(env, config, scheduledTimeMs, scheduleOptions) {
   const desiredApplyState = await buildTournamentApplyState(config);
-  const baseline = await resolveTournamentApplyBaseline(env, config, desiredApplyState);
-  if (baseline.applyState.configDigest === desiredApplyState.configDigest) {
+  const previousApplyState = await resolveTournamentApplyBaseline(env, config);
+  if (previousApplyState.configDigest === desiredApplyState.configDigest) {
     const transition = { added: [], updated: [], archived: [], dropped: [] };
-    if (!baseline.checkpointPresent) {
-      await assertConfigUnchanged(env, desiredApplyState.configDigest);
-      await writeTournamentApplyState(env, desiredApplyState);
-    }
     return { config, transition, configChanged: false };
   }
 
-  const previousApplyState = baseline.applyState;
   const transition = deriveTournamentTransition(config.archive, desiredApplyState, previousApplyState);
   logTransition(transition);
 

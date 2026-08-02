@@ -18,7 +18,7 @@ function toggleCompactMenu(trigger) {
     if (!popup) throw new Error("compact menu popup missing");
     const shouldOpen = !menu.classList.contains("is-open");
     closeCompactMenus();
-    if (typeof closeTournamentSourceMenus === "function") closeTournamentSourceMenus();
+    if (typeof closeTournamentInfoPanels === "function") closeTournamentInfoPanels();
     if (!shouldOpen) return;
     menu.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");

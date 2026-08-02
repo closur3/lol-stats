@@ -18,15 +18,15 @@ function requireText(value, artifactKey, path, allowEmpty = false) {
   return value;
 }
 
-function projectArtifactHistory(artifact, artifactType) {
-  const initialSlug = artifact?.tournament?.slug || "unknown";
+function projectArtifactHistory(artifact, artifactType, tournamentsBySlug) {
+  const initialSlug = artifact?.tournamentSlug || "unknown";
   const initialArtifactKey = `${artifactType}_${initialSlug}`;
   requireObject(artifact, initialArtifactKey, "$");
-  requireObject(artifact.tournament, initialArtifactKey, "tournament");
-
-  const slug = requireText(artifact.tournament.slug, initialArtifactKey, "tournament.slug");
+  const slug = requireText(artifact.tournamentSlug, initialArtifactKey, "tournamentSlug");
   const artifactKey = `${artifactType}_${slug}`;
-  const tournamentName = requireText(artifact.tournament.name, artifactKey, "tournament.name");
+  const tournament = tournamentsBySlug.get(slug);
+  if (!tournament) throw new Error(`TournamentConfig missing artifact owner: ${artifactKey}`);
+  const tournamentName = requireText(tournament.name, artifactKey, "TournamentConfig.name");
   requireObject(artifact.statistics, artifactKey, "statistics");
   requireObject(artifact.statistics.combined, artifactKey, "statistics.combined");
 
@@ -138,17 +138,19 @@ function projectUpcomingHistory(activeTournaments, scheduleSessionsMap) {
   return historyEntries;
 }
 
-export function inspectModalHistory(activeHomes, archiveSnapshots, activeTournaments, scheduleSessionsMap) {
+export function inspectModalHistory(activeHomes, archiveSnapshots, tournaments, activeTournaments, scheduleSessionsMap) {
   if (!Array.isArray(activeHomes)) throw new Error("activeHomes must be an array");
   if (!Array.isArray(archiveSnapshots)) throw new Error("archiveSnapshots must be an array");
+  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
 
   const history = [];
   const issues = [];
+  const tournamentsBySlug = new Map(tournaments.map(tournament => [tournament.slug, tournament]));
   const inspectArtifact = (artifact, artifactType) => {
-    const slug = artifact?.tournament?.slug || "unknown";
+    const slug = artifact?.tournamentSlug || "unknown";
     const artifactKey = `${artifactType}_${slug}`;
     try {
-      history.push(...projectArtifactHistory(artifact, artifactType));
+      history.push(...projectArtifactHistory(artifact, artifactType, tournamentsBySlug));
     } catch (error) {
       const issue = readSchemaIssue(error);
       if (issue.artifactKey !== artifactKey) {

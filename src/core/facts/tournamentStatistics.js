@@ -1,4 +1,5 @@
 import { createSchemaIssue, describeSchemaValue } from "./schemaIssue.js";
+import { getOverviewPageNames } from "../../utils/data/overviewPages.js";
 
 function issue(artifactKey, path, expected, actual) {
   return createSchemaIssue({
@@ -11,6 +12,7 @@ function issue(artifactKey, path, expected, actual) {
 }
 
 export function readTournamentStatisticsIssue(statistics, tournament, artifactKey) {
+  const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
     return issue(artifactKey, "statistics", "object", statistics);
   }
@@ -25,7 +27,7 @@ export function readTournamentStatisticsIssue(statistics, tournament, artifactKe
   if (!Array.isArray(statistics.pages)) {
     return issue(artifactKey, "statistics.pages", "array", statistics.pages);
   }
-  if (!Array.isArray(tournament.overviewPage) || statistics.pages.length !== tournament.overviewPage.length) {
+  if (statistics.pages.length !== overviewPages.length) {
     return issue(
       artifactKey,
       "statistics.pages",
@@ -44,11 +46,11 @@ export function readTournamentStatisticsIssue(statistics, tournament, artifactKe
     if (pageFields.length !== expectedPageFields.length || expectedPageFields.some(field => !Object.hasOwn(page, field))) {
       return issue(artifactKey, pagePath, "fields overviewPage, groups and stats", pageFields.join(", "));
     }
-    if (page.overviewPage !== tournament.overviewPage[pageIndex]) {
+    if (page.overviewPage !== overviewPages[pageIndex]) {
       return issue(
         artifactKey,
         `${pagePath}.overviewPage`,
-        tournament.overviewPage[pageIndex],
+        overviewPages[pageIndex],
         page.overviewPage
       );
     }

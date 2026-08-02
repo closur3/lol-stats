@@ -1,4 +1,4 @@
-import { getFirstOverviewPage, getOverviewPageLabel } from '../../../utils/data/overviewPages.js';
+import { getFirstOverviewPage, getOverviewPageLabel, getOverviewPageNames } from '../../../utils/data/overviewPages.js';
 import { sortTeams } from '../../../utils/data/teamSort.js';
 import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
 import { resolveSchedulePhase } from '../../../core/scheduler/scheduleDay.js';
@@ -90,24 +90,29 @@ function renderStatisticsView(tournament, page, tablePrefix) {
     : `<div class="stats-view-empty">NO SCHEDULED TEAMS</div>`;
 }
 
-function renderTournamentJumpIcon() {
+function renderInfoIcon() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>`;
+}
+
+function renderExternalLinkIcon() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`;
 }
 
 function assertStatistics(tournament, statistics) {
+  const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
     throw new Error(`statistics missing: ${tournament.slug}`);
   }
   if (!statistics.combined || typeof statistics.combined !== "object" || Array.isArray(statistics.combined)) {
     throw new Error(`statistics.combined missing: ${tournament.slug}`);
   }
-  if (!Array.isArray(statistics.pages) || statistics.pages.length !== tournament.overviewPage.length) {
+  if (!Array.isArray(statistics.pages) || statistics.pages.length !== overviewPages.length) {
     throw new Error(`statistics.pages mismatch: ${tournament.slug}`);
   }
   statistics.pages.forEach((page, index) => {
     if (
       !page
-      || page.overviewPage !== tournament.overviewPage[index]
+      || page.overviewPage !== overviewPages[index]
       || !Array.isArray(page.groups)
       || !page.stats
       || typeof page.stats !== "object"
@@ -118,32 +123,13 @@ function assertStatistics(tournament, statistics) {
   });
 }
 
-function renderTournamentJump(overviewPage, scope = null, isActive = true) {
-  const pageUrl = `https://lol.fandom.com/wiki/${overviewPage}`;
-  const scopeAttributes = scope === null
-    ? ""
-    : ` data-statistics-scope-jump="${scope}" aria-hidden="${String(!isActive)}"`;
-  const hiddenClass = isActive ? "" : " is-hidden";
-  return `<a class="tournament-jump-btn statistics-scope-jump${hiddenClass}"${scopeAttributes} href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(getOverviewPageLabel(overviewPage))}" onclick="event.stopPropagation()">${renderTournamentJumpIcon()}</a>`;
-}
-
-function renderTournamentJumpMenu(tournament, scope = null, isActive = true) {
-  const scopeAttributes = scope === null
-    ? ""
-    : ` data-statistics-scope-jump="${scope}" aria-hidden="${String(!isActive)}"`;
-  const hiddenClass = isActive ? "" : " is-hidden";
-  const menuId = `fandom_sources_${normalizeId(tournament.slug)}`;
-  const links = tournament.overviewPage.map(overviewPage => {
-    const label = getOverviewPageLabel(overviewPage);
-    return `<a class="tournament-source-option" href="${escapeUrl(`https://lol.fandom.com/wiki/${overviewPage}`)}" target="_blank" rel="noopener noreferrer" role="menuitem" onclick="event.stopPropagation(); closeTournamentSourceMenus()">${escapeHtml(label)}</a>`;
+function renderTournamentInfo(tournament) {
+  const panelId = `tournament_info_${normalizeId(tournament.slug)}`;
+  const links = [...tournament.overviewPages].reverse().map(source => {
+    const label = getOverviewPageLabel(source.overviewPage);
+    return `<a class="tournament-info-source" href="${escapeUrl(`https://lol.fandom.com/wiki/${source.overviewPage}`)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); closeTournamentInfoPanels()"><span class="tournament-info-source-main"><span class="tournament-info-source-name">${escapeHtml(label)}</span><span class="tournament-info-source-side"><span class="tournament-info-source-count" aria-label="${source.participantCount} teams">${source.participantCount}</span>${renderExternalLinkIcon()}</span></span><span class="tournament-info-source-meta">${escapeHtml(source.startDate)} → ${escapeHtml(source.endDate)}</span></a>`;
   }).join("");
-  return `<span class="tournament-source-menu statistics-scope-jump${hiddenClass}"${scopeAttributes}><button type="button" class="tournament-jump-btn tournament-source-trigger" aria-label="Choose Fandom source page" aria-expanded="false" aria-controls="${menuId}" onclick="event.stopPropagation(); toggleTournamentSourceMenu(this)">${renderTournamentJumpIcon()}</button><span id="${menuId}" class="tournament-source-options" role="menu" aria-hidden="true">${links}</span></span>`;
-}
-
-function renderOverallTournamentJump(tournament, scope = null, isActive = true) {
-  return tournament.overviewPage.length === 1
-    ? renderTournamentJump(tournament.overviewPage[0], scope, isActive)
-    : renderTournamentJumpMenu(tournament, scope, isActive);
+  return `<span class="tournament-info"><button type="button" class="tournament-info-trigger" aria-label="Tournament information" aria-haspopup="dialog" aria-expanded="false" aria-controls="${panelId}" onclick="event.stopPropagation(); toggleTournamentInfoPanel(this)">${renderInfoIcon()}</button><span id="${panelId}" class="tournament-info-panel" role="dialog" aria-label="${escapeHtml(tournament.name)} information" aria-hidden="true" onclick="event.stopPropagation()"><span class="tournament-info-header"><span class="tournament-info-name">${escapeHtml(tournament.name)}</span><span class="tournament-info-league">${escapeHtml(tournament.leagueShort)}</span></span><span class="tournament-info-dates"><span>${escapeHtml(tournament.startDate)}</span><span aria-hidden="true">→</span><span>${escapeHtml(tournament.endDate)}</span></span><span class="tournament-info-label">FANDOM SOURCES</span><span class="tournament-info-sources">${links}</span></span></span>`;
 }
 
 function renderScopeSummary(scope, stats, isActive) {
@@ -174,7 +160,6 @@ function renderStatistics(tournament, statistics, timeTables) {
       summary: renderTournamentSummary(sortTeams(statistics.pages[0].stats)),
       legend: renderGroupLegend(statistics.pages[0]),
       select: "",
-      jump: renderTournamentJump(statistics.pages[0].overviewPage),
       hasScopes: false
     };
   }
@@ -195,7 +180,6 @@ function renderStatistics(tournament, statistics, timeTables) {
           summary: renderTournamentSummary(sortTeams(visiblePage.stats)),
           legend: renderGroupLegend(visiblePage),
           select: "",
-          jump: renderTournamentJump(visiblePage.overviewPage),
           hasScopes: false
         }
       : {
@@ -203,7 +187,6 @@ function renderStatistics(tournament, statistics, timeTables) {
           summary: renderTournamentSummary(sortTeams(statistics.combined)),
           legend: "",
           select: "",
-          jump: renderOverallTournamentJump(tournament),
           hasScopes: false
         };
   }
@@ -212,7 +195,7 @@ function renderStatistics(tournament, statistics, timeTables) {
     {
       key: "overall",
       label: "Overall",
-      overviewPage: getFirstOverviewPage(tournament.overviewPage),
+      overviewPage: getFirstOverviewPage(getOverviewPageNames(tournament.overviewPages)),
       stats: statistics.combined,
       page: null,
       content: `${combined}${timeTables.combined}`
@@ -228,21 +211,18 @@ function renderStatistics(tournament, statistics, timeTables) {
   ];
   const summaries = scopes.map((scope, index) => renderScopeSummary(scope.key, scope.stats, index === 0)).join("");
   const legends = scopes.map((scope, index) => renderScopeLegend(scope.key, scope.page, index === 0)).join("");
-  const jumps = scopes.map((scope, index) => scope.key === "overall"
-    ? renderOverallTournamentJump(tournament, scope.key, index === 0)
-    : renderTournamentJump(scope.overviewPage, scope.key, index === 0)).join("");
   const contents = scopes.map((scope, index) => renderScopeContent(scope.key, scope.content, index === 0)).join("");
   return {
     content: contents,
     summary: summaries,
     legend: legends,
     select: renderScopeSelect(scopes),
-    jump: jumps,
     hasScopes: true
   };
 }
 
 export function renderTournamentSection(tournament, statisticsBySlug, timeGridBySlug, scheduleSessionsBySlug, isArchive) {
+  const overviewPages = getOverviewPageNames(tournament.overviewPages);
   const scheduleSessions = readScheduleSessions(scheduleSessionsBySlug, tournament.slug, isArchive);
   const statistics = statisticsBySlug[tournament.slug];
   assertStatistics(tournament, statistics);
@@ -251,7 +231,7 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
     throw new Error(`timeGrid missing: ${tournament.slug}`);
   }
   const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveHome"}_${tournament.slug}`;
-  if (tournamentTimeGrid.pages.length !== tournament.overviewPage.length) throw new Error(`timeGrid.pages mismatch: ${tournament.slug}`);
+  if (tournamentTimeGrid.pages.length !== overviewPages.length) throw new Error(`timeGrid.pages mismatch: ${tournament.slug}`);
   const timeTables = {
     combined: renderTimeTable(tournamentTimeGrid.combined, artifactKey),
     pages: new Map(tournamentTimeGrid.pages.map(page => [page.overviewPage, renderTimeTable(page.timeGrid, `${artifactKey}_${normalizeId(page.overviewPage)}`)]))
@@ -265,6 +245,7 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
     phaseIcon = renderSchedulePhaseIcon(phase);
   }
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
+  const tournamentInfo = renderTournamentInfo(tournament);
   const hasHeadingDetails = Boolean(statisticsLayout.select || statisticsLayout.legend);
   const divider = hasHeadingDetails ? `<span class="statistics-heading-divider" aria-hidden="true"></span>` : "";
   const scopeClass = statisticsLayout.select ? " has-scope-select" : "";
@@ -277,9 +258,9 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
   const detailsClass = statisticsLayout.hasScopes ? "home-sec statistics-root" : "home-sec";
 
   if (isArchive) {
-    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${statisticsLayout.jump}</div> ${headerRight}</summary>${sectionBody}</details>`;
+    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
   }
 
   const openAttr = phase === "offday" ? "" : " open";
-  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${statisticsLayout.jump}</div> ${headerRight}</summary>${sectionBody}</details>`;
+  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
 }

@@ -1,7 +1,7 @@
 import { fetchLatestRevision } from '../../api/fandom/revisions.js';
 import { fetchAllSubpages } from '../../api/fandom/subpages.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
-import { normalizeOverviewPages, toDataPage } from '../../utils/data/overviewPages.js';
+import { getOverviewPageNames, toDataPage } from '../../utils/data/overviewPages.js';
 
 function hasRevisionRecordChanged(previousRecord, nextRecord) {
   if (previousRecord.slug !== nextRecord.slug) return true;
@@ -51,14 +51,23 @@ async function prepareRevisionCheck(env, tournament) {
   const slug = tournament?.slug;
   if (!slug) throw new Error("Tournament slug missing");
 
-  const pages = normalizeOverviewPages(tournament.overviewPage);
+  const pages = getOverviewPageNames(tournament.overviewPages);
   if (pages.length === 0) throw new Error(`Tournament overviewPage missing: ${slug}`);
 
   const dataPages = Array.from(new Set(pages.map(toDataPage)));
   const subpageResults = await Promise.all(dataPages.map(page => fetchAllSubpages(page)));
   const revisionDataPages = Array.from(new Set(subpageResults.flat()));
 
-  const previousRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(slug), { type: "json" });
+  const storedRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(slug));
+  let previousRevisionState = storedRevisionState;
+  if (typeof storedRevisionState === "string") {
+    try {
+      previousRevisionState = JSON.parse(storedRevisionState);
+    } catch (error) {
+      console.error(`[REV:REPAIR] unreadable FandomRevision ${slug}: ${error.message}`);
+      previousRevisionState = null;
+    }
+  }
   console.log(`[REV:CHECK] ${slug}`);
 
   return {
@@ -80,7 +89,13 @@ async function fetchLatestRevisionPages(dataPages) {
 
 async function evaluateRevisionCheck(check) {
   const { slug, dataPages, previousRevisionState } = check;
-  const prevRecord = normalizePreviousRevisionState(slug, previousRevisionState);
+  let prevRecord;
+  try {
+    prevRecord = normalizePreviousRevisionState(slug, previousRevisionState);
+  } catch (error) {
+    console.error(`[REV:REPAIR] replacing invalid FandomRevision ${slug}: ${error.message}`);
+    prevRecord = { slug, pages: {} };
+  }
   const prevPages = prevRecord.pages;
   const nextPages = {};
   const changedPages = [];

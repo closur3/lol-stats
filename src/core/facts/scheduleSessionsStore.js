@@ -180,9 +180,15 @@ export async function readExistingScheduleSessions(env, slug) {
 
 export async function ensureScheduleSessions(env, tournament) {
   const slug = readTournamentSlug(tournament);
-  const value = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(slug), { type: "json" });
-  if (value == null) return rebuildScheduleSessionsFromRawMatches(env, tournament);
-  return normalizeScheduleSessions(slug, value);
+  const stored = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(slug));
+  if (stored == null) return rebuildScheduleSessionsFromRawMatches(env, tournament);
+  try {
+    const value = typeof stored === "string" ? JSON.parse(stored) : stored;
+    return normalizeScheduleSessions(slug, value);
+  } catch (error) {
+    console.error(`[SCHEDULE:REPAIR] replacing invalid ScheduleSessions ${slug}: ${error.message}`);
+    return rebuildScheduleSessionsFromRawMatches(env, tournament);
+  }
 }
 
 export async function writeScheduleSessions(env, slug, value) {

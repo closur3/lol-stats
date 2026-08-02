@@ -4,11 +4,10 @@
   "description": "League of Legends statistics archive worker",
   "type": "module",
   "scripts": {
-    "dev": "npm run dev:kv && wrangler dev",
-    "dev:kv": "wrangler kv key put TournamentConfig --path config/TournamentConfig.json --binding=lol-stats-kv --local",
+    "dev": "node scripts/dev.js",
     "deploy": "wrangler deploy",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/ scripts/"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260425.1",

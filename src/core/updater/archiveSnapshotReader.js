@@ -4,34 +4,52 @@ import { createSchemaIssue, describeSchemaValue } from '../facts/schemaIssue.js'
 import { readTournamentStatisticsIssue } from '../facts/tournamentStatistics.js';
 import { readTimeGridCollectionIssue } from '../facts/timeGridCollection.js';
 
-function readArchiveSnapshotIssue(snapshot, artifactKey) {
+function readArchiveSnapshotIssue(snapshot, tournament, artifactKey) {
   if (snapshot == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
   if (typeof snapshot !== "object" || Array.isArray(snapshot)) return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "JSON object", actual: describeSchemaValue(snapshot) });
   const snapshotFields = Object.keys(snapshot);
-  const expectedFields = ["tournament", "statistics", "timeGrid"];
+  const expectedFields = ["tournamentSlug", "statistics", "timeGrid"];
   if (snapshotFields.length !== expectedFields.length || expectedFields.some(field => !Object.hasOwn(snapshot, field))) {
-    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournament, statistics, timeGrid", actual: snapshotFields.join(", ") });
+    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournamentSlug, statistics, timeGrid", actual: snapshotFields.length ? snapshotFields.join(", ") : "no fields" });
   }
-  if (!snapshot.tournament || typeof snapshot.tournament !== "object" || Array.isArray(snapshot.tournament)) return createSchemaIssue({ artifactKey, path: "tournament", kind: "invalid", expected: "object", actual: describeSchemaValue(snapshot.tournament) });
-  if (typeof snapshot.tournament.slug !== "string" || !snapshot.tournament.slug) return createSchemaIssue({ artifactKey, path: "tournament.slug", kind: "invalid", expected: "non-empty string", actual: describeSchemaValue(snapshot.tournament.slug) });
-  if (Object.hasOwn(snapshot, "teamMap")) return createSchemaIssue({ artifactKey, path: "teamMap", kind: "invalid", expected: "field absent in current schema", actual: "present" });
-  if (Object.hasOwn(snapshot.tournament, "teamMap")) return createSchemaIssue({ artifactKey, path: "tournament.teamMap", kind: "invalid", expected: "field absent in current schema", actual: "present" });
-  if (Object.hasOwn(snapshot.tournament, "participantGroups")) return createSchemaIssue({ artifactKey, path: "tournament.participantGroups", kind: "invalid", expected: "field absent in current schema", actual: "present" });
-  const statisticsIssue = readTournamentStatisticsIssue(snapshot.statistics, snapshot.tournament, artifactKey);
+  if (snapshot.tournamentSlug !== tournament.slug) return createSchemaIssue({ artifactKey, path: "tournamentSlug", kind: "invalid", expected: tournament.slug, actual: describeSchemaValue(snapshot.tournamentSlug) });
+  const statisticsIssue = readTournamentStatisticsIssue(snapshot.statistics, tournament, artifactKey);
   if (statisticsIssue) return statisticsIssue;
-  const timeGridIssue = readTimeGridCollectionIssue(snapshot.timeGrid, snapshot.tournament, artifactKey);
+  const timeGridIssue = readTimeGridCollectionIssue(snapshot.timeGrid, tournament, artifactKey);
   if (timeGridIssue) return timeGridIssue;
   return null;
 }
 
-export async function readArchiveSnapshots(env, slugs) {
-  if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
+async function inspectArchiveSnapshots(env, tournaments) {
+  if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const kv = env["lol-stats-kv"];
-  const archiveSnapshots = await Promise.all(slugs.map(slug => kv.get(kvKeys.archive(slug), { type: "json" })));
-  const issues = archiveSnapshots.flatMap((archiveSnapshot, index) => {
-    const issue = readArchiveSnapshotIssue(archiveSnapshot, kvKeys.archive(slugs[index]));
-    return issue ? [issue] : [];
+  const storedValues = await Promise.all(tournaments.map(tournament => kv.get(kvKeys.archive(tournament.slug))));
+  const snapshots = [];
+  const issues = [];
+  storedValues.forEach((stored, index) => {
+    const tournament = tournaments[index];
+    let snapshot = stored;
+    if (typeof stored === "string") {
+      try {
+        snapshot = JSON.parse(stored);
+      } catch {
+        issues.push(createSchemaIssue({ artifactKey: kvKeys.archive(tournament.slug), path: "$", kind: "invalid", expected: "stored JSON object", actual: "malformed JSON" }));
+        return;
+      }
+    }
+    const issue = readArchiveSnapshotIssue(snapshot, tournament, kvKeys.archive(tournament.slug));
+    if (issue) issues.push(issue);
+    else snapshots.push(snapshot);
   });
-  throwIfArtifactsUnavailable("ArchiveSnapshot", issues);
-  return archiveSnapshots;
+  return { snapshots, issues };
+}
+
+export async function readArchiveSnapshots(env, tournaments) {
+  const result = await inspectArchiveSnapshots(env, tournaments);
+  throwIfArtifactsUnavailable("ArchiveSnapshot", result.issues);
+  return result.snapshots;
+}
+
+export async function readAvailableArchiveSnapshots(env, tournaments) {
+  return inspectArchiveSnapshots(env, tournaments);
 }

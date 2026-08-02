@@ -1,12 +1,17 @@
 {
-    "configDigest": "7937158572be9c74cb9cf89c33cfc8abedef80d78775497c3137bab7f4d6559d",
+    "configDigest": "c31b28aa9d6b182a9e20e91ab71afd44dee068254f84f618199a6357eac8cda2",
     "active": [
         {
             "slug": "lpl-2026-split-3",
             "name": "LPL 2026 Split 3",
             "leagueShort": "LPL",
-            "overviewPage": [
-                "LPL/2026 Season/Split 3"
+            "overviewPages": [
+                {
+                    "overviewPage": "LPL/2026 Season/Split 3",
+                    "startDate": "2026-07-22",
+                    "endDate": "2026-08-23",
+                    "participantCount": 12
+                }
             ],
             "startDate": "2026-07-22",
             "endDate": "2026-08-23",
@@ -55,8 +60,13 @@
             "slug": "kespa-cup-2026",
             "name": "KeSPA Cup 2026",
             "leagueShort": "KeSPA",
-            "overviewPage": [
-                "2026 LoL KeSPA Cup"
+            "overviewPages": [
+                {
+                    "overviewPage": "2026 LoL KeSPA Cup",
+                    "startDate": "2026-07-20",
+                    "endDate": "2026-08-18",
+                    "participantCount": 10
+                }
             ],
             "startDate": "2026-07-20",
             "endDate": "2026-08-18",
@@ -78,11 +88,31 @@
             "slug": "lck-2026-rounds-1-2-3-4",
             "name": "LCK 2026 Rounds 1-2 + 3-4",
             "leagueShort": "LCK",
-            "overviewPage": [
-                "LCK/2026 Season/Rounds 1-2",
-                "LCK/2026 Season/Rounds 3-4",
-                "LCK/2026 Season/Season Play-In",
-                "LCK/2026 Season/Season Playoffs"
+            "overviewPages": [
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 1-2",
+                    "startDate": "2026-04-01",
+                    "endDate": "2026-05-31",
+                    "participantCount": 10
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
+                    "startDate": "2026-07-29",
+                    "endDate": "2026-08-23",
+                    "participantCount": 10
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Season Play-In",
+                    "startDate": "2026-08-26",
+                    "endDate": "2026-08-28",
+                    "participantCount": 4
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Season Playoffs",
+                    "startDate": "2026-08-29",
+                    "endDate": "2026-09-13",
+                    "participantCount": 6
+                }
             ],
             "startDate": "2026-04-01",
             "endDate": "2026-09-13",
@@ -129,8 +159,13 @@
             "slug": "esports-world-cup-2026",
             "name": "Esports World Cup 2026",
             "leagueShort": "EWC",
-            "overviewPage": [
-                "Esports World Cup 2026"
+            "overviewPages": [
+                {
+                    "overviewPage": "Esports World Cup 2026",
+                    "startDate": "2026-07-15",
+                    "endDate": "2026-07-19",
+                    "participantCount": 16
+                }
             ],
             "startDate": "2026-07-15",
             "endDate": "2026-07-19",
@@ -158,8 +193,13 @@
             "slug": "msi-2026",
             "name": "MSI 2026",
             "leagueShort": "MSI",
-            "overviewPage": [
-                "2026 Mid-Season Invitational"
+            "overviewPages": [
+                {
+                    "overviewPage": "2026 Mid-Season Invitational",
+                    "startDate": "2026-06-28",
+                    "endDate": "2026-07-12",
+                    "participantCount": 11
+                }
             ],
             "startDate": "2026-06-28",
             "endDate": "2026-07-12",
@@ -182,8 +222,13 @@
             "slug": "lck-2026-road-to-msi",
             "name": "LCK 2026 Road to MSI",
             "leagueShort": "LCK",
-            "overviewPage": [
-                "LCK/2026 Season/Road to MSI"
+            "overviewPages": [
+                {
+                    "overviewPage": "LCK/2026 Season/Road to MSI",
+                    "startDate": "2026-06-06",
+                    "endDate": "2026-06-14",
+                    "participantCount": 6
+                }
             ],
             "startDate": "2026-06-06",
             "endDate": "2026-06-14",
@@ -201,9 +246,19 @@
             "slug": "lpl-2026-split-2",
             "name": "LPL 2026 Split 2",
             "leagueShort": "LPL",
-            "overviewPage": [
-                "LPL/2026 Season/Split 2",
-                "LPL/2026 Season/Split 2 Playoffs"
+            "overviewPages": [
+                {
+                    "overviewPage": "LPL/2026 Season/Split 2",
+                    "startDate": "2026-04-04",
+                    "endDate": "2026-05-17",
+                    "participantCount": 14
+                },
+                {
+                    "overviewPage": "LPL/2026 Season/Split 2 Playoffs",
+                    "startDate": "2026-05-23",
+                    "endDate": "2026-06-14",
+                    "participantCount": 8
+                }
             ],
             "startDate": "2026-04-04",
             "endDate": "2026-06-14",
@@ -256,8 +311,13 @@
             "slug": "first-stand-2026",
             "name": "First Stand 2026",
             "leagueShort": "FST",
-            "overviewPage": [
-                "2026 First Stand"
+            "overviewPages": [
+                {
+                    "overviewPage": "2026 First Stand",
+                    "startDate": "2026-03-16",
+                    "endDate": "2026-03-22",
+                    "participantCount": 8
+                }
             ],
             "startDate": "2026-03-16",
             "endDate": "2026-03-22",
@@ -277,9 +337,19 @@
             "slug": "lpl-2026-split-1",
             "name": "LPL 2026 Split 1",
             "leagueShort": "LPL",
-            "overviewPage": [
-                "LPL/2026 Season/Split 1",
-                "LPL/2026 Season/Split 1 Playoffs"
+            "overviewPages": [
+                {
+                    "overviewPage": "LPL/2026 Season/Split 1",
+                    "startDate": "2026-01-14",
+                    "endDate": "2026-02-07",
+                    "participantCount": 14
+                },
+                {
+                    "overviewPage": "LPL/2026 Season/Split 1 Playoffs",
+                    "startDate": "2026-02-09",
+                    "endDate": "2026-03-08",
+                    "participantCount": 8
+                }
             ],
             "startDate": "2026-01-14",
             "endDate": "2026-03-08",
@@ -338,8 +408,13 @@
             "slug": "lck-cup-2026",
             "name": "LCK Cup 2026",
             "leagueShort": "LCK",
-            "overviewPage": [
-                "LCK/2026 Season/Cup"
+            "overviewPages": [
+                {
+                    "overviewPage": "LCK/2026 Season/Cup",
+                    "startDate": "2026-01-14",
+                    "endDate": "2026-03-01",
+                    "participantCount": 10
+                }
             ],
             "startDate": "2026-01-14",
             "endDate": "2026-03-01",

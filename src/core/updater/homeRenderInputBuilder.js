@@ -36,8 +36,8 @@ export function buildHomeRenderInput(homeEntries, orderedTournaments) {
   const timeGrid = {};
 
   homeEntries.forEach((home, index) => {
-    const slug = home?.tournament?.slug;
-    if (!slug) throw new Error("ActiveHome tournament slug missing");
+    const slug = home?.tournamentSlug;
+    if (!slug) throw new Error("ActiveHome tournamentSlug missing");
     if (orderedTournaments[index]?.slug !== slug) throw new Error(`ActiveHome order mismatch: ${slug}`);
     statisticsBySlug[slug] = home.statistics;
     timeGrid[slug] = home.timeGrid;

@@ -5,7 +5,7 @@ function canonicalTournament(tournament) {
     slug: tournament.slug,
     name: tournament.name,
     leagueShort: tournament.leagueShort,
-    overviewPage: tournament.overviewPage,
+    overviewPages: tournament.overviewPages,
     startDate: tournament.startDate,
     endDate: tournament.endDate,
     teamMap: Object.fromEntries(Object.entries(tournament.teamMap).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)),

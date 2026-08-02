@@ -1,7 +1,8 @@
 import { parseTournamentMatches } from "./matchParser.js";
+import { getOverviewPageNames } from "../../utils/data/overviewPages.js";
 
 function collectMatchesByOverviewPage(rawMatches, tournament) {
-  const matchesByPage = new Map(tournament.overviewPage.map(page => [page, []]));
+  const matchesByPage = new Map(getOverviewPageNames(tournament.overviewPages).map(page => [page, []]));
   for (const match of rawMatches) {
     if (!match || typeof match !== "object" || Array.isArray(match)) {
       throw new Error(`${tournament.slug} raw match must be an object`);
@@ -46,22 +47,20 @@ function projectPageGroups(tournament, overviewPage, resolveTeamName, stats) {
 
 export function buildTournamentStatistics(rawMatches, tournament, resolveTeamName) {
   if (!Array.isArray(rawMatches)) throw new Error(`${tournament.slug} rawMatches must be an array`);
-  if (!Array.isArray(tournament.overviewPage) || tournament.overviewPage.length === 0) {
-    throw new Error(`${tournament.slug} overviewPage must be a non-empty array`);
-  }
+  const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (!Array.isArray(tournament.participantGroups)) {
     throw new Error(`${tournament.slug} participantGroups must be an array`);
   }
 
   const matchesByPage = collectMatchesByOverviewPage(rawMatches, tournament);
   const combinedAnalysis = parseTournamentMatches(rawMatches, resolveTeamName, tournament.slug);
-  const pageAnalyses = tournament.overviewPage.map(overviewPage => {
+  const pageAnalyses = overviewPages.map(overviewPage => {
     const pageMatches = matchesByPage.get(overviewPage);
-    return tournament.overviewPage.length === 1
+    return overviewPages.length === 1
       ? combinedAnalysis
       : parseTournamentMatches(pageMatches, resolveTeamName, `${tournament.slug}:${overviewPage}`);
   });
-  const pages = tournament.overviewPage.map((overviewPage, index) => {
+  const pages = overviewPages.map((overviewPage, index) => {
     const stats = pageAnalyses[index].stats;
     return {
       overviewPage,

@@ -1,10 +1,12 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { assertTeamMap } from "../../utils/data/teamMaps.js";
 import { assertParticipantGroups } from "../../utils/data/participantGroups.js";
+import { getOverviewPageNames } from "../../utils/data/overviewPages.js";
 import { assertTournamentConfigDigest, calculateTournamentConfigDigest } from "./tournamentConfigDigest.js";
 
 const TournamentConfigFields = ["configDigest", "active", "archive"];
-const TournamentFields = ["slug", "name", "leagueShort", "overviewPage", "startDate", "endDate", "teamMap", "participantGroups"];
+const TournamentFields = ["slug", "name", "leagueShort", "overviewPages", "startDate", "endDate", "teamMap", "participantGroups"];
+const OverviewPageFields = ["overviewPage", "startDate", "endDate", "participantCount"];
 const DatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function isDate(value) {
@@ -12,6 +14,29 @@ function isDate(value) {
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function normalizeOverviewPages(value, label) {
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} must be a nonempty array`);
+  const overviewPages = value.map((entry, index) => {
+    const entryLabel = `${label}[${index}]`;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error(`${entryLabel} must be an object`);
+    const fields = Object.keys(entry);
+    if (fields.length !== OverviewPageFields.length || OverviewPageFields.some(field => !Object.hasOwn(entry, field))) {
+      throw new Error(`${entryLabel} fields must match the schema`);
+    }
+    const overviewPage = typeof entry.overviewPage === "string" ? entry.overviewPage.trim() : "";
+    const startDate = typeof entry.startDate === "string" ? entry.startDate.trim() : "";
+    const endDate = typeof entry.endDate === "string" ? entry.endDate.trim() : "";
+    if (!overviewPage || !isDate(startDate) || !isDate(endDate) || startDate > endDate) throw new Error(`${entryLabel} is invalid`);
+    if (!Number.isInteger(entry.participantCount) || entry.participantCount < 1) {
+      throw new Error(`${entryLabel}.participantCount must be a positive integer`);
+    }
+    return { overviewPage, startDate, endDate, participantCount: entry.participantCount };
+  });
+  const names = getOverviewPageNames(overviewPages);
+  if (new Set(names).size !== names.length) throw new Error(`${label} contains duplicate overviewPage`);
+  return overviewPages;
 }
 
 function normalizeTournament(configName, tournament) {
@@ -28,18 +53,18 @@ function normalizeTournament(configName, tournament) {
   const leagueShort = typeof tournament.leagueShort === "string" ? tournament.leagueShort.trim() : null;
   const startDate = typeof tournament.startDate === "string" ? tournament.startDate.trim() : "";
   const endDate = typeof tournament.endDate === "string" ? tournament.endDate.trim() : "";
-  if (!Array.isArray(tournament.overviewPage) || tournament.overviewPage.length === 0 || tournament.overviewPage.some(page => typeof page !== "string" || !page.trim())) {
-    throw new Error(`Invalid ${configName} overviewPage: ${slug || "(missing slug)"}`);
-  }
-  const overviewPage = tournament.overviewPage.map(page => page.trim());
-  if (new Set(overviewPage).size !== overviewPage.length) {
-    throw new Error(`Duplicate ${configName} overviewPage: ${slug || "(missing slug)"}`);
-  }
+  const overviewPages = normalizeOverviewPages(tournament.overviewPages, `${configName}.${slug || "(missing slug)"}.overviewPages`);
+  const overviewPageNames = getOverviewPageNames(overviewPages);
   if (!slug || !name || !leagueShort || !startDate || !endDate) {
     throw new Error(`Invalid ${configName} tournament: ${slug || "(missing slug)"}`);
   }
   if (!isDate(startDate) || !isDate(endDate) || startDate > endDate) {
     throw new Error(`Invalid ${configName} date range: ${slug}`);
+  }
+  const overviewStartDate = overviewPages.reduce((earliest, page) => page.startDate < earliest ? page.startDate : earliest, overviewPages[0].startDate);
+  const overviewEndDate = overviewPages.reduce((latest, page) => page.endDate > latest ? page.endDate : latest, overviewPages[0].endDate);
+  if (startDate !== overviewStartDate || endDate !== overviewEndDate) {
+    throw new Error(`${configName}.${slug} date range does not match overviewPages`);
   }
 
   const teamMap = assertTeamMap(tournament.teamMap, `${configName}.${slug}.teamMap`);
@@ -47,13 +72,13 @@ function normalizeTournament(configName, tournament) {
     slug,
     name,
     leagueShort,
-    overviewPage,
+    overviewPages,
     startDate,
     endDate,
     teamMap,
     participantGroups: assertParticipantGroups(
       tournament.participantGroups,
-      overviewPage,
+      overviewPageNames,
       teamMap,
       `${configName}.${slug}.participantGroups`
     )
@@ -91,7 +116,7 @@ function assertOverviewPageOwnership(active, archive) {
   const owners = new Map();
   for (const [group, tournaments] of [["active", active], ["archive", archive]]) {
     for (const tournament of tournaments) {
-      for (const page of tournament.overviewPage) {
+      for (const page of getOverviewPageNames(tournament.overviewPages)) {
         const owner = `${group}:${tournament.slug}`;
         const currentOwner = owners.get(page);
         if (currentOwner !== undefined && currentOwner !== owner) {
