@@ -7,10 +7,21 @@ function readTimeCellMatches(cellElement) {
     return matches;
 }
 
-function filterTimeMatches(matches, boxFilter) {
-    if (boxFilter === "all") return matches;
-    const bestOf = Number(boxFilter);
-    return matches.filter(match => match.bestOf === bestOf);
+function filterTimeMatches(matches, timeFilter) {
+    if (timeFilter === "all") return matches;
+    if (timeFilter.startsWith("bestOf:")) {
+        const bestOf = Number(timeFilter.slice("bestOf:".length));
+        if (!Number.isInteger(bestOf) || bestOf <= 0) throw new Error("time table best-of filter invalid");
+        return matches.filter(match => match.bestOf === bestOf);
+    }
+    if (timeFilter.startsWith("tab:")) {
+        const tabIdentity = JSON.parse(timeFilter.slice("tab:".length));
+        if (!Array.isArray(tabIdentity) || tabIdentity.length !== 2 || tabIdentity.some(value => typeof value !== "string" || !value)) {
+            throw new Error("time table tab filter invalid");
+        }
+        return matches.filter(match => match.overviewPage === tabIdentity[0] && match.tabName === tabIdentity[1]);
+    }
+    throw new Error("time table filter invalid");
 }
 
 function renderTimeCellValue(cellElement, matches) {
@@ -36,31 +47,41 @@ function colorRate(rate) {
     return 'hsl(' + hue + ', 55%, 50%)';
 }
 
-function applyTimeBoxFilter(filterElement) {
-    const tableBlock = filterElement.closest(".time-table-block");
+function applyTimeFilter(filterOption) {
+    if (!(filterOption instanceof HTMLButtonElement)) throw new Error("time filter option invalid");
+    const tableBlock = filterOption.closest(".time-table-block");
     if (!tableBlock) throw new Error("time table block missing");
-    const boxFilter = filterElement.value;
-    if (!boxFilter) throw new Error("time table box filter missing");
-    tableBlock.dataset.boxFilter = boxFilter;
+    const timeFilter = filterOption.dataset.timeFilterValue;
+    if (!timeFilter) throw new Error("time table filter missing");
+    const filterLabel = filterOption.dataset.timeFilterLabel;
+    if (!filterLabel) throw new Error("time table filter label missing");
+    tableBlock.dataset.timeFilter = timeFilter;
 
-    tableBlock.querySelectorAll(".time-box-select").forEach(selectElement => {
-        selectElement.value = boxFilter;
+    const triggerLabel = tableBlock.querySelector(".compact-menu-value");
+    if (!triggerLabel) throw new Error("time filter trigger label missing");
+    triggerLabel.textContent = filterLabel;
+    tableBlock.querySelectorAll(".compact-menu-option").forEach(option => {
+        const isSelected = option === filterOption;
+        option.classList.toggle("is-selected", isSelected);
+        option.setAttribute("aria-selected", String(isSelected));
     });
 
     tableBlock.querySelectorAll(".time-table-cell").forEach(cellElement => {
-        const matches = filterTimeMatches(readTimeCellMatches(cellElement), boxFilter);
+        const matches = filterTimeMatches(readTimeCellMatches(cellElement), timeFilter);
         renderTimeCellValue(cellElement, matches);
     });
+    closeCompactMenus();
 }
 
 function showTimeCellPopup(cellElement) {
     const tableBlock = cellElement.closest(".time-table-block");
     if (!tableBlock) throw new Error("time table block missing");
-    const boxFilter = tableBlock.dataset.boxFilter || "all";
-    const matches = filterTimeMatches(readTimeCellMatches(cellElement), boxFilter);
+    const timeFilter = tableBlock.dataset.timeFilter;
+    if (!timeFilter) throw new Error("time table filter missing");
+    const matches = filterTimeMatches(readTimeCellMatches(cellElement), timeFilter);
     showPopup(cellElement.dataset.title, Number(cellElement.dataset.dayIndex), matches);
 }
 
-window.applyTimeBoxFilter = applyTimeBoxFilter;
+window.applyTimeFilter = applyTimeFilter;
 window.showTimeCellPopup = showTimeCellPopup;
 `;

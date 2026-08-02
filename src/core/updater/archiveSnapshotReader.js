@@ -2,6 +2,7 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { throwIfArtifactsUnavailable } from './artifactAvailability.js';
 import { createSchemaIssue, describeSchemaValue } from '../facts/schemaIssue.js';
 import { readTournamentStatisticsIssue } from '../facts/tournamentStatistics.js';
+import { readTimeGridCollectionIssue } from '../facts/timeGridCollection.js';
 
 function readArchiveSnapshotIssue(snapshot, artifactKey) {
   if (snapshot == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
@@ -18,7 +19,8 @@ function readArchiveSnapshotIssue(snapshot, artifactKey) {
   if (Object.hasOwn(snapshot.tournament, "participantGroups")) return createSchemaIssue({ artifactKey, path: "tournament.participantGroups", kind: "invalid", expected: "field absent in current schema", actual: "present" });
   const statisticsIssue = readTournamentStatisticsIssue(snapshot.statistics, snapshot.tournament, artifactKey);
   if (statisticsIssue) return statisticsIssue;
-  if (!snapshot.timeGrid || typeof snapshot.timeGrid !== "object" || Array.isArray(snapshot.timeGrid)) return createSchemaIssue({ artifactKey, path: "timeGrid", kind: "invalid", expected: "object", actual: describeSchemaValue(snapshot.timeGrid) });
+  const timeGridIssue = readTimeGridCollectionIssue(snapshot.timeGrid, snapshot.tournament, artifactKey);
+  if (timeGridIssue) return timeGridIssue;
   return null;
 }
 

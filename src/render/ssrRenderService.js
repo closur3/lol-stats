@@ -11,14 +11,21 @@ import { throwIfArtifactsUnavailable } from '../core/updater/artifactAvailabilit
 import { readSchemaIssue } from '../core/facts/schemaIssue.js';
 import { selectHomeSchedule } from '../core/projection/homeScheduleSelector.js';
 import { updateConfig } from '../core/updater/updateConfig.js';
+import { readTimeGridCollectionIssue } from '../core/facts/timeGridCollection.js';
 
 function collectTimeGridIssues(activeHomes, archiveSnapshots) {
   const issues = [];
   const inspectArtifact = (artifact, artifactType) => {
     const slug = artifact?.tournament?.slug || "unknown";
     const artifactKey = `${artifactType}_${slug}`;
+    const collectionIssue = readTimeGridCollectionIssue(artifact?.timeGrid, artifact?.tournament, artifactKey);
+    if (collectionIssue) {
+      issues.push(collectionIssue);
+      return;
+    }
     try {
-      validateTimeGrid(artifact?.timeGrid, artifactKey);
+      validateTimeGrid(artifact.timeGrid.combined, artifactKey);
+      artifact.timeGrid.pages.forEach(page => validateTimeGrid(page.timeGrid, artifactKey));
     } catch (error) {
       const issue = readSchemaIssue(error);
       if (issue.artifactKey !== artifactKey) {

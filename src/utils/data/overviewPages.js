@@ -11,3 +11,9 @@ export function getFirstOverviewPage(overviewPage) {
   const pages = normalizeOverviewPages(overviewPage);
   return pages.length > 0 ? pages[0] : "";
 }
+
+export function getOverviewPageLabel(overviewPage) {
+  if (typeof overviewPage !== "string" || !overviewPage.trim()) throw new Error("overviewPage label source missing");
+  const parts = overviewPage.split("/");
+  return (parts[parts.length - 1] || overviewPage).replaceAll("_", " ");
+}

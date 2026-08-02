@@ -19,16 +19,19 @@ export const toolsRebuild = `
               }).then(restore);
           }
 
-          function rebuildSelected(button) {
-              var checked = document.querySelectorAll('.qr-chk-archived:checked');
-              if (checked.length === 0) { showWarning('Select at least one archived tournament.'); return; }
-              var selected = Array.from(checked).map(function(checkboxElement) { return { slug: (checkboxElement.value || '').trim(), name: (checkboxElement.dataset.name || '').trim() }; });
-              var hasMissingField = selected.some(function(item) {
-                  return !item.slug;
+          function readArchiveSelections(checkboxes) {
+              var selected = Array.from(checkboxes).map(function(checkboxElement) {
+                  return { slug: (checkboxElement.value || '').trim(), name: (checkboxElement.dataset.name || '').trim() };
               });
-              if (hasMissingField) { showWarning('Required tournament data is missing.'); return; }
-              var restore = disableButton(button);
-              var success = 0, fail = 0;
+              if (selected.some(function(item) { return !item.slug; })) {
+                  throw new Error('Required tournament data is missing.');
+              }
+              return selected;
+          }
+
+          function requestArchiveRebuildBatch(selected) {
+              var success = 0;
+              var fail = 0;
               var promises = selected.map(function(selectedArchive) {
                   return requestArchiveRebuild(selectedArchive.slug).then(function(res) {
                       if (checkAuthError(res.status)) return;
@@ -42,13 +45,43 @@ export const toolsRebuild = `
                       });
                   }).catch(function() { fail++; });
               });
-              Promise.all(promises).then(function() {
-                  restore();
-                  var total = success + fail;
-                  var message = fail === 0
-                      ? ('Archive rebuild completed: ' + success + '/' + total)
-                      : ('Archive rebuild partially completed: ' + success + '/' + total);
-                  if (fail === 0) showResult(true, message); else showWarning(message);
+              return Promise.all(promises).then(function() {
+                  return { success: success, fail: fail };
               });
+          }
+
+          function showArchiveRebuildBatchResult(result) {
+              var total = result.success + result.fail;
+              var message = result.fail === 0
+                  ? ('Archive rebuild completed: ' + result.success + '/' + total)
+                  : ('Archive rebuild partially completed: ' + result.success + '/' + total);
+              if (result.fail === 0) showResult(true, message); else showWarning(message);
+          }
+
+          function runArchiveRebuildBatch(selected, button) {
+              var restore = disableButton(button);
+              requestArchiveRebuildBatch(selected).then(function(result) {
+                  restore();
+                  showArchiveRebuildBatchResult(result);
+              });
+          }
+
+          function rebuildSelected(button) {
+              var checked = document.querySelectorAll('.qr-chk-archived:checked');
+              if (checked.length === 0) {
+                  var available = document.querySelectorAll('.qr-chk-archived');
+                  if (available.length === 0) { showWarning('No archived tournaments are available.'); return; }
+                  try {
+                      previewConfigAction('archive-rebuild-all', button, { tournaments: readArchiveSelections(available) });
+                  } catch (error) {
+                      showWarning(error.message);
+                  }
+                  return;
+              }
+              try {
+                  runArchiveRebuildBatch(readArchiveSelections(checked), button);
+              } catch (error) {
+                  showWarning(error.message);
+              }
           }
 `;

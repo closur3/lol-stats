@@ -4,7 +4,8 @@ import { sortScript } from '../../client/sort.js';
 import { modalScript } from '../../client/modal.js';
 import { timeTableScript } from '../../client/timeTable.js';
 import { pageActionsScript } from '../../client/pageActions.js';
-import { statisticsViewsScript } from '../../client/statisticsViews.js';
+import { statisticsScopesScript } from '../../client/statisticsScopes.js';
+import { compactMenuScript } from '../../client/compactMenu.js';
 
 function renderFontLinks() {
   return `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">`;
@@ -27,7 +28,7 @@ function renderBuildFooter(time, sha, hasActiveCron = false) {
   return `<div class="build-footer"><span class="cron-dot ${dotClass}"></span><span class="footer-label">deployed:</span> <span class="footer-time">${time || "N/A"}</span> <a href="${githubCommitBase}${sha}" target="_blank"><span class="footer-sha">@${shortSha}</span></a></div>`;
 }
 
-function renderClientJs() { return `<script>${sortScript}${modalScript}${timeTableScript}${statisticsViewsScript}${pageActionsScript}</script>`; }
+function renderClientJs() { return `<script>${sortScript}${modalScript}${compactMenuScript}${timeTableScript}${statisticsScopesScript}${pageActionsScript}</script>`; }
 
 function renderFloatingPageActions(navMode) {
   if (navMode !== "home" && navMode !== "archive") return "";

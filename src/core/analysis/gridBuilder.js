@@ -46,6 +46,8 @@ export function buildTournamentTimeGrid(tournamentSlug, timeGridLayoutMatches, t
   for (const timeGridMatchInput of timeGridMatches) {
     const gameResults = readGameResults(timeGridMatchInput, tournamentSlug);
     const timeGridMatch = {
+      overviewPage: timeGridMatchInput.overviewPage,
+      tabName: timeGridMatchInput.tabName,
       dateDisplay: timeGridMatchInput.dateDisplay,
       fullDateDisplay: timeGridMatchInput.fullDateDisplay,
       timestamp: timeGridMatchInput.timestamp,

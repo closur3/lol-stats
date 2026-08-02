@@ -34,7 +34,14 @@ export const toolsActions = `
 
           function forceSelected(button) {
               var checked = document.querySelectorAll('#active-list .item-chk:checked');
-              if (checked.length === 0) { showWarning('Select at least one active tournament.'); return; }
+              if (checked.length === 0) {
+                  var available = Array.from(document.querySelectorAll('#active-list .item-chk'));
+                  if (available.length === 0) { showWarning('No active tournaments are available.'); return; }
+                  previewConfigAction('active-force-all', button, {
+                      slugs: available.map(function(checkboxElement) { return checkboxElement.value; })
+                  });
+                  return;
+              }
               var slugs = Array.from(checked).map(function(checkboxElement) { return checkboxElement.value; });
               var restore = disableButton(button);
               requestForceUpdate(slugs).then(function(res) {

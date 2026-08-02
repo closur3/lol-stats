@@ -82,8 +82,8 @@ export const toolsBootstrap = `
           var pendingConfigActionPayload = null;
           function getConfigActionMeta(action, payload) {
               if (!payload || typeof payload !== 'object') throw new Error('Configuration action payload missing.');
-              var actions = {
-                  'active-runtime-delete': {
+              if (action === 'active-runtime-delete') {
+                  return {
                       label: 'Delete active runtime state',
                       flow: 'Target: ' + (payload.name || payload.slug || 'Active tournament'),
                       icon: '!',
@@ -93,8 +93,10 @@ export const toolsBootstrap = `
                       submitText: 'Delete',
                       successMessage: 'Active runtime state deleted: ' + (payload.name || payload.slug),
                       failurePrefix: 'Delete failed: ' + (payload.name || payload.slug)
-                  },
-                  'archive-delete': {
+                  };
+              }
+              if (action === 'archive-delete') {
+                  return {
                       label: 'Delete archive snapshot',
                       flow: 'Target: ' + (payload.name || payload.slug || 'Archive tournament'),
                       icon: '!',
@@ -104,9 +106,30 @@ export const toolsBootstrap = `
                       submitText: 'Delete',
                       successMessage: 'Archive snapshot deleted: ' + (payload.name || payload.slug),
                       failurePrefix: 'Delete failed: ' + (payload.name || payload.slug)
-                  }
-              };
-              return actions[action] || null;
+                  };
+              }
+              if (action === 'active-force-all') {
+                  return {
+                      label: 'Force update all active tournaments',
+                      flow: 'No tournament selected. Target: all ' + payload.slugs.length + ' active tournaments',
+                      icon: '↻',
+                      url: '/force',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ slugs: payload.slugs }),
+                      submitText: 'Force Update',
+                      successMessage: 'Force update completed: ' + payload.slugs.length + '/' + payload.slugs.length,
+                      failurePrefix: 'Force update failed'
+                  };
+              }
+              if (action === 'archive-rebuild-all') {
+                  return {
+                      label: 'Rebuild all archive snapshots',
+                      flow: 'No tournament selected. Target: all ' + payload.tournaments.length + ' archived tournaments',
+                      icon: '↻',
+                      submitText: 'Rebuild'
+                  };
+              }
+              return null;
           }
           function closeConfigActionConfirm() {
               pendingConfigAction = null;
@@ -137,6 +160,15 @@ export const toolsBootstrap = `
               if (!meta) return;
               var restoreConfirm = disableButton(button);
               var restoreAction = pendingConfigActionButton ? disableButton(pendingConfigActionButton) : function() {};
+              if (action === 'archive-rebuild-all') {
+                  requestArchiveRebuildBatch(pendingConfigActionPayload.tournaments).then(function(result) {
+                      restoreConfirm();
+                      restoreAction();
+                      closeConfigActionConfirm();
+                      showArchiveRebuildBatchResult(result);
+                  });
+                  return;
+              }
               sendAuthorizedPost(meta.url, meta.headers, meta.body).then(function(res) {
                   restoreConfirm();
                   restoreAction();

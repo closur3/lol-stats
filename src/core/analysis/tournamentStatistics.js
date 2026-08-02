@@ -55,11 +55,14 @@ export function buildTournamentStatistics(rawMatches, tournament, resolveTeamNam
 
   const matchesByPage = collectMatchesByOverviewPage(rawMatches, tournament);
   const combinedAnalysis = parseTournamentMatches(rawMatches, resolveTeamName, tournament.slug);
-  const pages = tournament.overviewPage.map(overviewPage => {
+  const pageAnalyses = tournament.overviewPage.map(overviewPage => {
     const pageMatches = matchesByPage.get(overviewPage);
-    const stats = tournament.overviewPage.length === 1
-      ? combinedAnalysis.stats
-      : parseTournamentMatches(pageMatches, resolveTeamName, `${tournament.slug}:${overviewPage}`).stats;
+    return tournament.overviewPage.length === 1
+      ? combinedAnalysis
+      : parseTournamentMatches(pageMatches, resolveTeamName, `${tournament.slug}:${overviewPage}`);
+  });
+  const pages = tournament.overviewPage.map((overviewPage, index) => {
+    const stats = pageAnalyses[index].stats;
     return {
       overviewPage,
       groups: projectPageGroups(tournament, overviewPage, resolveTeamName, stats),
@@ -72,6 +75,7 @@ export function buildTournamentStatistics(rawMatches, tournament, resolveTeamNam
       combined: combinedAnalysis.stats,
       pages
     },
+    pageAnalyses,
     timeGridLayoutMatches: combinedAnalysis.timeGridLayoutMatches,
     timeGridMatches: combinedAnalysis.timeGridMatches
   };

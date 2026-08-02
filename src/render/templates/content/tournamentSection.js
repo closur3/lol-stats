@@ -1,6 +1,6 @@
-import { getFirstOverviewPage } from '../../../utils/data/overviewPages.js';
+import { getFirstOverviewPage, getOverviewPageLabel } from '../../../utils/data/overviewPages.js';
 import { sortTeams } from '../../../utils/data/teamSort.js';
-import { escapeHtml, escapeJsArg, escapeUrl } from '../../../utils/htmlEscape.js';
+import { escapeHtml, escapeUrl } from '../../../utils/htmlEscape.js';
 import { resolveSchedulePhase } from '../../../core/scheduler/scheduleDay.js';
 import { sortPolicy } from '../../../utils/sortPolicy.js';
 import { summarizeFullRate } from '../../../core/analysis/fullRateSummary.js';
@@ -70,11 +70,15 @@ function readStatisticsSections(page) {
   });
 }
 
+function formatGroupDisplay(groupDisplay) {
+  return groupDisplay.replace(/\bgroup\b/gi, "").replace(/\s+/g, " ").trim();
+}
+
 function renderGroupLegend(page) {
   const sections = readStatisticsSections(page).filter(section => section.groupDisplay);
   if (sections.length === 0) return "";
   const entries = sections.map((section, sectionIndex) => (
-    `<span class="stats-group-legend-item stats-group-color-${sectionIndex % 4}"><span class="stats-group-legend-mark" aria-hidden="true"></span><span class="stats-group-legend-name">${escapeHtml(section.groupDisplay)}</span><span class="stats-group-legend-count" aria-label="${section.stats.length} teams">${section.stats.length}</span></span>`
+    `<span class="stats-group-legend-item stats-group-color-${sectionIndex % 4}"><span class="stats-group-legend-mark" aria-hidden="true"></span><span class="stats-group-legend-name">${escapeHtml(formatGroupDisplay(section.groupDisplay))}</span><span class="stats-group-legend-count" aria-label="${section.stats.length} teams">${section.stats.length}</span></span>`
   )).join("");
   return `<div class="stats-group-legend" aria-label="Participant groups">${entries}</div>`;
 }
@@ -86,20 +90,8 @@ function renderStatisticsView(tournament, page, tablePrefix) {
     : `<div class="stats-view-empty">NO SCHEDULED TEAMS</div>`;
 }
 
-function readOverviewPageLabel(overviewPage) {
-  const parts = overviewPage.split("/");
-  return (parts[parts.length - 1] || overviewPage).replaceAll("_", " ");
-}
-
-function renderPageStatistics(tournament, page, pageIndex) {
-  const pageUrl = `https://lol.fandom.com/wiki/${page.overviewPage}`;
-  const pageTitle = readOverviewPageLabel(page.overviewPage);
-  const pageNumber = String(pageIndex + 1).padStart(2, "0");
-  const groupLegend = renderGroupLegend(page);
-  const jumpButton = `<a class="stats-page-jump" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(pageTitle)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
-  const headingLeft = `<div class="stats-page-title-row"><span class="stats-page-index">${pageNumber}</span><span class="stats-heading-name">${escapeHtml(pageTitle)}</span>${jumpButton}</div>`;
-  const headingRight = `<div class="stats-page-heading-meta">${groupLegend}</div>`;
-  return `<section class="stats-page-block"><div class="stats-page-heading">${headingLeft}${headingRight}</div>${renderStatisticsView(tournament, page, `p${pageIndex}`)}</section>`;
+function renderTournamentJumpIcon() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`;
 }
 
 function assertStatistics(tournament, statistics) {
@@ -126,20 +118,64 @@ function assertStatistics(tournament, statistics) {
   });
 }
 
-function renderStatisticsControls(rootId) {
-  const rootIdArgument = escapeJsArg(rootId);
-  const stopSummaryToggle = "event.preventDefault(); event.stopPropagation();";
-  return `<div class="statistics-toolbar"><div class="statistics-switch" role="group" aria-label="Statistics view"><button type="button" class="statistics-switch-option is-active" data-statistics-target="combined" aria-pressed="true" onclick="${stopSummaryToggle} setStatisticsView(${rootIdArgument}, 'combined')">MERGED</button><button type="button" class="statistics-switch-option" data-statistics-target="separated" aria-pressed="false" onclick="${stopSummaryToggle} setStatisticsView(${rootIdArgument}, 'separated')">SPLIT</button></div></div>`;
+function renderTournamentJump(overviewPage, scope = null, isActive = true) {
+  const pageUrl = `https://lol.fandom.com/wiki/${overviewPage}`;
+  const scopeAttributes = scope === null
+    ? ""
+    : ` data-statistics-scope-jump="${scope}" aria-hidden="${String(!isActive)}"`;
+  const hiddenClass = isActive ? "" : " is-hidden";
+  return `<a class="tournament-jump-btn statistics-scope-jump${hiddenClass}"${scopeAttributes} href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(getOverviewPageLabel(overviewPage))}" onclick="event.stopPropagation()">${renderTournamentJumpIcon()}</a>`;
 }
 
-function renderStatistics(tournament, statistics) {
+function renderTournamentJumpMenu(tournament, scope = null, isActive = true) {
+  const scopeAttributes = scope === null
+    ? ""
+    : ` data-statistics-scope-jump="${scope}" aria-hidden="${String(!isActive)}"`;
+  const hiddenClass = isActive ? "" : " is-hidden";
+  const menuId = `fandom_sources_${normalizeId(tournament.slug)}`;
+  const links = tournament.overviewPage.map(overviewPage => {
+    const label = getOverviewPageLabel(overviewPage);
+    return `<a class="tournament-source-option" href="${escapeUrl(`https://lol.fandom.com/wiki/${overviewPage}`)}" target="_blank" rel="noopener noreferrer" role="menuitem" onclick="event.stopPropagation(); closeTournamentSourceMenus()">${escapeHtml(label)}</a>`;
+  }).join("");
+  return `<span class="tournament-source-menu statistics-scope-jump${hiddenClass}"${scopeAttributes}><button type="button" class="tournament-jump-btn tournament-source-trigger" aria-label="Choose Fandom source page" aria-expanded="false" aria-controls="${menuId}" onclick="event.stopPropagation(); toggleTournamentSourceMenu(this)">${renderTournamentJumpIcon()}</button><span id="${menuId}" class="tournament-source-options" role="menu" aria-hidden="true">${links}</span></span>`;
+}
+
+function renderOverallTournamentJump(tournament, scope = null, isActive = true) {
+  return tournament.overviewPage.length === 1
+    ? renderTournamentJump(tournament.overviewPage[0], scope, isActive)
+    : renderTournamentJumpMenu(tournament, scope, isActive);
+}
+
+function renderScopeSummary(scope, stats, isActive) {
+  const hiddenClass = isActive ? "" : " is-hidden";
+  return `<div class="statistics-scope-summary${hiddenClass}" data-statistics-scope-summary="${scope}" aria-hidden="${String(!isActive)}">${renderTournamentSummary(sortTeams(stats))}</div>`;
+}
+
+function renderScopeLegend(scope, page, isActive) {
+  const hiddenClass = isActive ? "" : " is-hidden";
+  return `<div class="statistics-scope-legend${hiddenClass}" data-statistics-scope-legend="${scope}" aria-hidden="${String(!isActive)}">${page ? renderGroupLegend(page) : ""}</div>`;
+}
+
+function renderScopeContent(scope, content, isActive) {
+  const hiddenClass = isActive ? "" : " is-hidden";
+  return `<div class="statistics-scope-content${hiddenClass}" data-statistics-scope-content="${scope}" aria-hidden="${String(!isActive)}">${content}</div>`;
+}
+
+function renderScopeSelect(scopes) {
+  const options = scopes.map((scope, index) => `<button type="button" class="compact-menu-option${index === 0 ? " is-selected" : ""}" role="option" aria-selected="${String(index === 0)}" data-statistics-scope-value="${escapeHtml(scope.key)}" data-statistics-scope-label="${escapeHtml(scope.label)}" onclick="event.stopPropagation(); setStatisticsScope(this)">${escapeHtml(scope.label)}</button>`).join("");
+  return `<div class="statistics-scope-select compact-menu" data-statistics-scope-select><button type="button" class="statistics-scope-trigger compact-menu-trigger" aria-label="Statistics scope" aria-expanded="false" onclick="event.stopPropagation(); toggleCompactMenu(this)"><span class="compact-menu-value">${escapeHtml(scopes[0].label)}</span></button><div class="statistics-scope-menu compact-menu-popup" role="listbox" aria-hidden="true">${options}</div></div>`;
+}
+
+function renderStatistics(tournament, statistics, timeTables) {
   assertStatistics(tournament, statistics);
   if (statistics.pages.length === 1) {
     return {
-      content: renderStatisticsView(tournament, statistics.pages[0], "single"),
-      controls: "",
+      content: `${renderStatisticsView(tournament, statistics.pages[0], "single")}${timeTables.combined}`,
+      summary: renderTournamentSummary(sortTeams(statistics.pages[0].stats)),
       legend: renderGroupLegend(statistics.pages[0]),
-      rootId: null
+      select: "",
+      jump: renderTournamentJump(statistics.pages[0].overviewPage),
+      hasScopes: false
     };
   }
 
@@ -155,24 +191,54 @@ function renderStatistics(tournament, statistics) {
     const visiblePage = visiblePages[0]?.page;
     return visiblePage
       ? {
-          content: renderStatisticsView(tournament, visiblePage, "single"),
-          controls: "",
+          content: `${renderStatisticsView(tournament, visiblePage, "single")}${timeTables.combined}`,
+          summary: renderTournamentSummary(sortTeams(visiblePage.stats)),
           legend: renderGroupLegend(visiblePage),
-          rootId: null
+          select: "",
+          jump: renderTournamentJump(visiblePage.overviewPage),
+          hasScopes: false
         }
-      : { content: combined, controls: "", legend: "", rootId: null };
+      : {
+          content: `${combined}${timeTables.combined}`,
+          summary: renderTournamentSummary(sortTeams(statistics.combined)),
+          legend: "",
+          select: "",
+          jump: renderOverallTournamentJump(tournament),
+          hasScopes: false
+        };
   }
 
-  const rootId = `statistics_${normalizeId(tournament.slug)}`;
-  const separated = visiblePages
-    .reverse()
-    .map(({ page, index }) => renderPageStatistics(tournament, page, index))
-    .join("");
+  const scopes = [
+    {
+      key: "overall",
+      label: "Overall",
+      overviewPage: getFirstOverviewPage(tournament.overviewPage),
+      stats: statistics.combined,
+      page: null,
+      content: `${combined}${timeTables.combined}`
+    },
+    ...visiblePages.reverse().map(({ page, index }) => ({
+      key: `page-${index}`,
+      label: getOverviewPageLabel(page.overviewPage),
+      overviewPage: page.overviewPage,
+      stats: page.stats,
+      page,
+      content: `${renderStatisticsView(tournament, page, `p${index}`)}${timeTables.pages.get(page.overviewPage)}`
+    }))
+  ];
+  const summaries = scopes.map((scope, index) => renderScopeSummary(scope.key, scope.stats, index === 0)).join("");
+  const legends = scopes.map((scope, index) => renderScopeLegend(scope.key, scope.page, index === 0)).join("");
+  const jumps = scopes.map((scope, index) => scope.key === "overall"
+    ? renderOverallTournamentJump(tournament, scope.key, index === 0)
+    : renderTournamentJump(scope.overviewPage, scope.key, index === 0)).join("");
+  const contents = scopes.map((scope, index) => renderScopeContent(scope.key, scope.content, index === 0)).join("");
   return {
-    content: `<div class="statistics-view" data-statistics-mode="combined">${combined}</div><div class="statistics-view is-hidden" data-statistics-mode="separated" aria-hidden="true"><div class="stats-page-list">${separated}</div></div>`,
-    controls: renderStatisticsControls(rootId),
-    legend: "",
-    rootId
+    content: contents,
+    summary: summaries,
+    legend: legends,
+    select: renderScopeSelect(scopes),
+    jump: jumps,
+    hasScopes: true
   };
 }
 
@@ -181,14 +247,16 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
   const statistics = statisticsBySlug[tournament.slug];
   assertStatistics(tournament, statistics);
   const tournamentTimeGrid = timeGridBySlug[tournament.slug];
-  if (!tournamentTimeGrid || typeof tournamentTimeGrid !== "object" || Array.isArray(tournamentTimeGrid)) {
+  if (!tournamentTimeGrid || typeof tournamentTimeGrid !== "object" || Array.isArray(tournamentTimeGrid) || !tournamentTimeGrid.combined || !Array.isArray(tournamentTimeGrid.pages)) {
     throw new Error(`timeGrid missing: ${tournament.slug}`);
   }
-  const combinedStats = sortTeams(statistics.combined);
-  const summaryHtml = renderTournamentSummary(combinedStats);
-  const statisticsLayout = renderStatistics(tournament, statistics);
   const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveHome"}_${tournament.slug}`;
-  const timeTableHtml = renderTimeTable(tournamentTimeGrid, artifactKey);
+  if (tournamentTimeGrid.pages.length !== tournament.overviewPage.length) throw new Error(`timeGrid.pages mismatch: ${tournament.slug}`);
+  const timeTables = {
+    combined: renderTimeTable(tournamentTimeGrid.combined, artifactKey),
+    pages: new Map(tournamentTimeGrid.pages.map(page => [page.overviewPage, renderTimeTable(page.timeGrid, `${artifactKey}_${normalizeId(page.overviewPage)}`)]))
+  };
+  const statisticsLayout = renderStatistics(tournament, statistics, timeTables);
 
   let phaseIcon = "";
   let phase = null;
@@ -196,23 +264,22 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
     phase = resolveSchedulePhase(scheduleSessions);
     phaseIcon = renderSchedulePhaseIcon(phase);
   }
-  const mainPage = getFirstOverviewPage(tournament.overviewPage);
-  const pageUrl = `https://lol.fandom.com/wiki/${mainPage}`;
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
-  const jumpBtn = `<a class="tournament-jump-btn" href="${escapeUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open link"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>`;
-  const headerDetails = `${statisticsLayout.controls}${statisticsLayout.legend}`;
-  const headerStatistics = `<div class="statistics-heading-meta">${summaryHtml}${headerDetails}</div>`;
+  const hasHeadingDetails = Boolean(statisticsLayout.select || statisticsLayout.legend);
+  const divider = hasHeadingDetails ? `<span class="statistics-heading-divider" aria-hidden="true"></span>` : "";
+  const scopeClass = statisticsLayout.select ? " has-scope-select" : "";
+  const headerStatistics = `<div class="statistics-heading-meta${scopeClass}">${statisticsLayout.summary}${divider}${statisticsLayout.select}${statisticsLayout.legend}</div>`;
   const headerRight = `<div class="title-right-area">${headerStatistics}</div>`;
-  const sectionBody = `<div class="wrapper">${statisticsLayout.content}${timeTableHtml}</div>`;
-  const statisticsRoot = statisticsLayout.rootId
-    ? ` id="${statisticsLayout.rootId}" data-statistics-view="combined"`
+  const sectionBody = `<div class="wrapper">${statisticsLayout.content}</div>`;
+  const statisticsRoot = statisticsLayout.hasScopes
+    ? ` id="statistics_${normalizeId(tournament.slug)}" data-statistics-scope="overall"`
     : "";
-  const detailsClass = statisticsLayout.rootId ? "home-sec statistics-root" : "home-sec";
+  const detailsClass = statisticsLayout.hasScopes ? "home-sec statistics-root" : "home-sec";
 
   if (isArchive) {
-    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${jumpBtn}</div> ${headerRight}</summary>${sectionBody}</details>`;
+    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${statisticsLayout.jump}</div> ${headerRight}</summary>${sectionBody}</details>`;
   }
 
   const openAttr = phase === "offday" ? "" : " open";
-  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${jumpBtn}</div> ${headerRight}</summary>${sectionBody}</details>`;
+  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${statisticsLayout.jump}</div> ${headerRight}</summary>${sectionBody}</details>`;
 }

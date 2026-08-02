@@ -62,11 +62,11 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
       timeMinutes,
       roundedMinutes
     } = matchTime;
-    const { tab: tabName, sessionKey } = readScheduleIdentity(match, matchLabel);
+    const { overviewPage, tab: tabName, sessionKey } = readScheduleIdentity(match, matchLabel);
     recordSessionStart(sessionStarts, sessionKey, timestamp, weekdayIndex);
     const isTimeGridSeries = bestOf === 3 || bestOf === 5;
     const timeGridLayoutMatch = isTimeGridSeries
-      ? { bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey }
+      ? { overviewPage, tabName, bestOf, timestamp, timeMinutes, roundedMinutes, matchDateStr, sessionKey }
       : null;
     if (timeGridLayoutMatch) timeGridLayoutMatches.push(timeGridLayoutMatch);
 
