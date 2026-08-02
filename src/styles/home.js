@@ -29,10 +29,8 @@ export default `${baseCSS}
     .table-title .tournament-info-trigger svg { width: 15px; height: 15px; stroke-width: 2.2; }
     .table-title .tournament-info-trigger:hover, .tournament-info.is-open .tournament-info-trigger { border-color: #93c5fd; color: #1d4ed8; background: #eff6ff; box-shadow: 0 1px 2px rgba(37,99,235,0.08); }
     .table-title .tournament-info-trigger:focus-visible { outline: 2px solid rgba(37,99,235,0.35); outline-offset: 1px; }
-    .tournament-info-panel { display: none; position: absolute; z-index: 120; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(290px, calc(100vw - 30px)); box-sizing: border-box; padding: 14px; border: 1px solid #dbe3ec; border-radius: var(--radius-card); background: #ffffff; color: #334155; box-shadow: 0 16px 36px rgba(15,23,42,0.18); text-align: left; cursor: default; }
+    .tournament-info-panel { display: none; position: absolute; z-index: 120; top: calc(100% + 8px); left: 50%; transform: translateX(calc(-50% + var(--tournament-info-shift, 0px))); width: min(290px, calc(100vw - 30px)); box-sizing: border-box; padding: 14px; border: 1px solid #dbe3ec; border-radius: var(--radius-card); background: #ffffff; color: #334155; box-shadow: 0 16px 36px rgba(15,23,42,0.18); text-align: left; cursor: default; }
     .tournament-info.is-open .tournament-info-panel { display: block; }
-    .tournament-info-panel.is-align-start { left: 0; transform: none; }
-    .tournament-info-panel.is-align-end { right: 0; left: auto; transform: none; }
     .tournament-info-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
     .tournament-info-name { min-width: 0; color: #0f172a; font-size: 12px; font-weight: 800; line-height: 1.4; }
     .tournament-info-league { flex: 0 0 auto; padding: 2px 6px; border-radius: var(--radius-pill); background: #eff6ff; color: #1d4ed8; font-size: 9px; font-weight: 800; line-height: 16px; }

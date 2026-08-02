@@ -10,6 +10,21 @@ function closeTournamentInfoPanels() {
   });
 }
 
+function positionTournamentInfoPanel(panel) {
+  const title = panel.closest('.table-title');
+  if (!title) throw new Error('Tournament info title missing');
+  panel.style.setProperty('--tournament-info-shift', '0px');
+  const bounds = panel.getBoundingClientRect();
+  const titleBounds = title.getBoundingClientRect();
+  const viewportRight = document.documentElement.clientWidth;
+  const boundaryLeft = Math.max(0, titleBounds.left);
+  const boundaryRight = Math.min(viewportRight, titleBounds.right);
+  let shift = 0;
+  if (bounds.left < boundaryLeft) shift = boundaryLeft - bounds.left;
+  if (bounds.right > boundaryRight) shift = boundaryRight - bounds.right;
+  panel.style.setProperty('--tournament-info-shift', shift + 'px');
+}
+
 function toggleTournamentInfoPanel(trigger) {
   if (!(trigger instanceof HTMLButtonElement)) throw new Error('Tournament info trigger invalid');
   const info = trigger.closest('.tournament-info');
@@ -24,10 +39,7 @@ function toggleTournamentInfoPanel(trigger) {
   info.classList.add('is-open');
   trigger.setAttribute('aria-expanded', 'true');
   panel.setAttribute('aria-hidden', 'false');
-  panel.classList.remove('is-align-start', 'is-align-end');
-  const bounds = panel.getBoundingClientRect();
-  if (bounds.left < 8) panel.classList.add('is-align-start');
-  if (bounds.right > window.innerWidth - 8) panel.classList.add('is-align-end');
+  positionTournamentInfoPanel(panel);
 }
 
 function setStatisticsScope(scopeOption) {
