@@ -517,18 +517,11 @@ def attach_team_maps(
         tournament["teamMap"] = dict(sorted(team_map.items()))
 
 
-def attach_participant_counts(
+def read_participant_slot_counts(
     session,
     url: str,
-    tournaments: list,
-) -> None:
-    overview_pages = sorted({
-        page
-        for tournament in tournaments
-        for page in overview_page_names(tournament)
-    })
-    if not overview_pages:
-        return
+    overview_pages: list,
+) -> dict:
     participant_rows = fetch_cargo(session, url, {
         "action": "cargoquery",
         "format": "json",
@@ -554,16 +547,70 @@ def attach_participant_counts(
             raise ValueError(f"Duplicate tournament participant slot: {overview_page}:{team_slot}")
         slots_by_page[overview_page].add(team_slot)
 
+    counts = {}
+    for overview_page, slots in slots_by_page.items():
+        if not slots:
+            continue
+        expected_slots = set(range(1, len(slots) + 1))
+        if slots != expected_slots:
+            raise ValueError(f"Tournament participant slots invalid: {overview_page}")
+        counts[overview_page] = len(slots)
+    return counts
+
+
+def read_roster_participant_counts(
+    session,
+    url: str,
+    overview_pages: list,
+) -> dict:
+    if not overview_pages:
+        return {}
+    roster_rows = fetch_cargo(session, url, {
+        "action": "cargoquery",
+        "format": "json",
+        "tables": "TournamentRosters=TR",
+        "fields": "TR.OverviewPage=OverviewPage,TR.Team=Team",
+        "where": (
+            "TR.OverviewPage IN "
+            f"({', '.join(cargo_string_literal(page, 'OverviewPage') for page in overview_pages)})"
+        ),
+        "order_by": "TR.OverviewPage ASC,TR.Team ASC",
+    })
+    counts = {page: 0 for page in overview_pages}
+    for item in roster_rows:
+        row = item.get("title", {})
+        overview_page = row.get("OverviewPage", "")
+        team = row.get("Team", "")
+        if overview_page not in counts or not isinstance(team, str) or not team.strip():
+            raise ValueError(f"Invalid tournament roster participant row: {row}")
+        counts[overview_page] += 1
+    for overview_page, count in counts.items():
+        if count < 1:
+            raise ValueError(f"Tournament participants missing: {overview_page}")
+    return counts
+
+
+def attach_participant_counts(
+    session,
+    url: str,
+    tournaments: list,
+) -> None:
+    overview_pages = sorted({
+        page
+        for tournament in tournaments
+        for page in overview_page_names(tournament)
+    })
+    if not overview_pages:
+        return
+
+    participant_counts = read_participant_slot_counts(session, url, overview_pages)
+    roster_pages = [page for page in overview_pages if page not in participant_counts]
+    participant_counts.update(read_roster_participant_counts(session, url, roster_pages))
+
     for tournament in tournaments:
         for source in tournament["overviewPages"]:
             overview_page = source["overviewPage"]
-            slots = slots_by_page[overview_page]
-            if not slots:
-                raise ValueError(f"Tournament participant slots missing: {overview_page}")
-            expected_slots = set(range(1, len(slots) + 1))
-            if slots != expected_slots:
-                raise ValueError(f"Tournament participant slots invalid: {overview_page}")
-            source["participantCount"] = len(slots)
+            source["participantCount"] = participant_counts[overview_page]
 
 
 def parse_positive_integer(value, label: str) -> int:
