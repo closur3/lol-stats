@@ -98,6 +98,10 @@ function renderExternalLinkIcon() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`;
 }
 
+function renderHomeIndicator() {
+  return `<span class="home-indicator" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 5.5 6.5 6.5-6.5 6.5"/></svg></span>`;
+}
+
 function assertStatistics(tournament, statistics) {
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
@@ -256,11 +260,12 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeGridBy
     ? ` id="statistics_${normalizeId(tournament.slug)}" data-statistics-scope="overall"`
     : "";
   const detailsClass = statisticsLayout.hasScopes ? "home-sec statistics-root" : "home-sec";
+  const homeIndicator = renderHomeIndicator();
 
   if (isArchive) {
-    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
+    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
   }
 
   const openAttr = phase === "offday" ? "" : " open";
-  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row"><span class="home-indicator">❯</span>${phaseIcon}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
+  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${phaseIcon}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
 }

@@ -56,7 +56,8 @@ export default `${baseCSS}
     details.home-sec > .wrapper { margin-bottom: 0; border: none; border-radius: 0; box-shadow: none; }
     details.home-sec[open] > summary.table-title { border-radius: var(--radius-card) var(--radius-card) 0 0; border-bottom: none; }
     details.home-sec:not([open]) > summary.table-title { border-radius: var(--radius-card); border-bottom: 1px solid #e2e8f0; }
-    .home-indicator { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: 0 0 20px; margin: 0; color: #2563eb; font-size: 18px; line-height: 20px; font-weight: 600; transition: transform 0.3s ease; }
+    .home-indicator { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: 0 0 20px; margin: 0; color: #2563eb; transform-origin: center; transition: transform 0.3s ease; }
+    .home-indicator svg { display: block; width: 18px; height: 18px; }
     details.home-sec[open] .home-indicator { transform: rotate(90deg); }
     .table-title a { color: #2563eb; text-decoration: none; }
     .statistics-root { width: 100%; }
