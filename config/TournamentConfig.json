@@ -1,5 +1,5 @@
 {
-    "configDigest": "c31b28aa9d6b182a9e20e91ab71afd44dee068254f84f618199a6357eac8cda2",
+    "configDigest": "1192e220a736187f67e312e6c1686a087226a1fef9cdae83a42b576d7a7a2dbf",
     "active": [
         {
             "slug": "lpl-2026-split-3",
@@ -257,7 +257,7 @@
                     "overviewPage": "LPL/2026 Season/Split 2 Playoffs",
                     "startDate": "2026-05-23",
                     "endDate": "2026-06-14",
-                    "participantCount": 8
+                    "participantCount": 12
                 }
             ],
             "startDate": "2026-04-04",
@@ -348,7 +348,7 @@
                     "overviewPage": "LPL/2026 Season/Split 1 Playoffs",
                     "startDate": "2026-02-09",
                     "endDate": "2026-03-08",
-                    "participantCount": 8
+                    "participantCount": 12
                 }
             ],
             "startDate": "2026-01-14",
