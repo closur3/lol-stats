@@ -229,7 +229,10 @@ function renderStatistics(tournament, statistics, timeTables) {
   };
 }
 
-export function renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive) {
+export function renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive, expandByDefault) {
+  if (typeof expandByDefault !== "boolean") {
+    throw new Error("expandByDefault must be a boolean");
+  }
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   const scheduleSessions = readScheduleSessions(scheduleSessionsBySlug, tournament.slug, isArchive);
   const statistics = statisticsBySlug[tournament.slug];
@@ -272,9 +275,10 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeDistri
   const homeIndicator = renderHomeIndicator();
 
   if (isArchive) {
-    return `<details class="${detailsClass}"${statisticsRoot}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
+    const openAttr = expandByDefault ? " open" : "";
+    return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
   }
 
-  const openAttr = phase === "offday" ? "" : " open";
+  const openAttr = expandByDefault || phase !== "offday" ? " open" : "";
   return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${phaseIcon}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
 }

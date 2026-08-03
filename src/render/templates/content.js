@@ -35,9 +35,17 @@ export function renderContentFragment(statisticsBySlug, timeDistributionBySlug, 
     return [tournament.slug, statistics.combined];
   }));
   const injectedData = `<script>window.tournamentStatistics = Object.assign(window.tournamentStatistics ?? {}, ${serializeForInlineScript(statisticsBySlug)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
-  const tablesHtml = tournaments
-    .filter(tournament => tournament?.slug)
-    .map(tournament => renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive))
+  const visibleTournaments = tournaments.filter(tournament => tournament?.slug);
+  const expandTournamentsByDefault = visibleTournaments.length <= 3;
+  const tablesHtml = visibleTournaments
+    .map(tournament => renderTournamentSection(
+      tournament,
+      statisticsBySlug,
+      timeDistributionBySlug,
+      scheduleSessionsBySlug,
+      isArchive,
+      expandTournamentsByDefault
+    ))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, combinedStatsBySlug);
 
