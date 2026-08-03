@@ -4,9 +4,9 @@ import { renderScheduleRow } from '../../components/scheduleRow.js';
 
 export function renderScheduleSection(scheduleMap, combinedStatsBySlug) {
   const dates = Object.keys(scheduleMap).sort();
-  if (dates.length === 0) return `<div class="sch-empty">NO FUTURE MATCHES SCHEDULED</div>`;
+  if (dates.length === 0) return `<section id="scheduleSection"><div class="sch-empty">NO FUTURE MATCHES SCHEDULED</div></section>`;
 
-  let scheduleHtml = `<div class="sch-container">`;
+  let scheduleHtml = `<section id="scheduleSection"><div class="sch-container">`;
   dates.forEach(scheduleDate => {
     const matches = scheduleMap[scheduleDate];
     const dayName = timePolicy.getWeekdayName(scheduleDate);
@@ -28,6 +28,6 @@ export function renderScheduleSection(scheduleMap, combinedStatsBySlug) {
     cardHtml += `</div></div>`;
     scheduleHtml += cardHtml;
   });
-  scheduleHtml += `</div>`;
+  scheduleHtml += `</div></section>`;
   return scheduleHtml;
 }

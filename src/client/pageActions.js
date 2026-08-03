@@ -50,7 +50,12 @@ function updateTournamentJumpCurrent() {
     });
 }
 
-function jumpToTournament(section) {
+function jumpToTournament(section, index) {
+    if (index === 0) {
+        scrollToPageTop();
+        closeCompactMenus();
+        return;
+    }
     section.open = true;
     const top = section.getBoundingClientRect().top + window.scrollY - 76;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
@@ -72,7 +77,7 @@ function initTournamentJump() {
         option.className = "tournament-jump-option compact-menu-option";
         option.setAttribute("role", "option");
         option.textContent = readTournamentTitle(section);
-        option.addEventListener("click", () => jumpToTournament(section));
+        option.addEventListener("click", () => jumpToTournament(section, index));
         popup.append(option);
     });
     trigger.disabled = false;
@@ -104,6 +109,13 @@ function refreshCurrentPage() {
 
 function scrollToPageTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function jumpToSchedule() {
+    const schedule = document.getElementById("scheduleSection");
+    if (!schedule) throw new Error("Schedule section missing");
+    const top = schedule.getBoundingClientRect().top + window.scrollY - 76;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
 }
 
 function resetFloatingActionsPosition(actions) {
@@ -183,5 +195,6 @@ function initFloatingPageActions() {
 window.toggleAllTournaments = toggleAllTournaments;
 window.refreshCurrentPage = refreshCurrentPage;
 window.scrollToPageTop = scrollToPageTop;
+window.jumpToSchedule = jumpToSchedule;
 initFloatingPageActions();
 `;
