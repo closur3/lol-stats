@@ -59,15 +59,16 @@ export default `${baseCSS}
     details.home-sec[open] .home-indicator { transform: rotate(90deg); }
     .table-title a { color: #2563eb; text-decoration: none; }
     .statistics-root { width: 100%; }
-    .statistics-heading-meta { display: grid; grid-template-columns: auto 1px auto; align-items: center; gap: 10px; min-height: 26px; max-width: 100%; }
+    .statistics-heading-meta { display: grid; grid-template-columns: auto 1.5px auto; align-items: center; gap: 10px; min-height: 26px; max-width: 100%; }
     .statistics-heading-meta:not(.has-scope-select):not(:has(> .stats-group-legend)) { grid-template-columns: auto; }
-    .statistics-heading-meta.has-scope-select { grid-template-columns: auto 1px auto; }
-    .statistics-heading-meta.has-scope-select:has(.statistics-scope-legend:not(.is-hidden):not(:empty)) { grid-template-columns: auto 1px auto auto; }
+    .statistics-heading-meta.has-scope-select { grid-template-columns: auto 1.5px auto; }
+    .statistics-heading-meta.has-scope-select:has(.statistics-scope-legend:not(.is-hidden):not(:empty)) { grid-template-columns: auto 1.5px auto auto; }
     .statistics-heading-meta .tournament-summary { flex: 0 0 auto; padding: 0; border: 0; border-radius: 0; background: transparent; }
     .statistics-heading-meta > .tournament-summary, .statistics-scope-summary { grid-column: 1; grid-row: 1; }
     .statistics-heading-meta.has-scope-select > .tournament-summary, .statistics-heading-meta.has-scope-select .statistics-scope-summary { grid-column: 1; }
     .statistics-scope-summary { display: flex; align-items: center; align-self: center; }
-    .statistics-heading-divider { grid-column: 2; grid-row: 1; width: 1px; height: 18px; align-self: center; border-radius: var(--radius-pill); background: linear-gradient(to bottom, transparent 0%, #cbd5e1 24%, #cbd5e1 76%, transparent 100%); }
+    .heading-meta-divider { display: inline-block; width: 1.5px; height: 15px; flex: 0 0 1.5px; align-self: center; border-radius: var(--radius-pill); background: #cbd5e1; }
+    .statistics-heading-divider { grid-column: 2; grid-row: 1; }
     .statistics-heading-meta.has-scope-select .statistics-heading-divider { grid-column: 2; }
     .statistics-scope-select { display: block; grid-column: 3; grid-row: 1; align-self: center; max-width: 150px; }
     .statistics-heading-meta.has-scope-select:has(.statistics-scope-legend:not(.is-hidden):not(:empty)) .statistics-scope-select { grid-column: 4; }
@@ -193,7 +194,7 @@ export default `${baseCSS}
 
     .tournament-summary { font-size:12px; color:#64748b; font-weight: 600; background:#f8fafc; padding:4px 10px; border-radius:var(--radius-control); border:1px solid #e2e8f0; display:inline-flex; align-items:center; white-space:nowrap; }
     .tournament-summary-rate { opacity: 0.7; font-weight: 400; }
-    .summary-sep { opacity:0.3; margin:0 8px; font-weight:400; }
+    .summary-sep { margin: 0 10px; }
     .title-right-area { display:flex; align-items:center; gap:12px; justify-content: flex-start; flex-wrap: wrap; }
 
     @media (max-width: 1100px) { .sch-container { grid-template-columns: repeat(2, 1fr); } }

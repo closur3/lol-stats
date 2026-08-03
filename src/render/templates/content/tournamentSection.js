@@ -12,7 +12,7 @@ import { buildParticipantGroups } from '../../../core/projection/participantGrou
 function renderTournamentSummary(stats) {
   const summary = summarizeFullRate(stats);
   const parts = summary.parts.map(part => `${part.label}: ${part.fullMatchCount}/${part.totalMatchCount} <span class="tournament-summary-rate">(${part.percentText})</span>`);
-  return parts.length ? `<div class="tournament-summary">${parts.join(" <span class='summary-sep'>|</span> ")}</div>` : "";
+  return parts.length ? `<div class="tournament-summary">${parts.join('<span class="heading-meta-divider summary-sep" aria-hidden="true"></span>')}</div>` : "";
 }
 
 function readScheduleSessions(scheduleSessionsBySlug, slug, isArchive) {
@@ -260,7 +260,7 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeDistri
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
   const tournamentInfo = renderTournamentInfo(tournament);
   const hasHeadingDetails = Boolean(statisticsLayout.select || statisticsLayout.legend);
-  const divider = hasHeadingDetails ? `<span class="statistics-heading-divider" aria-hidden="true"></span>` : "";
+  const divider = hasHeadingDetails ? `<span class="heading-meta-divider statistics-heading-divider" aria-hidden="true"></span>` : "";
   const scopeClass = statisticsLayout.select ? " has-scope-select" : "";
   const headerStatistics = `<div class="statistics-heading-meta${scopeClass}">${statisticsLayout.summary}${divider}${statisticsLayout.select}${statisticsLayout.legend}</div>`;
   const headerRight = `<div class="title-right-area">${headerStatistics}</div>`;
