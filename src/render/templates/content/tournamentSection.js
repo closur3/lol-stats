@@ -100,10 +100,6 @@ function renderExternalLinkIcon() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`;
 }
 
-function renderHomeIndicator() {
-  return `<span class="home-indicator" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 5.5 6.5 6.5-6.5 6.5"/></svg></span>`;
-}
-
 function assertStatistics(tournament, statistics) {
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
@@ -229,10 +225,7 @@ function renderStatistics(tournament, statistics, timeTables) {
   };
 }
 
-export function renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive, expandByDefault) {
-  if (typeof expandByDefault !== "boolean") {
-    throw new Error("expandByDefault must be a boolean");
-  }
+export function renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive) {
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   const scheduleSessions = readScheduleSessions(scheduleSessionsBySlug, tournament.slug, isArchive);
   const statistics = statisticsBySlug[tournament.slug];
@@ -254,12 +247,7 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeDistri
   };
   const statisticsLayout = renderStatistics(tournament, statistics, timeTables);
 
-  let phaseIcon = "";
-  let phase = null;
-  if (!isArchive) {
-    phase = resolveSchedulePhase(scheduleSessions);
-    phaseIcon = renderSchedulePhaseIcon(phase);
-  }
+  const phaseIcon = isArchive ? "" : renderSchedulePhaseIcon(resolveSchedulePhase(scheduleSessions));
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
   const tournamentInfo = renderTournamentInfo(tournament);
   const hasHeadingDetails = Boolean(statisticsLayout.select || statisticsLayout.legend);
@@ -271,14 +259,6 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeDistri
   const statisticsRoot = statisticsLayout.hasScopes
     ? ` id="statistics_${normalizeId(tournament.slug)}" data-statistics-scope="overall"`
     : "";
-  const detailsClass = statisticsLayout.hasScopes ? "home-sec statistics-root" : "home-sec";
-  const homeIndicator = renderHomeIndicator();
-
-  if (isArchive) {
-    const openAttr = expandByDefault ? " open" : "";
-    return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
-  }
-
-  const openAttr = expandByDefault || phase !== "offday" ? " open" : "";
-  return `<details class="${detailsClass}"${statisticsRoot}${openAttr}><summary class="table-title home-sum"><div class="tournament-title-row">${homeIndicator}${phaseIcon}${titleText}${tournamentInfo}</div> ${headerRight}</summary>${sectionBody}</details>`;
+  const sectionClass = statisticsLayout.hasScopes ? "home-sec statistics-root" : "home-sec";
+  return `<section class="${sectionClass}"${statisticsRoot} aria-label="${escapeHtml(tournament.name)}"><div class="table-title"><div class="tournament-title-row">${phaseIcon}${titleText}${tournamentInfo}</div>${headerRight}</div>${sectionBody}</section>`;
 }

@@ -2,31 +2,7 @@ export const pageActionsScript = `
 const floatingActionsFooterGap = 12;
 
 function getTournamentSections() {
-    return Array.from(document.querySelectorAll("details.home-sec"));
-}
-
-function updateTournamentToggleButton() {
-    const button = document.getElementById("floatingToggleTournaments");
-    if (!button) return;
-    const sections = getTournamentSections();
-    if (sections.length === 0) {
-        button.disabled = true;
-        button.setAttribute("aria-label", "No tournaments");
-        button.dataset.actionState = "disabled";
-        return;
-    }
-    const hasClosedSection = sections.some(section => !section.open);
-    button.disabled = false;
-    button.dataset.actionState = hasClosedSection ? "expand" : "collapse";
-    button.setAttribute("aria-label", hasClosedSection ? "Expand all tournaments" : "Collapse all tournaments");
-}
-
-function toggleAllTournaments() {
-    const sections = getTournamentSections();
-    const shouldExpand = sections.some(section => !section.open);
-    sections.forEach(section => { section.open = shouldExpand; });
-    updateTournamentToggleButton();
-    syncFloatingActionsMobilePosition();
+    return Array.from(document.querySelectorAll("section.home-sec"));
 }
 
 function readTournamentTitle(section) {
@@ -56,11 +32,9 @@ function jumpToTournament(section, index) {
         closeCompactMenus();
         return;
     }
-    section.open = true;
     const top = section.getBoundingClientRect().top + window.scrollY - 76;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     closeCompactMenus();
-    updateTournamentToggleButton();
 }
 
 function initTournamentJump() {
@@ -181,18 +155,10 @@ function bindFloatingActionsMobilePosition() {
 function initFloatingPageActions() {
     const actions = document.getElementById("floatingPageActions");
     if (!actions) return;
-    getTournamentSections().forEach(section => {
-        section.addEventListener("toggle", () => {
-            updateTournamentToggleButton();
-            syncFloatingActionsMobilePosition();
-        });
-    });
-    updateTournamentToggleButton();
     initTournamentJump();
     bindFloatingActionsMobilePosition();
 }
 
-window.toggleAllTournaments = toggleAllTournaments;
 window.refreshCurrentPage = refreshCurrentPage;
 window.scrollToPageTop = scrollToPageTop;
 window.jumpToSchedule = jumpToSchedule;

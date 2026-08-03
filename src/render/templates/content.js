@@ -36,15 +36,13 @@ export function renderContentFragment(statisticsBySlug, timeDistributionBySlug, 
   }));
   const injectedData = `<script>window.tournamentStatistics = Object.assign(window.tournamentStatistics ?? {}, ${serializeForInlineScript(statisticsBySlug)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
   const visibleTournaments = tournaments.filter(tournament => tournament?.slug);
-  const expandTournamentsByDefault = visibleTournaments.length <= 3;
   const tablesHtml = visibleTournaments
     .map(tournament => renderTournamentSection(
       tournament,
       statisticsBySlug,
       timeDistributionBySlug,
       scheduleSessionsBySlug,
-      isArchive,
-      expandTournamentsByDefault
+      isArchive
     ))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, combinedStatsBySlug);

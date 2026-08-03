@@ -46,17 +46,10 @@ export default `${baseCSS}
     .tournament-info-source-meta { justify-content: flex-start; color: #94a3b8; font-size: 9px; font-weight: 700; line-height: 14px; white-space: nowrap; }
     .tournament-info-source svg { width: 12px; height: 12px; flex: 0 0 12px; }
     .tournament-info-source:hover { color: #1d4ed8 !important; background: #eff6ff; }
-    details.home-sec:has(.tournament-info.is-open) { position: relative; z-index: 70; overflow: visible; }
-    details.home-sec { margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: var(--radius-card); box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
-    details.home-sec > summary.table-title { cursor: pointer; user-select: none; list-style: none; transition: background 0.2s; background: var(--gradient-header); box-shadow: inset 1px 0 2px rgba(0, 0, 0, 0.04), inset -1px 0 2px rgba(0, 0, 0, 0.04); }
-    details.home-sec > summary.table-title::-webkit-details-marker { display: none; }
-    details.home-sec > .table-title { border: none; border-radius: 0; box-shadow: none; }
-    details.home-sec > .wrapper { margin-bottom: 0; border: none; border-radius: 0; box-shadow: none; }
-    details.home-sec[open] > summary.table-title { border-radius: var(--radius-card) var(--radius-card) 0 0; border-bottom: none; }
-    details.home-sec:not([open]) > summary.table-title { border-radius: var(--radius-card); border-bottom: 1px solid #e2e8f0; }
-    .home-indicator { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: 0 0 20px; margin: 0; color: #2563eb; transform-origin: center; transition: transform 0.3s ease; }
-    .home-indicator svg { display: block; width: 18px; height: 18px; }
-    details.home-sec[open] .home-indicator { transform: rotate(90deg); }
+    .home-sec:has(.tournament-info.is-open) { position: relative; z-index: 70; overflow: visible; }
+    .home-sec { margin-bottom: 25px; border: 1px solid #e2e8f0; border-radius: var(--radius-card); box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; }
+    .home-sec > .table-title { border: none; border-radius: var(--radius-card) var(--radius-card) 0 0; background: var(--gradient-header); box-shadow: inset 1px 0 2px rgba(0, 0, 0, 0.04), inset -1px 0 2px rgba(0, 0, 0, 0.04); }
+    .home-sec > .wrapper { margin-bottom: 0; border: none; border-radius: 0; box-shadow: none; }
     .table-title a { color: #2563eb; text-decoration: none; }
     .statistics-root { width: 100%; }
     .statistics-heading-meta { display: grid; grid-template-columns: auto 1.5px auto; align-items: center; gap: 10px; min-height: 26px; max-width: 100%; }
@@ -74,7 +67,7 @@ export default `${baseCSS}
     .statistics-heading-meta.has-scope-select:has(.statistics-scope-legend:not(.is-hidden):not(:empty)) .statistics-scope-select { grid-column: 4; }
     .statistics-scope-select .statistics-scope-trigger { width: max-content; max-width: 150px; height: 26px; font-size: 11px; }
     .statistics-scope-menu { top: calc(100% + 5px); right: 0; bottom: auto; left: auto; }
-    details.home-sec:has(.statistics-scope-select.is-open) { position: relative; z-index: 70; overflow: visible; }
+    .home-sec:has(.statistics-scope-select.is-open) { position: relative; z-index: 70; overflow: visible; }
     .statistics-scope-content { width: 100%; }
     .statistics-scope-content.is-hidden, .statistics-scope-summary.is-hidden { display: none; }
     .statistics-scope-legend.is-hidden { display: none; }
@@ -154,9 +147,6 @@ export default `${baseCSS}
     .floating-action-btn:focus-visible { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.16); }
     .floating-action-btn:disabled { color: #cbd5e1; cursor: default; transform: none; }
     .floating-action-icon { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-    .floating-action-btn .icon-collapse { display: none; }
-    .floating-action-btn[data-action-state="collapse"] .icon-expand { display: none; }
-    .floating-action-btn[data-action-state="collapse"] .icon-collapse { display: block; }
     .tournament-jump { position: relative; }
     .tournament-jump-trigger { width: 40px; height: 40px; justify-content: center; padding: 0; border-color: transparent; background: transparent; color: #475569; box-shadow: none; }
     .tournament-jump-trigger::before, .tournament-jump-trigger::after { display: none; }
@@ -239,7 +229,7 @@ export default `${baseCSS}
         .floating-action-icon { width: 18px; height: 18px; }
         .tournament-jump-trigger { width: 38px; height: 38px; }
         .tournament-jump-menu { top: auto; right: auto; bottom: calc(100% + 8px); left: 50%; width: max-content; min-width: 0; max-width: calc(100vw - 32px); max-height: min(280px, calc(100dvh - 150px)); box-sizing: border-box; transform: translateX(-50%); }
-        details.home-sec > summary.table-title { min-height: 72px; }
+        .home-sec > .table-title { min-height: 72px; }
         .tournament-info-panel { width: min(290px, calc(100vw - 30px)); }
     }
     @media (max-width: 650px) { .sch-container { grid-template-columns: 1fr; } }
