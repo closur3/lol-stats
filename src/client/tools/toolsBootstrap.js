@@ -59,12 +59,8 @@ export const toolsBootstrap = `
               toast.remainingDurationMs = toastDurationMs;
               startToastTimer(toast);
           }
-          function updateCronStatus(hasActiveCron) {
-              if (typeof hasActiveCron !== 'boolean') throw new Error('Cron status must be boolean.');
-              var dot = document.querySelector('.build-footer .cron-dot');
-              if (!dot) throw new Error('Cron status dot missing.');
-              dot.classList.toggle('active', hasActiveCron);
-              dot.classList.toggle('idle', !hasActiveCron);
+          function updateCronInfo(cronInfo) {
+              updateFooterCronInfo(cronInfo);
           }
           function checkAuthError(status) { if (status === 401) { showToast(authErrorMessage, "error"); clearAuth(); return true; } return false; }
           function disableButton(button) {
@@ -177,7 +173,7 @@ export const toolsBootstrap = `
                       closeConfigActionConfirm();
                       if (action === 'active-runtime-delete') {
                           return readActionResult(res).then(function(result) {
-                              updateCronStatus(result.hasActiveCron);
+                              updateCronInfo(result.cronInfo);
                               if (res.status === 207) showWarning(result.message);
                               else showResult(true, meta.successMessage);
                           });

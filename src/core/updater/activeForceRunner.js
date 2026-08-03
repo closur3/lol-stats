@@ -1,6 +1,12 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
+import { assertRawMatches } from "../facts/rawMatchesStore.js";
 import { rebuildSchedule } from "../scheduler/scheduleMaintenanceRunner.js";
-import { runActiveUpdate } from "./activeUpdateRunner.js";
+import { prepareActiveUpdate } from "./activeUpdatePreparer.js";
+import { detectRevisionChanges } from "./revisionDetector.js";
+import { commitRevisionWrites } from "./revWriter.js";
+import { commitActiveLogWrites } from "./logPersistence.js";
+import { commitActiveUpdate } from "./activeUpdateCommitter.js";
+import { rejectActiveUpdate } from "./activeUpdateRejection.js";
 
 function assertForceInputs(activeTournaments, requestedSlugs) {
   if (!Array.isArray(activeTournaments)) throw new Error("activeTournaments must be an array");
@@ -25,15 +31,22 @@ async function inspectRawMatches(env, activeTournaments, requestedSlugs) {
       return;
     }
 
+    let stored;
     try {
-      const rawMatches = await kv.get(kvKeys.rawMatches(slug), { type: "json" });
-      if (!Array.isArray(rawMatches)) {
-        const state = rawMatches === null ? "missing" : "invalid";
-        console.log(`[FORCE:REPAIR] ${state} RawMatches ${slug}`);
-        rawMatchesBySlug[slug] = null;
-        rebuildSlugs.add(slug);
-        return;
-      }
+      stored = await kv.get(kvKeys.rawMatches(slug));
+    } catch (error) {
+      throw new Error(`Force RawMatches read failed: ${slug}`, { cause: error });
+    }
+    if (stored === null) {
+      console.log(`[FORCE:REPAIR] missing RawMatches ${slug}`);
+      rawMatchesBySlug[slug] = null;
+      rebuildSlugs.add(slug);
+      return;
+    }
+
+    try {
+      const rawMatches = typeof stored === "string" ? JSON.parse(stored) : stored;
+      assertRawMatches(slug, rawMatches);
       rawMatchesBySlug[slug] = rawMatches;
     } catch (error) {
       console.error(`[FORCE:REPAIR] invalid RawMatches ${slug}: ${error.message}`);
@@ -54,9 +67,16 @@ export async function forceActiveTournaments(env, activeTournaments, requestedSl
 
   const { rawMatchesBySlug, rebuildSlugs } = await inspectRawMatches(env, activeTournaments, requestedSlugs);
   const reasonsBySlug = new Map([...rebuildSlugs].map(slug => [slug, "force"]));
-  await runActiveUpdate(env, activeTournaments, rawMatchesBySlug, rebuildSlugs, {
+  const rebuildTournaments = activeTournaments.filter(tournament => rebuildSlugs.has(tournament.slug));
+  const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, rebuildTournaments);
+  const activeUpdatePlan = await prepareActiveUpdate(env, activeTournaments, rawMatchesBySlug, rebuildSlugs, {
     reasonsBySlug,
-    rebuild: true
+    rebuild: true,
+    revidChanges
   });
+  if (!activeUpdatePlan.accepted) await rejectActiveUpdate(env, activeUpdatePlan);
+  await commitActiveUpdate(env, activeUpdatePlan);
   await rebuildSchedule(env, activeTournaments, scheduledTimeMs, scheduleOptions);
+  await commitRevisionWrites(env, pendingRevisionWrites);
+  await commitActiveLogWrites(env, activeUpdatePlan.activeLogWrites);
 }

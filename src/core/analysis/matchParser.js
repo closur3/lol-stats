@@ -27,7 +27,6 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
     gameWinCount: 0, gameTotalCount: 0,
     seriesTrailedCount: 0, comebackCount: 0,
     seriesLedCount: 0, lostLeadCount: 0,
-    reverseSweepCount: 0, reverseSweptCount: 0,
     winStreakCount: 0, lossStreakCount: 0,
     last: 0, history: []
   };
@@ -36,7 +35,7 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
 
   const ensureTeam = (teamName) => {
     if (!stats[teamName]) {
-      stats[teamName] = { name: teamName, ...JSON.parse(JSON.stringify(allStatsInit)) };
+      stats[teamName] = JSON.parse(JSON.stringify(allStatsInit));
     }
   };
 
@@ -108,6 +107,11 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
       team2MatchResultCode,
       label: matchLabel
     });
+    if (gameSequence.pendingGameResults) {
+      console.warn(
+        `[FANDOM:GAME_RESULTS_PENDING] ${matchLabel} resolved=${gameSequence.pendingGameResults.resolvedGameCount} expected=${gameSequence.pendingGameResults.expectedGameCount}`
+      );
+    }
     const team1GameHistory = gameSequence.team1GameResults.length > 0 ? { gameResults: gameSequence.team1GameResults } : {};
     const team2GameHistory = gameSequence.team2GameResults.length > 0 ? { gameResults: gameSequence.team2GameResults } : {};
     const team1TurnaroundHistory = gameSequence.team1Turnaround === null ? {} : gameSequence.team1Turnaround;

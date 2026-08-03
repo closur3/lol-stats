@@ -1,12 +1,15 @@
 import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "../updater/revisionDetector.js";
-import { runActiveUpdate } from "../updater/activeUpdateRunner.js";
+import { prepareActiveUpdate } from "../updater/activeUpdatePreparer.js";
 import { commitRevisionWrites } from "../updater/revWriter.js";
 import { runScheduleMaintenance } from "../scheduler/scheduleMaintenanceRunner.js";
 import { resolveScheduledExecutionScope } from "../scheduler/scheduledExecutionScope.js";
 import { resolveScheduleOptions } from "../scheduler/scheduleOptions.js";
 import { reconcileTournamentRuntime } from "../updater/tournamentRuntimeReconciler.js";
 import { assertRawMatchesAvailable } from "../facts/rawMatchesStore.js";
+import { commitActiveLogWrites } from "../updater/logPersistence.js";
+import { commitActiveUpdate } from "../updater/activeUpdateCommitter.js";
+import { rejectActiveUpdate } from "../updater/activeUpdateRejection.js";
 
 function filterTournaments(tournaments, slugs) {
   return tournaments.filter(tournament => slugs.has(tournament.slug));
@@ -22,38 +25,43 @@ async function detectRevisionChangesForTarget(env, tournaments, target) {
   return { changedSlugs, revidChanges, pendingRevisionWrites };
 }
 
-async function runRevisionPath(env, tournaments, revisionResult) {
+async function prepareRevisionPath(env, tournaments, revisionResult) {
   const { changedSlugs, revidChanges, pendingRevisionWrites } = revisionResult;
+  let activeUpdatePlan = null;
   if (changedSlugs.size > 0) {
     const changedTournaments = filterTournaments(tournaments, changedSlugs);
     const rawMatchesBySlug = await readExistingRawMatchesBySlug(env, changedTournaments);
     console.log(`[FANDOM:SYNC] slugs=${Array.from(changedSlugs).join(", ")}`);
-    await runActiveUpdate(env, tournaments, rawMatchesBySlug, changedSlugs, {
+    activeUpdatePlan = await prepareActiveUpdate(env, tournaments, rawMatchesBySlug, changedSlugs, {
       reasonsBySlug: new Map(Array.from(changedSlugs, slug => [slug, "revision"])),
       rebuild: false,
-      revidChanges,
-      pendingRevisionWrites
+      revidChanges
     });
-  } else {
-    await commitRevisionWrites(env, pendingRevisionWrites);
+    if (!activeUpdatePlan.accepted) await rejectActiveUpdate(env, activeUpdatePlan);
   }
+  return { pendingRevisionWrites, activeUpdatePlan };
 }
 
 export async function runCron(env, event) {
   const scheduleOptions = resolveScheduleOptions(env);
-  const { config, configChanged } = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
+  const reconcileResult = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
+  const { config } = reconcileResult;
   const tournaments = config.active;
   await assertRawMatchesAvailable(env, tournaments);
+  const scheduleRuntime = reconcileResult.scheduleRuntime
+    ?? await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
 
-  const target = await resolveScheduledExecutionScope(env, event.scheduledTime, event.cron);
-  if (target.type === 'none') {
-    if (!configChanged) {
-      await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
-    }
-    return;
-  }
+  const target = resolveScheduledExecutionScope(scheduleRuntime, tournaments, event.scheduledTime, event.cron);
+  if (target.type === 'none') return;
 
   const revisionResult = await detectRevisionChangesForTarget(env, tournaments, target);
-  await runRevisionPath(env, tournaments, revisionResult);
-  await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
+  const revisionPlan = await prepareRevisionPath(env, tournaments, revisionResult);
+  if (revisionPlan.activeUpdatePlan) {
+    await commitActiveUpdate(env, revisionPlan.activeUpdatePlan);
+    await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
+  }
+  await commitRevisionWrites(env, revisionPlan.pendingRevisionWrites);
+  if (revisionPlan.activeUpdatePlan) {
+    await commitActiveLogWrites(env, revisionPlan.activeUpdatePlan.activeLogWrites);
+  }
 }

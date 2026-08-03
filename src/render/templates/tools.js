@@ -3,6 +3,7 @@ import { toolsScript } from '../../client/tools.js';
 import { escapeHtml } from '../../utils/htmlEscape.js';
 import { renderPageShell } from './page.js';
 import { renderActiveTournamentList, renderArchivedTournamentList } from './toolsLists.js';
+import { unavailableCronInfo } from '../../core/scheduler/cronInfo.js';
 
 const toolsAuthScript = `
 <script>
@@ -55,7 +56,7 @@ export function renderToolsAuthPage(time, sha) {
           </form>
       </div>`;
 
-  return renderPageShell("Tools", "", "tools", time, sha, false, {
+  return renderPageShell("Tools", "", "tools", time, sha, unavailableCronInfo(), {
     css: toolsCSS,
     script: toolsAuthScript,
     preBody,
@@ -63,7 +64,7 @@ export function renderToolsAuthPage(time, sha) {
   });
 }
 
-export function renderToolsPage(time, sha, activeTournaments = [], archivedTournaments = [], configError = null, hasActiveCron = false) {
+export function renderToolsPage(time, sha, activeTournaments = [], archivedTournaments = [], configError = null, cronInfo = unavailableCronInfo()) {
   const activeListHtml = renderActiveTournamentList(activeTournaments);
   const archiveListHtml = renderArchivedTournamentList(archivedTournaments);
   const configErrorHtml = configError
@@ -120,7 +121,7 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
       </div>
       `;
 
-  return renderPageShell("Tools", bodyContent, "tools", time, sha, hasActiveCron, {
+  return renderPageShell("Tools", bodyContent, "tools", time, sha, cronInfo, {
     css: toolsCSS,
     script: `<script>${toolsScript}</script>`,
     preBody,

@@ -72,7 +72,15 @@ export function sortTeams(statsObj) {
   if (!statsObj || typeof statsObj !== "object" || Array.isArray(statsObj)) {
     throw new Error("team stats must be a JSON object");
   }
-  const statsArray = Object.values(statsObj).filter(teamStats => teamStats && teamStats.name && teamStats.name !== "TBD");
+  const statsArray = Object.entries(statsObj)
+    .filter(([teamName]) => teamName !== "TBD")
+    .map(([teamName, teamStats]) => {
+      if (!teamName || !teamStats || typeof teamStats !== "object" || Array.isArray(teamStats)) {
+        throw new Error(`team stats invalid: ${teamName}`);
+      }
+      if (Object.hasOwn(teamStats, "name")) throw new Error(`team stats must not duplicate name: ${teamName}`);
+      return { name: teamName, ...teamStats };
+    });
   const priorMean = sortPolicy.getWeightedPriorMean(statsArray);
   return statsArray.sort((leftTeamStats, rightTeamStats) => (
     compareTeamStats(leftTeamStats, rightTeamStats, priorMean)

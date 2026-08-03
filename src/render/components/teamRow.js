@@ -87,9 +87,7 @@ function validateTurnaroundStats(teamStats) {
     "seriesTrailedCount",
     "comebackCount",
     "seriesLedCount",
-    "lostLeadCount",
-    "reverseSweepCount",
-    "reverseSweptCount"
+    "lostLeadCount"
   ];
   for (const field of fields) {
     if (!Number.isInteger(teamStats[field]) || teamStats[field] < 0) {
@@ -98,8 +96,5 @@ function validateTurnaroundStats(teamStats) {
   }
   if (teamStats.comebackCount > teamStats.seriesTrailedCount || teamStats.lostLeadCount > teamStats.seriesLedCount) {
     throw new Error(`Invalid team turnaround totals: ${teamStats.name}`);
-  }
-  if (teamStats.reverseSweepCount > teamStats.comebackCount || teamStats.reverseSweptCount > teamStats.lostLeadCount) {
-    throw new Error(`Invalid team reverse sweep totals: ${teamStats.name}`);
   }
 }

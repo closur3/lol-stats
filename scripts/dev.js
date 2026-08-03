@@ -1,17 +1,32 @@
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import net from "node:net";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const ROOT_DIRECTORY = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const WRANGLER_PATH = path.join(ROOT_DIRECTORY, "node_modules", "wrangler", "bin", "wrangler.js");
 const CONFIG_PATH = path.join(ROOT_DIRECTORY, "config", "TournamentConfig.json");
 const WRANGLER_CONFIG_PATH = path.join(ROOT_DIRECTORY, "wrangler.toml");
 const CONFIG_KEY = "TournamentConfig";
 const EXPLORER_PATH = "/cdn-cgi/explorer/api";
+const LOCAL_KV_BINDING = "lol-stats-kv";
+const UNSUPPORTED_ARGUMENTS = new Set(["--config", "-c", "--cwd", "--env", "-e", "--local-protocol"]);
+
+function resolveWranglerPath() {
+  const require = createRequire(import.meta.url);
+  const packagePath = require.resolve("wrangler/package.json");
+  const packageDefinition = require(packagePath);
+  const binPath = packageDefinition?.bin?.wrangler;
+  if (typeof binPath !== "string" || binPath.length === 0) {
+    throw new Error("Wrangler package does not declare a wrangler CLI binary");
+  }
+  return path.resolve(path.dirname(packagePath), binPath);
+}
+
+const WRANGLER_PATH = resolveWranglerPath();
 
 function requireObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -53,6 +68,18 @@ async function readDevPort(arguments_) {
   return requirePort(configuredPort);
 }
 
+function assertLocalArguments(arguments_) {
+  for (const argument of arguments_) {
+    if (argument === "--remote" || argument === "-r" || argument.startsWith("--remote=")) {
+      throw new Error("Local development runner does not allow remote mode");
+    }
+    const option = argument.split("=", 1)[0];
+    if (UNSUPPORTED_ARGUMENTS.has(option)) {
+      throw new Error(`Local development runner does not allow ${option}`);
+    }
+  }
+}
+
 function requirePort(value) {
   const port = Number(value);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -78,10 +105,16 @@ async function readKvNamespace(port) {
   if (payload.success !== true || !Array.isArray(payload.result)) {
     throw new Error("Local KV namespace lookup returned an invalid response");
   }
-  if (payload.result.length !== 1) {
-    throw new Error(`Expected exactly one local KV namespace, received ${payload.result.length}`);
+  const matchingNamespaces = payload.result.filter((namespace) => (
+    namespace
+    && typeof namespace === "object"
+    && !Array.isArray(namespace)
+    && namespace.title === LOCAL_KV_BINDING
+  ));
+  if (matchingNamespaces.length !== 1) {
+    throw new Error(`Expected one local KV binding named ${LOCAL_KV_BINDING}, received ${matchingNamespaces.length}`);
   }
-  const namespace = requireObject(payload.result[0], "Local KV namespace");
+  const namespace = requireObject(matchingNamespaces[0], "Local KV namespace");
   if (typeof namespace.id !== "string" || namespace.id.length === 0) {
     throw new Error("Local KV namespace id is missing");
   }
@@ -166,11 +199,12 @@ async function waitForExplorer(port, wrangler, readSpawnError) {
 
 async function run() {
   const arguments_ = process.argv.slice(2);
+  assertLocalArguments(arguments_);
   const configBytes = await readConfig();
   const port = await readDevPort(arguments_);
   await requireAvailablePort(port);
 
-  const wrangler = spawn(process.execPath, [WRANGLER_PATH, "dev", ...arguments_], {
+  const wrangler = spawn(process.execPath, [WRANGLER_PATH, "dev", "--local", ...arguments_], {
     cwd: ROOT_DIRECTORY,
     env: process.env,
     stdio: "inherit",

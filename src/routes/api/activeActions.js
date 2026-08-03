@@ -2,7 +2,7 @@ import { deleteActiveRuntimeState } from "../../core/updater/activeTournamentDel
 import { resolveScheduleOptions } from "../../core/scheduler/scheduleOptions.js";
 import { requireAdmin, requirePost } from "./auth.js";
 import { readJsonPayload } from "./requestPayload.js";
-import { readHasActiveCron } from "../../core/scheduler/activeCronStatus.js";
+import { readCronInfo } from "../../core/scheduler/cronInfo.js";
 import { actionResultResponse } from "./actionResultResponse.js";
 
 export async function handleDeleteActive(request, env) {
@@ -21,11 +21,11 @@ export async function handleDeleteActive(request, env) {
       payload.slug,
       resolveScheduleOptions(env, { applySchedules: "best-effort", scheduleWarnings })
     );
-    const hasActiveCron = await readHasActiveCron(env);
+    const cronInfo = await readCronInfo(env);
     if (scheduleWarnings.length > 0) {
-      return actionResultResponse(`Deleted active runtime state with schedule warnings: ${scheduleWarnings.join(" | ")}`, hasActiveCron, 207);
+      return actionResultResponse(`Deleted active runtime state with schedule warnings: ${scheduleWarnings.join(" | ")}`, cronInfo, 207);
     }
-    return actionResultResponse(`Deleted active runtime state: ${result.deletedSlug}`, hasActiveCron);
+    return actionResultResponse(`Deleted active runtime state: ${result.deletedSlug}`, cronInfo);
   } catch (error) {
     return new Response(`Delete Active Runtime State Error: ${error.message}`, { status: 500 });
   }

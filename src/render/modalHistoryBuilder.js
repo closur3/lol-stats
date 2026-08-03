@@ -1,4 +1,4 @@
-import { describeSchemaValue, readSchemaIssue, throwSchemaIssue } from "../core/facts/schemaIssue.js";
+import { describeSchemaValue, throwSchemaIssue } from "../core/facts/schemaIssue.js";
 import { parseScheduleSessionKey } from "../core/scheduleIdentity.js";
 import { timePolicy } from "../utils/timePolicy.js";
 
@@ -138,35 +138,20 @@ function projectUpcomingHistory(activeTournaments, scheduleSessionsMap) {
   return historyEntries;
 }
 
-export function inspectModalHistory(activeHomes, archiveSnapshots, tournaments, activeTournaments, scheduleSessionsMap) {
+export function buildModalHistory(activeHomes, archiveSnapshots, tournaments, activeTournaments, scheduleSessionsMap) {
   if (!Array.isArray(activeHomes)) throw new Error("activeHomes must be an array");
   if (!Array.isArray(archiveSnapshots)) throw new Error("archiveSnapshots must be an array");
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
 
   const history = [];
-  const issues = [];
   const tournamentsBySlug = new Map(tournaments.map(tournament => [tournament.slug, tournament]));
-  const inspectArtifact = (artifact, artifactType) => {
-    const slug = artifact?.tournamentSlug || "unknown";
-    const artifactKey = `${artifactType}_${slug}`;
-    try {
-      history.push(...projectArtifactHistory(artifact, artifactType, tournamentsBySlug));
-    } catch (error) {
-      const issue = readSchemaIssue(error);
-      if (issue.artifactKey !== artifactKey) {
-        throw new Error(`Modal history artifact identity mismatch: ${artifactKey}`, { cause: error });
-      }
-      issues.push(issue);
-    }
-  };
-
-  activeHomes.forEach(artifact => inspectArtifact(artifact, "ActiveHome"));
-  archiveSnapshots.forEach(artifact => inspectArtifact(artifact, "ArchiveSnapshot"));
+  activeHomes.forEach(artifact => history.push(...projectArtifactHistory(artifact, "ActiveHome", tournamentsBySlug)));
+  archiveSnapshots.forEach(artifact => history.push(...projectArtifactHistory(artifact, "ArchiveSnapshot", tournamentsBySlug)));
   history.push(...projectUpcomingHistory(activeTournaments, scheduleSessionsMap));
   history.sort((leftMatch, rightMatch) => (
     rightMatch.timestamp - leftMatch.timestamp
     || leftMatch.matchId.localeCompare(rightMatch.matchId)
     || leftMatch.scheduleSlot - rightMatch.scheduleSlot
   ));
-  return { history, issues };
+  return history;
 }

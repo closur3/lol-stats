@@ -2,21 +2,22 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { throwIfArtifactsUnavailable } from './artifactAvailability.js';
 import { createSchemaIssue, describeSchemaValue } from '../facts/schemaIssue.js';
 import { readTournamentStatisticsIssue } from '../facts/tournamentStatistics.js';
-import { readTimeGridCollectionIssue } from '../facts/timeGridCollection.js';
+import { readTimeDistributionIssue } from '../facts/timeDistribution.js';
+import { getOverviewPageNames } from '../../utils/data/overviewPages.js';
 
-function readArchiveSnapshotIssue(snapshot, tournament, artifactKey) {
+export function readArchiveSnapshotIssue(snapshot, tournament, artifactKey) {
   if (snapshot == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
   if (typeof snapshot !== "object" || Array.isArray(snapshot)) return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "JSON object", actual: describeSchemaValue(snapshot) });
   const snapshotFields = Object.keys(snapshot);
-  const expectedFields = ["tournamentSlug", "statistics", "timeGrid"];
+  const expectedFields = ["tournamentSlug", "statistics", "timeDistribution"];
   if (snapshotFields.length !== expectedFields.length || expectedFields.some(field => !Object.hasOwn(snapshot, field))) {
-    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournamentSlug, statistics, timeGrid", actual: snapshotFields.length ? snapshotFields.join(", ") : "no fields" });
+    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournamentSlug, statistics, timeDistribution", actual: snapshotFields.length ? snapshotFields.join(", ") : "no fields" });
   }
   if (snapshot.tournamentSlug !== tournament.slug) return createSchemaIssue({ artifactKey, path: "tournamentSlug", kind: "invalid", expected: tournament.slug, actual: describeSchemaValue(snapshot.tournamentSlug) });
   const statisticsIssue = readTournamentStatisticsIssue(snapshot.statistics, tournament, artifactKey);
   if (statisticsIssue) return statisticsIssue;
-  const timeGridIssue = readTimeGridCollectionIssue(snapshot.timeGrid, tournament, artifactKey);
-  if (timeGridIssue) return timeGridIssue;
+  const timeDistributionIssue = readTimeDistributionIssue(snapshot.timeDistribution, artifactKey, getOverviewPageNames(tournament.overviewPages));
+  if (timeDistributionIssue) return timeDistributionIssue;
   return null;
 }
 

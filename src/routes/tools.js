@@ -1,7 +1,7 @@
 import { createToolsAuthCookie, isAdminAuthorized, requirePost } from './api/auth.js';
 import { renderToolsAuthPage, renderToolsPage } from '../render/templates/tools.js';
 import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
-import { readHasActiveCron } from '../core/scheduler/activeCronStatus.js';
+import { readCronInfo } from '../core/scheduler/cronInfo.js';
 
 async function readToolsConfig(env) {
   try {
@@ -27,9 +27,9 @@ export class ToolsRouter {
         });
       }
 
-      const [configResult, hasActiveCron] = await Promise.all([
+      const [configResult, cronInfo] = await Promise.all([
         readToolsConfig(env),
-        readHasActiveCron(env)
+        readCronInfo(env)
       ]);
 
       const time = env.GITHUB_TIME;
@@ -40,7 +40,7 @@ export class ToolsRouter {
         configResult.config.active,
         configResult.config.archive,
         configResult.configError,
-        hasActiveCron
+        cronInfo
       );
 
       return new Response(html, {

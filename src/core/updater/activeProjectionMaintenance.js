@@ -1,6 +1,6 @@
 import { analyzeTournaments } from "../analyzer.js";
 import { readRawMatches } from "../facts/rawMatchesStore.js";
-import { writeHomeProjections } from "../projection/homeProjector.js";
+import { buildHomeSnapshots, writeHomeSnapshots } from "../projection/homeProjector.js";
 import { inspectActiveHomes } from "./activeHomeReader.js";
 
 export async function repairActiveHomeProjections(env, tournaments) {
@@ -15,6 +15,7 @@ export async function repairActiveHomeProjections(env, tournaments) {
   ])));
   const analysis = analyzeTournaments(rawMatchesBySlug, targets);
   const targetSlugs = new Set(targets.map(tournament => tournament.slug));
-  await writeHomeProjections(env, targets, analysis, targetSlugs);
+  const snapshotsBySlug = buildHomeSnapshots(targets, analysis, targetSlugs);
+  await writeHomeSnapshots(env, snapshotsBySlug);
   console.log(`[ACTIVE:PROJECTION] repaired=${[...targetSlugs].join(",")}`);
 }

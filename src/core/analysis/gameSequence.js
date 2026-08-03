@@ -5,11 +5,15 @@ function requireGames(match, label) {
 
 function validateGame(game, label) {
   if (!game || typeof game !== "object" || Array.isArray(game)) throw new Error(`Invalid game: ${label}`);
+  const expectedFields = ["gameId", "number", "blue", "red", "winner", "isRemake"];
+  const fields = Object.keys(game);
+  if (fields.length !== expectedFields.length || expectedFields.some(field => !Object.hasOwn(game, field))) {
+    throw new Error(`Game fields invalid: ${label}`);
+  }
   if (typeof game.gameId !== "string" || game.gameId === "") throw new Error(`Invalid game id: ${label}`);
   if (!Number.isInteger(game.number) || game.number < 1) throw new Error(`Invalid game number: ${label}`);
   if (game.winner !== null && game.winner !== 1 && game.winner !== 2) throw new Error(`Invalid game winner: ${label}`);
   if (typeof game.isRemake !== "boolean") throw new Error(`Invalid game remake flag: ${label}`);
-  if (typeof game.isChronobreak !== "boolean") throw new Error(`Invalid game chronobreak flag: ${label}`);
 }
 
 function resolveGameWinner(game, resolveTeamName, team1Name, team2Name, label) {
@@ -23,7 +27,7 @@ function resolveGameWinner(game, resolveTeamName, team1Name, team2Name, label) {
   return game.winner === 1 ? blueName : redName;
 }
 
-function buildOfficialResults(match, resolveTeamName, team1Name, team2Name, label) {
+function readOfficialGames(match, label) {
   const games = requireGames(match, label);
   const seenGameIds = new Set();
   games.forEach((game, index) => {
@@ -34,14 +38,20 @@ function buildOfficialResults(match, resolveTeamName, team1Name, team2Name, labe
   });
   const officialGames = games.filter(game => !game.isRemake && game.winner !== null);
   const seenNumbers = new Set();
+  for (const game of officialGames) {
+    if (seenNumbers.has(game.number)) throw new Error(`Duplicate official game number: ${label}.games.${game.number}`);
+    seenNumbers.add(game.number);
+  }
+  return officialGames;
+}
+
+function buildOfficialResults(officialGames, resolveTeamName, team1Name, team2Name, label) {
   const team1GameResults = [];
   const team2GameResults = [];
 
   for (const game of officialGames) {
     const gameLabel = `${label}.games.${game.number}`;
-    if (seenNumbers.has(game.number)) throw new Error(`Duplicate official game number: ${gameLabel}`);
     if (game.number !== team1GameResults.length + 1) throw new Error(`Non-sequential official game number: ${gameLabel}`);
-    seenNumbers.add(game.number);
     const winnerName = resolveGameWinner(game, resolveTeamName, team1Name, team2Name, gameLabel);
     const team1Won = winnerName === team1Name;
     team1GameResults.push(team1Won ? "W" : "L");
@@ -87,15 +97,28 @@ export function analyzeGameSequence(match, context) {
     team2MatchResultCode,
     label
   } = context;
-  const results = buildOfficialResults(match, resolveTeamName, team1Name, team2Name, label);
+  const officialGames = readOfficialGames(match, label);
+  const expectedGameCount = team1Score + team2Score;
+  if (isFinished && !isForfeit && officialGames.length < expectedGameCount) {
+    return {
+      team1GameResults: [],
+      team2GameResults: [],
+      team1Turnaround: null,
+      team2Turnaround: null,
+      pendingGameResults: { resolvedGameCount: officialGames.length, expectedGameCount }
+    };
+  }
+
+  const results = buildOfficialResults(officialGames, resolveTeamName, team1Name, team2Name, label);
 
   if (isFinished && !isForfeit) validateFinishedResults(results, team1Score, team2Score, label);
-  if (!isFinished || isForfeit) return { ...results, team1Turnaround: null, team2Turnaround: null };
+  if (!isFinished || isForfeit) return { ...results, team1Turnaround: null, team2Turnaround: null, pendingGameResults: null };
 
   return {
     ...results,
     team1Turnaround: analyzeTeamTurnaround(results.team1GameResults, team1MatchResultCode, bestOf),
-    team2Turnaround: analyzeTeamTurnaround(results.team2GameResults, team2MatchResultCode, bestOf)
+    team2Turnaround: analyzeTeamTurnaround(results.team2GameResults, team2MatchResultCode, bestOf),
+    pendingGameResults: null
   };
 }
 
@@ -108,9 +131,5 @@ export function applyTurnaroundStats(teamStats, turnaround, matchResultCode) {
   if (turnaround.wasAhead) {
     teamStats.seriesLedCount++;
     if (matchResultCode === "LOSS") teamStats.lostLeadCount++;
-  }
-  if (turnaround.turnaroundType === "reverseSweep") {
-    if (matchResultCode === "WIN") teamStats.reverseSweepCount++;
-    if (matchResultCode === "LOSS") teamStats.reverseSweptCount++;
   }
 }

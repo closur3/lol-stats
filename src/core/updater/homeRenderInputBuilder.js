@@ -33,15 +33,15 @@ export function buildHomeRenderInput(homeEntries, orderedTournaments) {
   if (!Array.isArray(orderedTournaments)) throw new Error("orderedTournaments must be an array");
   if (homeEntries.length !== orderedTournaments.length) throw new Error("ActiveHome count does not match tournaments");
   const statisticsBySlug = {};
-  const timeGrid = {};
+  const timeDistributionBySlug = {};
 
   homeEntries.forEach((home, index) => {
     const slug = home?.tournamentSlug;
     if (!slug) throw new Error("ActiveHome tournamentSlug missing");
     if (orderedTournaments[index]?.slug !== slug) throw new Error(`ActiveHome order mismatch: ${slug}`);
     statisticsBySlug[slug] = home.statistics;
-    timeGrid[slug] = home.timeGrid;
+    timeDistributionBySlug[slug] = home.timeDistribution;
   });
 
-  return { tournaments: orderedTournaments, statisticsBySlug, timeGrid };
+  return { tournaments: orderedTournaments, statisticsBySlug, timeDistributionBySlug };
 }

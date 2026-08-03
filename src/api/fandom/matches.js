@@ -5,6 +5,25 @@ function hasScheduledDateTime(match) {
   return typeof match.DateTimeUTC === 'string' && match.DateTimeUTC.trim().length > 0;
 }
 
+function projectMatchSchedule(record) {
+  return {
+    Team1: record.Team1,
+    Team2: record.Team2,
+    Winner: record.Winner,
+    Team1Score: record.Team1Score,
+    Team2Score: record.Team2Score,
+    FF: record.FF,
+    IsNullified: record.IsNullified,
+    DateTimeUTC: record.DateTimeUTC,
+    OverviewPage: record.OverviewPage,
+    BestOf: record.BestOf,
+    Tab: record.Tab,
+    MatchDay: record.MatchDay,
+    NMatchInTab: record.NMatchInTab,
+    MatchId: record.MatchId
+  };
+}
+
 function buildOverviewPages(slug, sourceInput) {
   const pages = Array.isArray(sourceInput) ? sourceInput : [sourceInput];
   if (pages.length === 0) throw new Error(`No source pages for ${slug}`);
@@ -56,7 +75,7 @@ async function fetchMatchSchedule(fandomClient, slug, pages) {
       throw new Error(`[FANDOM:MATCHES] ${slug} duplicate MatchId, aborting to prevent infinite loop`);
     }
 
-    const scheduledBatch = batch.filter(hasScheduledDateTime);
+    const scheduledBatch = batch.filter(hasScheduledDateTime).map(projectMatchSchedule);
     unscheduledCount += batch.length - scheduledBatch.length;
     all = all.concat(scheduledBatch);
     offset += batch.length;
@@ -110,11 +129,6 @@ function parseMatchScheduleGame(record, slug) {
   const winner = parseOptionalInteger(record.Winner, `${label}.Winner`, [1, 2]);
   const blue = winner === null ? record.Blue : requireGameText(record.Blue, `${label}.Blue`);
   const red = winner === null ? record.Red : requireGameText(record.Red, `${label}.Red`);
-  const blueScore = parseOptionalInteger(record.BlueScore, `${label}.BlueScore`);
-  const redScore = parseOptionalInteger(record.RedScore, `${label}.RedScore`);
-  if (blueScore !== null && blueScore < 0) throw new Error(`Invalid ${label}.BlueScore`);
-  if (redScore !== null && redScore < 0) throw new Error(`Invalid ${label}.RedScore`);
-
   return {
     matchId: String(matchId),
     gameId: requireGameText(record.GameId, `${label}.GameId`),
@@ -122,11 +136,7 @@ function parseMatchScheduleGame(record, slug) {
     blue: blue || null,
     red: red || null,
     winner,
-    blueScore,
-    redScore,
-    forfeitSide: parseOptionalInteger(record.FF, `${label}.FF`, [0, 1, 2]),
-    isRemake: parseCargoBoolean(record.IsRemake, `${label}.IsRemake`),
-    isChronobreak: parseCargoBoolean(record.IsChronobreak, `${label}.IsChronobreak`)
+    isRemake: parseCargoBoolean(record.IsRemake, `${label}.IsRemake`)
   };
 }
 
@@ -142,7 +152,7 @@ async function fetchMatchScheduleGames(fandomClient, slug, pages) {
       action: "cargoquery",
       format: "json",
       tables: "MatchSchedule=MS,MatchScheduleGame=MSG",
-      fields: "MS.MatchId=MatchId,MSG.GameId=GameId,MSG.N_GameInMatch=NGameInMatch,MSG.Blue=Blue,MSG.Red=Red,MSG.Winner=Winner,MSG.BlueScore=BlueScore,MSG.RedScore=RedScore,MSG.FF=FF,MSG.IsRemake=IsRemake,MSG.IsChronobreak=IsChronobreak",
+      fields: "MS.MatchId=MatchId,MSG.GameId=GameId,MSG.N_GameInMatch=NGameInMatch,MSG.Blue=Blue,MSG.Red=Red,MSG.Winner=Winner,MSG.IsRemake=IsRemake",
       join_on: "MS.MatchId=MSG.MatchId",
       where: whereClause,
       limit: limit.toString(),
@@ -188,11 +198,7 @@ function attachGames(matches, matchScheduleGames, slug) {
       blue: game.blue,
       red: game.red,
       winner: game.winner,
-      blueScore: game.blueScore,
-      redScore: game.redScore,
-      forfeitSide: game.forfeitSide,
-      isRemake: game.isRemake,
-      isChronobreak: game.isChronobreak
+      isRemake: game.isRemake
     });
   }
 

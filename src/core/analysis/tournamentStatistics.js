@@ -1,5 +1,6 @@
 import { parseTournamentMatches } from "./matchParser.js";
 import { getOverviewPageNames } from "../../utils/data/overviewPages.js";
+import { buildParticipantGroups } from "../projection/participantGroups.js";
 
 function collectMatchesByOverviewPage(rawMatches, tournament) {
   const matchesByPage = new Map(getOverviewPageNames(tournament.overviewPages).map(page => [page, []]));
@@ -14,35 +15,6 @@ function collectMatchesByOverviewPage(rawMatches, tournament) {
     pageMatches.push(match);
   }
   return matchesByPage;
-}
-
-function projectPageGroups(tournament, overviewPage, resolveTeamName, stats) {
-  const sourceGroups = tournament.participantGroups.filter(group => group.overviewPage === overviewPage);
-  const memberships = new Set();
-  const groups = sourceGroups.map(group => {
-    const teams = group.teams.map(rawTeamName => {
-      const teamName = resolveTeamName(rawTeamName);
-      if (memberships.has(teamName)) {
-        throw new Error(`${tournament.slug} duplicate resolved group membership: ${overviewPage}:${teamName}`);
-      }
-      memberships.add(teamName);
-      return teamName;
-    });
-    return {
-      groupDisplay: group.groupDisplay,
-      teams
-    };
-  });
-
-  if (groups.length > 0) {
-    const ungroupedTeams = Object.keys(stats)
-      .filter(teamName => teamName !== "TBD" && !memberships.has(teamName))
-      .sort();
-    if (ungroupedTeams.length > 0) {
-      throw new Error(`${tournament.slug} stats teams missing native group: ${overviewPage}:${ungroupedTeams.join(",")}`);
-    }
-  }
-  return groups;
 }
 
 export function buildTournamentStatistics(rawMatches, tournament, resolveTeamName) {
@@ -60,21 +32,21 @@ export function buildTournamentStatistics(rawMatches, tournament, resolveTeamNam
       ? combinedAnalysis
       : parseTournamentMatches(pageMatches, resolveTeamName, `${tournament.slug}:${overviewPage}`);
   });
-  const pages = overviewPages.map((overviewPage, index) => {
+  const pages = overviewPages.length === 1 ? [] : overviewPages.map((overviewPage, index) => {
     const stats = pageAnalyses[index].stats;
+    buildParticipantGroups(tournament, overviewPage, stats);
     return {
       overviewPage,
-      groups: projectPageGroups(tournament, overviewPage, resolveTeamName, stats),
       stats
     };
   });
+  if (overviewPages.length === 1) buildParticipantGroups(tournament, overviewPages[0], combinedAnalysis.stats);
 
   return {
     statistics: {
       combined: combinedAnalysis.stats,
       pages
     },
-    pageAnalyses,
     timeGridLayoutMatches: combinedAnalysis.timeGridLayoutMatches,
     timeGridMatches: combinedAnalysis.timeGridMatches
   };

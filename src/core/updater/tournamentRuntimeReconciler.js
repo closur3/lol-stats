@@ -3,12 +3,19 @@ import { assertTournamentConfigDigest } from "../facts/tournamentConfigDigest.js
 import { buildTournamentApplyState } from "../facts/tournamentConfigFingerprint.js";
 import { writeTournamentApplyState } from "../facts/tournamentApplyState.js";
 import { rebuildSchedule } from "../scheduler/scheduleMaintenanceRunner.js";
-import { migrateArchiveTournaments } from "./archiveMigration.js";
-import { rebuildActiveTournaments } from "./activeRebuildRunner.js";
+import { prepareArchiveMigrations } from "./archiveMigrationPreparer.js";
+import {
+  cleanupArchiveMigrations,
+  writeArchiveMigrations
+} from "./archiveMigrationCommitter.js";
+import { prepareActiveTournaments } from "./activeRebuildPreparer.js";
+import { commitActiveUpdate } from "./activeUpdateCommitter.js";
 import { deleteActiveRuntimeFacts } from "./activeTournamentDeletion.js";
 import { deriveTournamentTransition } from "./tournamentTransition.js";
 import { assertActiveRuntimeMatchesConfig } from "./activeRuntimeValidator.js";
 import { resolveTournamentApplyBaseline } from "./tournamentApplyBaseline.js";
+import { commitRevisionWrites } from "./revWriter.js";
+import { commitActiveLogWrites } from "./logPersistence.js";
 
 function logTransition(transition) {
   console.log(
@@ -42,28 +49,40 @@ function assertReconcileInputs(scheduledTimeMs, scheduleOptions) {
 
 async function reconcileConfig(env, config, scheduledTimeMs, scheduleOptions) {
   const desiredApplyState = await buildTournamentApplyState(config);
-  const previousApplyState = await resolveTournamentApplyBaseline(env, config);
+  const previousApplyState = await resolveTournamentApplyBaseline(env, config, desiredApplyState);
   if (previousApplyState.configDigest === desiredApplyState.configDigest) {
     const transition = { added: [], updated: [], archived: [], dropped: [] };
-    return { config, transition, configChanged: false };
+    return { config, transition, configChanged: false, scheduleRuntime: null };
   }
 
   const transition = deriveTournamentTransition(config.archive, desiredApplyState, previousApplyState);
   logTransition(transition);
 
-  await migrateArchiveTournaments(env, config.archive, new Set(transition.archived));
   const rebuildReasons = new Map([
     ...transition.added.map(slug => [slug, "added"]),
     ...transition.updated.map(slug => [slug, "updated"])
   ]);
-  await rebuildActiveTournaments(env, config.active, rebuildReasons);
+  const [archiveMigrations, activePreparation] = await Promise.all([
+    prepareArchiveMigrations(env, config.archive, new Set(transition.archived)),
+    prepareActiveTournaments(env, config.active, rebuildReasons)
+  ]);
+
+  await writeArchiveMigrations(env, archiveMigrations);
+  if (activePreparation.activeUpdatePlan) {
+    await commitActiveUpdate(env, activePreparation.activeUpdatePlan);
+  }
+  await cleanupArchiveMigrations(env, archiveMigrations);
   await Promise.all(transition.dropped.map(slug => deleteActiveRuntimeFacts(env, slug)));
-  await rebuildSchedule(env, config.active, scheduledTimeMs, scheduleOptions);
+  const scheduleRuntime = await rebuildSchedule(env, config.active, scheduledTimeMs, scheduleOptions);
 
   await assertActiveRuntimeMatchesConfig(env, config.active);
   await assertConfigUnchanged(env, desiredApplyState.configDigest);
+  await commitRevisionWrites(env, activePreparation.pendingRevisionWrites);
   await writeTournamentApplyState(env, desiredApplyState);
-  return { config, transition, configChanged: true };
+  if (activePreparation.activeUpdatePlan) {
+    await commitActiveLogWrites(env, activePreparation.activeUpdatePlan.activeLogWrites);
+  }
+  return { config, transition, configChanged: true, scheduleRuntime };
 }
 
 export async function reconcileTournamentRuntime(env, scheduledTimeMs, scheduleOptions) {

@@ -1,7 +1,9 @@
-export function actionResultResponse(message, hasActiveCron, status = 200) {
+import { assertCronInfo } from "../../core/scheduler/cronInfo.js";
+
+export function actionResultResponse(message, cronInfo, status = 200) {
   if (typeof message !== "string" || !message) throw new Error("Action result message missing");
-  if (typeof hasActiveCron !== "boolean") throw new Error("Action result hasActiveCron invalid");
-  return new Response(JSON.stringify({ message, hasActiveCron }), {
+  const normalizedCronInfo = assertCronInfo(cronInfo);
+  return new Response(JSON.stringify({ message, cronInfo: normalizedCronInfo }), {
     status,
     headers: { "content-type": "application/json" }
   });

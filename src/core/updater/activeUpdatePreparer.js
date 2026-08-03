@@ -5,11 +5,12 @@ import { selectFetchCandidates } from './candidates.js';
 import { fetchRawMatchesForCandidates } from './matchDataFetcher.js';
 import { applyRawMatchFetchOutcomes } from './rawMatchFetchResultApplier.js';
 import { buildActiveLogEntries } from './logWriter.js';
-import { buildWriteScopeSlugs, writeHomeProjections } from '../projection/homeProjector.js';
-import { writeActiveTournamentFacts } from './activeTournamentFactWriter.js';
-import { appendActiveLogs } from './logPersistence.js';
-import { commitRevisionWrites } from './revWriter.js';
+import { buildHomeSnapshots, buildWriteScopeSlugs } from '../projection/homeProjector.js';
 import { buildScheduleSessions } from '../analysis/scheduleSessions.js';
+import { normalizeScheduleSessions } from '../facts/scheduleSessionsStore.js';
+import { readActiveHomeIssue } from './activeHomeReader.js';
+import { throwIfArtifactsUnavailable } from './artifactAvailability.js';
+import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 
 function buildScopedTournaments(tournaments, scopeSlugs) {
   if (!Array.isArray(tournaments)) {
@@ -31,12 +32,8 @@ function buildUpdateOptions(targetSlugs, options) {
     throw new Error("fandom options must be a JSON object");
   }
   const revidChanges = options.revidChanges === undefined ? {} : options.revidChanges;
-  const pendingRevisionWrites = options.pendingRevisionWrites === undefined ? {} : options.pendingRevisionWrites;
   if (!revidChanges || typeof revidChanges !== "object" || Array.isArray(revidChanges)) {
     throw new Error("revidChanges must be a JSON object");
-  }
-  if (!pendingRevisionWrites || typeof pendingRevisionWrites !== "object" || Array.isArray(pendingRevisionWrites)) {
-    throw new Error("pendingRevisionWrites must be a JSON object");
   }
   if (!(targetSlugs instanceof Set)) throw new Error("targetSlugs must be a Set");
   if (!(options.reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
@@ -54,32 +51,25 @@ function buildUpdateOptions(targetSlugs, options) {
   return {
     reasonsBySlug: options.reasonsBySlug,
     rebuild,
-    revidChanges,
-    pendingRevisionWrites
+    revidChanges
   };
 }
 
 async function createFandomClient(env) {
   const authContext = await login(env.FANDOM_BOT_USERNAME, env.FANDOM_BOT_PASSWORD);
-  return {
-    authContext,
-    fandomClient: new FandomClient(authContext)
-  };
+  return new FandomClient(authContext);
 }
 
 async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSlugs, rebuild, reasonsBySlug) {
   const candidates = selectFetchCandidates(tournaments, targetSlugs);
-  if (candidates.length === 0) {
-    console.log(`[FANDOM:SKIP] no-candidates`);
-    return null;
-  }
+  if (candidates.length !== targetSlugs.size) throw new Error("Active fetch candidate scope mismatch");
 
-  const { authContext, fandomClient } = await createFandomClient(env);
+  const fandomClient = await createFandomClient(env);
   const fetchOutcomes = await fetchRawMatchesForCandidates(fandomClient, candidates);
-  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug, tournaments);
+  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug);
   const { syncItems, skipItems, dropBreakers, fetchErrors } = rawMatchUpdate;
   console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
-  return { authContext, ...rawMatchUpdate };
+  return rawMatchUpdate;
 }
 
 function attachRevisionChanges(updateItems, revidChanges) {
@@ -90,14 +80,42 @@ function attachRevisionChanges(updateItems, revidChanges) {
   }
 }
 
-function buildActiveUpdateLogs(rawMatchUpdate, authContext) {
-  const { syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap } = rawMatchUpdate;
-  return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap);
+function buildActiveUpdateLogs(rawMatchUpdate) {
+  const { syncItems, skipItems, dropBreakers, fetchErrors } = rawMatchUpdate;
+  return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors);
 }
 
-function assertRebuildFetchSucceeded(rebuild, rawMatchUpdate) {
-  if (!rebuild || rawMatchUpdate.errorSlugs.size === 0) return;
-  throw new Error(`Active rebuild fetch failed: ${Array.from(rawMatchUpdate.errorSlugs).sort().join(",")}`);
+function partitionActiveLogs(activeLogEntries, reasonsBySlug) {
+  const appendEntries = {};
+  const replaceEntries = {};
+  for (const [slug, entry] of Object.entries(activeLogEntries)) {
+    const target = reasonsBySlug.get(slug) === "force" ? replaceEntries : appendEntries;
+    target[slug] = entry;
+  }
+  return { appendEntries, replaceEntries };
+}
+
+function buildRejectedPlan(rawMatchUpdate, activeLogEntries) {
+  const failedSlugs = new Set([...rawMatchUpdate.brokenSlugs, ...rawMatchUpdate.errorSlugs]);
+  if (failedSlugs.size === 0) return null;
+
+  const failureEntries = Object.fromEntries([...failedSlugs].map(slug => {
+    const entry = activeLogEntries[slug];
+    if (!entry) throw new Error(`Active update failure log missing: ${slug}`);
+    return [slug, entry];
+  }));
+  const details = [];
+  if (rawMatchUpdate.brokenSlugs.size > 0) {
+    details.push(`drop breaker: ${[...rawMatchUpdate.brokenSlugs].sort().join(",")}`);
+  }
+  if (rawMatchUpdate.errorSlugs.size > 0) {
+    details.push(`fetch failed: ${[...rawMatchUpdate.errorSlugs].sort().join(",")}`);
+  }
+  return {
+    accepted: false,
+    failureMessage: `Active update rejected (${details.join("; ")})`,
+    activeLogWrites: { appendEntries: failureEntries, replaceEntries: {} }
+  };
 }
 
 function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
@@ -109,39 +127,58 @@ function buildScheduleSessionsBySlug(scopedTournaments, rawMatchesBySlug) {
   return Object.fromEntries(scopedTournaments.map(tournament => {
     const rawMatches = rawMatchesBySlug[tournament.slug];
     if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in schedule scope: ${tournament.slug}`);
-    return [tournament.slug, buildScheduleSessions(rawMatches, tournament)];
+    const normalized = normalizeScheduleSessions(
+      tournament.slug,
+      buildScheduleSessions(rawMatches, tournament)
+    );
+    return [tournament.slug, { sessions: normalized.sessions }];
   }));
 }
 
-async function writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs) {
-  if (writeScopeSlugs.size === 0) return;
-  await writeHomeProjections(env, scopedTournaments, analysis, writeScopeSlugs);
+function selectWriteValues(valuesBySlug, writeScopeSlugs, label) {
+  return Object.fromEntries([...writeScopeSlugs].map(slug => {
+    const value = valuesBySlug[slug];
+    if (value === undefined) throw new Error(`${label} missing in write scope: ${slug}`);
+    return [slug, value];
+  }));
 }
 
-export async function runActiveUpdate(env, tournaments, rawMatchesBySlug, targetSlugs, options = {}) {
-  const { reasonsBySlug, rebuild, revidChanges, pendingRevisionWrites } = buildUpdateOptions(targetSlugs, options);
+function assertHomeSnapshots(scopedTournaments, homeSnapshotsBySlug) {
+  const issues = scopedTournaments.flatMap(tournament => {
+    const issue = readActiveHomeIssue(
+      homeSnapshotsBySlug[tournament.slug],
+      tournament,
+      kvKeys.home(tournament.slug)
+    );
+    return issue ? [issue] : [];
+  });
+  throwIfArtifactsUnavailable("prepared ActiveHome", issues);
+}
+
+export async function prepareActiveUpdate(env, tournaments, rawMatchesBySlug, targetSlugs, options = {}) {
+  const { reasonsBySlug, rebuild, revidChanges } = buildUpdateOptions(targetSlugs, options);
   const targetTournaments = buildScopedTournaments(tournaments, targetSlugs);
   if (targetTournaments.length !== targetSlugs.size) throw new Error("Active update tournament scope mismatch");
   const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSlugs, rebuild, reasonsBySlug);
-  if (!rawMatchUpdate) return;
-  assertRebuildFetchSucceeded(rebuild, rawMatchUpdate);
 
-  const { brokenSlugs, errorSlugs, syncItems, skipItems, authContext } = rawMatchUpdate;
+  const { syncItems, skipItems } = rawMatchUpdate;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
-  const activeLogEntries = buildActiveUpdateLogs(rawMatchUpdate, authContext);
+  const activeLogEntries = buildActiveUpdateLogs(rawMatchUpdate);
+  const rejectedPlan = buildRejectedPlan(rawMatchUpdate, activeLogEntries);
+  if (rejectedPlan) return rejectedPlan;
+  const { appendEntries, replaceEntries } = partitionActiveLogs(activeLogEntries, reasonsBySlug);
 
   const writeScopeSlugs = buildWriteScopeSlugs([...syncItems, ...skipItems], rebuild ? targetSlugs : new Set());
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
-  let analysis = null;
-  if (writeScopeSlugs.size > 0) {
-    analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
-    const scheduleSessionsBySlug = buildScheduleSessionsBySlug(scopedTournaments, rawMatchesBySlug);
-    await writeActiveTournamentFacts(env, scopedTournaments, rawMatchesBySlug, scheduleSessionsBySlug, writeScopeSlugs);
-  }
-  const failedSlugs = new Set([...brokenSlugs, ...errorSlugs]);
-  await Promise.all([
-    writeActiveProjections(env, scopedTournaments, analysis, writeScopeSlugs),
-    appendActiveLogs(env, activeLogEntries)
-  ]);
-  await commitRevisionWrites(env, pendingRevisionWrites, failedSlugs);
+  const analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
+  const scheduleSessionsBySlug = buildScheduleSessionsBySlug(scopedTournaments, rawMatchesBySlug);
+  const homeSnapshotsBySlug = buildHomeSnapshots(scopedTournaments, analysis, writeScopeSlugs);
+  assertHomeSnapshots(scopedTournaments, homeSnapshotsBySlug);
+  return {
+    accepted: true,
+    rawMatchesBySlug: selectWriteValues(rawMatchesBySlug, writeScopeSlugs, "RawMatches"),
+    scheduleSessionsBySlug,
+    homeSnapshotsBySlug,
+    activeLogWrites: { appendEntries, replaceEntries }
+  };
 }

@@ -4,8 +4,6 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { getOverviewPageNames, toDataPage } from '../../utils/data/overviewPages.js';
 
 function hasRevisionRecordChanged(previousRecord, nextRecord) {
-  if (previousRecord.slug !== nextRecord.slug) return true;
-
   const prevPages = previousRecord.pages;
   const nextPages = nextRecord.pages;
   const prevTitles = Object.keys(prevPages);
@@ -14,37 +12,29 @@ function hasRevisionRecordChanged(previousRecord, nextRecord) {
 
   for (const title of prevTitles) {
     if (!Object.prototype.hasOwnProperty.call(nextPages, title)) return true;
-    const prevPage = prevPages[title];
-    const nextPage = nextPages[title];
-    if (prevPage.revid !== nextPage.revid) return true;
-    if (prevPage.revisionTimeUTC !== nextPage.revisionTimeUTC) return true;
-    if (prevPage.pageid !== nextPage.pageid) return true;
+    if (prevPages[title] !== nextPages[title]) return true;
   }
   return false;
 }
 
 function normalizePreviousRevisionState(slug, previousRevisionState) {
-  if (previousRevisionState == null) return { slug, pages: {} };
+  if (previousRevisionState == null) return { pages: {} };
   if (typeof previousRevisionState !== "object" || Array.isArray(previousRevisionState)) {
     throw new Error(`REV state must be a JSON object: ${slug}`);
   }
+  const fields = Object.keys(previousRevisionState);
+  if (fields.length !== 1 || fields[0] !== "pages") throw new Error(`REV state fields invalid: ${slug}`);
   const storedPages = previousRevisionState.pages;
   if (!storedPages || typeof storedPages !== "object" || Array.isArray(storedPages)) {
     throw new Error(`REV pages must be a JSON object: ${slug}`);
   }
   const pages = {};
-  for (const [title, page] of Object.entries(storedPages)) {
-    if (!page || typeof page !== "object" || Array.isArray(page)) {
-      throw new Error(`REV page must be a JSON object: ${slug}:${title}`);
-    }
-    if (!Number.isInteger(page.revid) || page.revid <= 0) throw new Error(`REV revid invalid: ${slug}:${title}`);
-    if (!Number.isInteger(page.pageid) || page.pageid <= 0) throw new Error(`REV pageid invalid: ${slug}:${title}`);
-    if (typeof page.revisionTimeUTC !== "string" || page.revisionTimeUTC.length === 0) {
-      throw new Error(`REV revisionTimeUTC invalid: ${slug}:${title}`);
-    }
-    pages[title] = page;
+  for (const [title, revid] of Object.entries(storedPages)) {
+    if (!title) throw new Error(`REV page title missing: ${slug}`);
+    if (!Number.isInteger(revid) || revid <= 0) throw new Error(`REV revid invalid: ${slug}:${title}`);
+    pages[title] = revid;
   }
-  return { slug, pages };
+  return { pages };
 }
 
 async function prepareRevisionCheck(env, tournament) {
@@ -94,7 +84,7 @@ async function evaluateRevisionCheck(check) {
     prevRecord = normalizePreviousRevisionState(slug, previousRevisionState);
   } catch (error) {
     console.error(`[REV:REPAIR] replacing invalid FandomRevision ${slug}: ${error.message}`);
-    prevRecord = { slug, pages: {} };
+    prevRecord = { pages: {} };
   }
   const prevPages = prevRecord.pages;
   const nextPages = {};
@@ -108,29 +98,22 @@ async function evaluateRevisionCheck(check) {
     if (typeof title !== "string" || title.length === 0) {
       throw new Error(`REV latest title missing: ${slug}:${page}`);
     }
-    nextPages[title] = {
-      revid: latest.revid,
-      revisionTimeUTC: latest.revisionTimeUTC,
-      pageid: latest.pageid
-    };
+    nextPages[title] = latest.revid;
 
-    const prevPage = prevPages[title];
-    const prevRev = prevPage === undefined ? undefined : prevPage.revid;
+    const prevRev = prevPages[title];
     if (!prevRev || Number(prevRev) !== Number(latest.revid)) {
       changedPages.push(`${title}:${prevRev === undefined ? "none" : prevRev}->${latest.revid}`);
-      const safeTitle = title.replace(/ /g, "_");
       revidChanges.push({
         revid: latest.revid,
-        diffUrl: `https://lol.fandom.com/wiki/${safeTitle}?diff=prev&oldid=${latest.revid}`,
         title
       });
     }
   }
 
-  const nextRecord = { slug, pages: nextPages };
+  const nextRecord = { pages: nextPages };
   return {
     slug,
-    shouldWriteRev: hasRevisionRecordChanged({ slug, pages: prevPages }, nextRecord),
+    shouldWriteRev: hasRevisionRecordChanged({ pages: prevPages }, nextRecord),
     nextRecord,
     revisionChanged: changedPages.length > 0,
     changedPages,

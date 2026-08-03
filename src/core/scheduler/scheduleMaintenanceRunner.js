@@ -52,6 +52,7 @@ async function runScheduleStateUpdate(env, tournaments, runtime, now, previousSt
   }
   await writeScheduleState(env, state);
   console.log(`[SCHED:${logLabel}] date=${state.date} crons=${desiredCrons.join(",")} apply=${applyResult}`);
+  return { scheduleState: state, scheduleSessionsBySlug: sessionsBySlug };
 }
 
 export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, options = {}) {
@@ -67,7 +68,7 @@ export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, 
     console.error(`[SCHED:STATE] replacing invalid ScheduleState: ${error.cause.message}`);
     previousState = null;
   }
-  await runScheduleStateUpdate(
+  return runScheduleStateUpdate(
     env,
     tournaments,
     runtime,
@@ -92,5 +93,5 @@ export async function rebuildSchedule(env, tournaments, scheduledTimeMs = Date.n
     console.error(`[SCHED:REBUILD] replacing invalid ScheduleState: ${error.cause.message}`);
     previousState = null;
   }
-  await runScheduleStateUpdate(env, tournaments, runtime, now, previousState, "REBUILD", "REBUILD", options);
+  return runScheduleStateUpdate(env, tournaments, runtime, now, previousState, "REBUILD", "REBUILD", options);
 }

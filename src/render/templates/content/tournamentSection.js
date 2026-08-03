@@ -7,6 +7,7 @@ import { summarizeFullRate } from '../../../core/analysis/fullRateSummary.js';
 import { renderTeamRow } from '../../components/teamRow.js';
 import { renderTimeTable } from '../../components/timeTable.js';
 import { renderSchedulePhaseIcon } from '../../components/schedulePhaseIcon.js';
+import { buildParticipantGroups } from '../../../core/projection/participantGroups.js';
 
 function renderTournamentSummary(stats) {
   const summary = summarizeFullRate(stats);
@@ -54,14 +55,15 @@ function buildTournamentTable(tournament, sections, scope, tableSuffix) {
   return `<table id="${tableId}" class="stats-table" data-sort-col="2" data-sort-dir-2="asc">${columnWidths}<thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th colspan="2" onclick="doSort(10, '${tableId}')">COME BACK</th><th colspan="2" onclick="doSort(12, '${tableId}')">LOST LEAD</th><th class="col-streak" onclick="doSort(13, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(14, '${tableId}')">LAST DATE</th></tr></thead>${bodies}</table>`;
 }
 
-function readStatisticsSections(page) {
+function readStatisticsSections(tournament, page) {
   const visibleStats = sortTeams(page.stats);
   if (visibleStats.length === 0) return [];
-  if (page.groups.length === 0) {
+  const groups = buildParticipantGroups(tournament, page.overviewPage, page.stats);
+  if (groups.length === 0) {
     return [{ groupDisplay: null, stats: visibleStats }];
   }
 
-  return page.groups.flatMap(group => {
+  return groups.flatMap(group => {
     const groupTeams = new Set(group.teams);
     const groupStats = visibleStats.filter(teamStats => groupTeams.has(teamStats.name));
     return groupStats.length === 0
@@ -74,8 +76,8 @@ function formatGroupDisplay(groupDisplay) {
   return groupDisplay.replace(/\bgroup\b/gi, "").replace(/\s+/g, " ").trim();
 }
 
-function renderGroupLegend(page) {
-  const sections = readStatisticsSections(page).filter(section => section.groupDisplay);
+function renderGroupLegend(tournament, page) {
+  const sections = readStatisticsSections(tournament, page).filter(section => section.groupDisplay);
   if (sections.length === 0) return "";
   const entries = sections.map((section, sectionIndex) => (
     `<span class="stats-group-legend-item stats-group-color-${sectionIndex % 4}"><span class="stats-group-legend-mark" aria-hidden="true"></span><span class="stats-group-legend-name">${escapeHtml(formatGroupDisplay(section.groupDisplay))}</span><span class="stats-group-legend-count" aria-label="${section.stats.length} teams">${section.stats.length}</span></span>`
@@ -83,10 +85,10 @@ function renderGroupLegend(page) {
   return `<div class="stats-group-legend" aria-label="Participant groups">${entries}</div>`;
 }
 
-function renderStatisticsView(tournament, page, tablePrefix) {
-  const sections = readStatisticsSections(page);
+function renderStatisticsView(tournament, page, tablePrefix, statisticsScope = page.overviewPage) {
+  const sections = readStatisticsSections(tournament, page);
   return sections.length > 0
-    ? buildTournamentTable(tournament, sections, page.overviewPage, tablePrefix)
+    ? buildTournamentTable(tournament, sections, statisticsScope, tablePrefix)
     : `<div class="stats-view-empty">NO SCHEDULED TEAMS</div>`;
 }
 
@@ -110,14 +112,14 @@ function assertStatistics(tournament, statistics) {
   if (!statistics.combined || typeof statistics.combined !== "object" || Array.isArray(statistics.combined)) {
     throw new Error(`statistics.combined missing: ${tournament.slug}`);
   }
-  if (!Array.isArray(statistics.pages) || statistics.pages.length !== overviewPages.length) {
+  const expectedPageCount = overviewPages.length === 1 ? 0 : overviewPages.length;
+  if (!Array.isArray(statistics.pages) || statistics.pages.length !== expectedPageCount) {
     throw new Error(`statistics.pages mismatch: ${tournament.slug}`);
   }
   statistics.pages.forEach((page, index) => {
     if (
       !page
       || page.overviewPage !== overviewPages[index]
-      || !Array.isArray(page.groups)
       || !page.stats
       || typeof page.stats !== "object"
       || Array.isArray(page.stats)
@@ -141,9 +143,9 @@ function renderScopeSummary(scope, stats, isActive) {
   return `<div class="statistics-scope-summary${hiddenClass}" data-statistics-scope-summary="${scope}" aria-hidden="${String(!isActive)}">${renderTournamentSummary(sortTeams(stats))}</div>`;
 }
 
-function renderScopeLegend(scope, page, isActive) {
+function renderScopeLegend(tournament, scope, page, isActive) {
   const hiddenClass = isActive ? "" : " is-hidden";
-  return `<div class="statistics-scope-legend${hiddenClass}" data-statistics-scope-legend="${scope}" aria-hidden="${String(!isActive)}">${page ? renderGroupLegend(page) : ""}</div>`;
+  return `<div class="statistics-scope-legend${hiddenClass}" data-statistics-scope-legend="${scope}" aria-hidden="${String(!isActive)}">${page ? renderGroupLegend(tournament, page) : ""}</div>`;
 }
 
 function renderScopeContent(scope, content, isActive) {
@@ -158,11 +160,13 @@ function renderScopeSelect(scopes) {
 
 function renderStatistics(tournament, statistics, timeTables) {
   assertStatistics(tournament, statistics);
-  if (statistics.pages.length === 1) {
+  const overviewPages = getOverviewPageNames(tournament.overviewPages);
+  if (overviewPages.length === 1) {
+    const page = { overviewPage: overviewPages[0], stats: statistics.combined };
     return {
-      content: `${renderStatisticsView(tournament, statistics.pages[0], "single")}${timeTables.combined}`,
-      summary: renderTournamentSummary(sortTeams(statistics.pages[0].stats)),
-      legend: renderGroupLegend(statistics.pages[0]),
+      content: `${renderStatisticsView(tournament, page, "single", "combined")}${timeTables.combined}`,
+      summary: renderTournamentSummary(sortTeams(statistics.combined)),
+      legend: renderGroupLegend(tournament, page),
       select: "",
       hasScopes: false
     };
@@ -170,7 +174,7 @@ function renderStatistics(tournament, statistics, timeTables) {
 
   const combined = renderStatisticsView(
     tournament,
-    { overviewPage: "combined", groups: [], stats: statistics.combined },
+    { overviewPage: "combined", stats: statistics.combined },
     "combined"
   );
   const visiblePages = statistics.pages
@@ -182,7 +186,7 @@ function renderStatistics(tournament, statistics, timeTables) {
       ? {
           content: `${renderStatisticsView(tournament, visiblePage, "single")}${timeTables.combined}`,
           summary: renderTournamentSummary(sortTeams(visiblePage.stats)),
-          legend: renderGroupLegend(visiblePage),
+          legend: renderGroupLegend(tournament, visiblePage),
           select: "",
           hasScopes: false
         }
@@ -214,7 +218,7 @@ function renderStatistics(tournament, statistics, timeTables) {
     }))
   ];
   const summaries = scopes.map((scope, index) => renderScopeSummary(scope.key, scope.stats, index === 0)).join("");
-  const legends = scopes.map((scope, index) => renderScopeLegend(scope.key, scope.page, index === 0)).join("");
+  const legends = scopes.map((scope, index) => renderScopeLegend(tournament, scope.key, scope.page, index === 0)).join("");
   const contents = scopes.map((scope, index) => renderScopeContent(scope.key, scope.content, index === 0)).join("");
   return {
     content: contents,
@@ -225,20 +229,25 @@ function renderStatistics(tournament, statistics, timeTables) {
   };
 }
 
-export function renderTournamentSection(tournament, statisticsBySlug, timeGridBySlug, scheduleSessionsBySlug, isArchive) {
+export function renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive) {
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   const scheduleSessions = readScheduleSessions(scheduleSessionsBySlug, tournament.slug, isArchive);
   const statistics = statisticsBySlug[tournament.slug];
   assertStatistics(tournament, statistics);
-  const tournamentTimeGrid = timeGridBySlug[tournament.slug];
-  if (!tournamentTimeGrid || typeof tournamentTimeGrid !== "object" || Array.isArray(tournamentTimeGrid) || !tournamentTimeGrid.combined || !Array.isArray(tournamentTimeGrid.pages)) {
-    throw new Error(`timeGrid missing: ${tournament.slug}`);
+  const timeDistribution = timeDistributionBySlug[tournament.slug];
+  if (!Array.isArray(timeDistribution)) {
+    throw new Error(`timeDistribution missing: ${tournament.slug}`);
   }
   const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveHome"}_${tournament.slug}`;
-  if (tournamentTimeGrid.pages.length !== overviewPages.length) throw new Error(`timeGrid.pages mismatch: ${tournament.slug}`);
   const timeTables = {
-    combined: renderTimeTable(tournamentTimeGrid.combined, artifactKey),
-    pages: new Map(tournamentTimeGrid.pages.map(page => [page.overviewPage, renderTimeTable(page.timeGrid, `${artifactKey}_${normalizeId(page.overviewPage)}`)]))
+    combined: renderTimeTable(timeDistribution, artifactKey),
+    pages: new Map(overviewPages.map(overviewPage => [
+      overviewPage,
+      renderTimeTable(
+        timeDistribution.filter(match => match.overviewPage === overviewPage),
+        `${artifactKey}_${normalizeId(overviewPage)}`
+      )
+    ]))
   };
   const statisticsLayout = renderStatistics(tournament, statistics, timeTables);
 

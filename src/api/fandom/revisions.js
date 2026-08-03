@@ -17,23 +17,8 @@ function readPageTitle(firstPage, pageTitle) {
   return firstPage.title;
 }
 
-function readOptionalPositiveNumber(value, label) {
-  if (value === undefined || value === null) return null;
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    throw new Error(`Invalid revision payload: ${label}`);
-  }
-  return value;
-}
-
 function readRequiredPositiveNumber(value, label) {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw new Error(`Invalid revision payload: ${label}`);
-  }
-  return value;
-}
-
-function readRevisionTimestamp(value, label) {
-  if (typeof value !== "string" || value.length === 0) {
     throw new Error(`Invalid revision payload: ${label}`);
   }
   return value;
@@ -45,7 +30,7 @@ export async function fetchLatestRevision(pageTitle, retryLimit = maxRetries) {
     prop: "revisions",
     titles: pageTitle,
     rvlimit: "1",
-    rvprop: "ids|timestamp",
+    rvprop: "ids",
     format: "json"
   });
 
@@ -60,20 +45,13 @@ export async function fetchLatestRevision(pageTitle, retryLimit = maxRetries) {
       const firstPage = readRevisionPage(revisionPayload);
       const title = readPageTitle(firstPage, pageTitle);
       if (firstPage.missing !== undefined) {
-        return {
-          pageid: readOptionalPositiveNumber(firstPage.pageid, `${pageTitle}.pageid`),
-          title,
-          missing: true
-        };
+        return { title, missing: true };
       }
       const rev = firstPage?.revisions?.[0];
       if (!rev || typeof rev.revid !== "number") throw new Error("Invalid revision payload");
       return {
-        pageid: readRequiredPositiveNumber(firstPage.pageid, `${pageTitle}.pageid`),
         title,
         revid: readRequiredPositiveNumber(rev.revid, `${pageTitle}.revid`),
-        parentid: readOptionalPositiveNumber(rev.parentid, `${pageTitle}.parentid`),
-        revisionTimeUTC: readRevisionTimestamp(rev.timestamp, `${pageTitle}.timestamp`),
         missing: false
       };
     } catch (error) {

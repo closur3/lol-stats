@@ -34,7 +34,7 @@ PREHEAT_DAYS = 7
 EXPIRE_DAYS = 0
 REGIONS = ["International", "China", "Korea"]
 WHITELIST = []
-BLACKLIST = ["Opening"]
+BLACKLIST = ["Season Opening", "2026 LoL KeSPA Cup"]
 MEDIAWIKI_TITLE_BATCH_SIZE = 50
 
 CARGO_FIELDS = [

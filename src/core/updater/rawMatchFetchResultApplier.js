@@ -1,4 +1,3 @@
-import { buildDisplayNameMap, getDisplayName } from './displayName.js';
 import { updateConfig } from './updateConfig.js';
 
 const getMatchKey = (match) => String(match.MatchId);
@@ -41,10 +40,10 @@ function calcChangedCount(currentRawMatches, fetchedRawMatches) {
     if (!fetchedMatchIds.has(key)) deleted++;
   }
 
-  return { added, updated, deleted, changed: added + updated };
+  return { added, updated, deleted, changed: added + updated + deleted };
 }
 
-export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug, tournaments) {
+export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug) {
   if (!(reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
   const brokenSlugs = new Set();
   const errorSlugs = new Set();
@@ -52,8 +51,6 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebu
   const skipItems = [];
   const dropBreakers = [];
   const fetchErrors = [];
-
-  const displayNameMap = buildDisplayNameMap(tournaments);
 
   fetchOutcomes.forEach(fetchOutcome => {
     if (fetchOutcome.status === 'fulfilled') {
@@ -67,7 +64,6 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebu
         rawMatchesBySlug[slug] = fetchedRawMatches;
         syncItems.push({
           slug,
-          displayName: getDisplayName(displayNameMap, slug),
           added: fetchedRawMatches.length,
           updated: 0,
           updateReason
@@ -81,27 +77,16 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebu
         brokenSlugs.add(slug);
       } else {
         const changedCount = calcChangedCount(currentRawMatches, fetchedRawMatches);
-        if (changedCount.changed === 0 && changedCount.deleted > 0) {
-          if (rebuild) {
-            rawMatchesBySlug[slug] = fetchedRawMatches;
-            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, updateReason });
-          } else {
-            console.log(`[FANDOM:DROP_WARN] ${slug} records decreased ${currentRawMatches.length}->${fetchedRawMatches.length} (deleted=${changedCount.deleted}), preserving previous RawMatches`);
-            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, updateReason });
-          }
+        rawMatchesBySlug[slug] = fetchedRawMatches;
+        if (changedCount.changed > 0) {
+          syncItems.push({
+            slug,
+            added: changedCount.added,
+            updated: changedCount.updated,
+            updateReason
+          });
         } else {
-          rawMatchesBySlug[slug] = fetchedRawMatches;
-          if (changedCount.changed > 0) {
-            syncItems.push({
-              slug,
-              displayName: getDisplayName(displayNameMap, slug),
-              added: changedCount.added,
-              updated: changedCount.updated,
-              updateReason
-            });
-          } else {
-            skipItems.push({ slug, displayName: getDisplayName(displayNameMap, slug), added: 0, updated: 0, updateReason });
-          }
+          skipItems.push({ slug, added: 0, updated: 0, updateReason });
         }
       }
     } else {
@@ -112,5 +97,5 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebu
     }
   });
 
-  return { brokenSlugs, errorSlugs, syncItems, skipItems, dropBreakers, fetchErrors, displayNameMap };
+  return { brokenSlugs, errorSlugs, syncItems, skipItems, dropBreakers, fetchErrors };
 }

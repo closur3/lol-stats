@@ -1,3 +1,5 @@
+import { assertRawMatches } from "../facts/rawMatchesStore.js";
+
 export async function fetchRawMatchesForCandidates(fandomClient, candidates) {
   if (!Array.isArray(candidates)) throw new Error("candidates must be an array");
   const fetchSettlements = await Promise.allSettled(
@@ -13,7 +15,7 @@ export async function fetchRawMatchesForCandidates(fandomClient, candidates) {
   return fetchSettlements.map((fetchSettlement, index) => {
     const slug = candidates[index].slug;
     if (fetchSettlement.status === 'fulfilled') {
-      if (!Array.isArray(fetchSettlement.value.rawMatches)) throw new Error(`Fetched RawMatches must be an array: ${slug}`);
+      assertRawMatches(slug, fetchSettlement.value.rawMatches);
       return { status: 'fulfilled', slug, rawMatches: fetchSettlement.value.rawMatches };
     } else {
       return { status: 'rejected', slug, error: fetchSettlement.reason };

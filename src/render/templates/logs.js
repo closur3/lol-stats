@@ -4,16 +4,18 @@ import { resolveSchedulePhase } from '../../core/scheduler/scheduleDay.js';
 import { escapeHtml, escapeUrl } from '../../utils/htmlEscape.js';
 import { padLogCount } from '../../core/updater/logWriter.js';
 import { getSchedulePhaseLabel, renderSchedulePhaseIcon } from '../components/schedulePhaseIcon.js';
+import { renderSchemaIssueCards } from '../components/schemaIssueCards.js';
+import { unavailableCronInfo } from '../../core/scheduler/cronInfo.js';
 
 function formatDelta(entry) {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
     throw new Error("log entry must be a JSON object");
   }
   if (!Number.isInteger(entry.added) || entry.added < 0) {
-    throw new Error(`Invalid log entry added: ${entry.displayName || ""}`);
+    throw new Error("Invalid log entry added");
   }
   if (!Number.isInteger(entry.updated) || entry.updated < 0) {
-    throw new Error(`Invalid log entry updated: ${entry.displayName || ""}`);
+    throw new Error("Invalid log entry updated");
   }
   const added = entry.added;
   const updated = entry.updated;
@@ -32,28 +34,29 @@ function renderTrigger(entry, icon) {
   if (entry.updateReason === "force") return ` | ${icon} Force`;
   if (entry.updateReason !== "revision") throw new Error(`Invalid ActiveLog updateReason: ${entry.updateReason}`);
   const trigger = entry.trigger;
-  if (!trigger?.diffUrl || trigger.revid == null) return "";
-  return ` | ${icon} <a class="log-trigger-link" href="${escapeUrl(trigger.diffUrl)}" target="_blank" rel="noopener">${escapeHtml(trigger.revid)}</a>`;
+  if (!trigger) return "";
+  const pageTitle = encodeURIComponent(trigger.title.replace(/ /g, "_"));
+  const diffUrl = `https://lol.fandom.com/wiki/${pageTitle}?diff=prev&oldid=${trigger.revid}`;
+  return ` | ${icon} <a class="log-trigger-link" href="${escapeUrl(diffUrl)}" target="_blank" rel="noopener">${escapeHtml(trigger.revid)}</a>`;
 }
 
 function renderStatusLabel(icon, label) {
   return `${icon} ${label}`;
 }
 
-function renderLogMessage(entry) {
-  const suffix = entry.isAnon ? " 👻" : "";
-  const displayName = escapeHtml(entry.displayName || "");
+function renderLogMessage(entry, leagueShort) {
+  const safeLeagueShort = escapeHtml(leagueShort);
   if (entry.action === "SYNC") {
-    return `${renderStatusLabel("🟢", "[SYNC]")} | 🔄 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "➕")}${suffix}`;
+    return `${renderStatusLabel("🟢", "[SYNC]")} | 🔄 ${safeLeagueShort} ${formatDelta(entry)}${renderTrigger(entry, "➕")}`;
   }
   if (entry.action === "SKIP") {
-    return `${renderStatusLabel("⚪", "[SKIP]")} | 🔍 ${displayName} ${formatDelta(entry)}${renderTrigger(entry, "🟰")}${suffix}`;
+    return `${renderStatusLabel("⚪", "[SKIP]")} | 🔍 ${safeLeagueShort} ${formatDelta(entry)}${renderTrigger(entry, "🟰")}`;
   }
   if (entry.action === "BREAKER") {
-    return `${renderStatusLabel("🔴", "[ERR!]")} | 🚧 ${displayName} ${escapeHtml(entry.dropInfo || "(Drop)")}${suffix}`;
+    return `${renderStatusLabel("🔴", "[ERR!]")} | 🚧 ${safeLeagueShort} ${escapeHtml(entry.dropInfo || "(Drop)")}`;
   }
   if (entry.action === "API_ERROR") {
-    return `${renderStatusLabel("🔴", "[ERR!]")} | ❌ ${displayName} (Fail)${suffix}`;
+    return `${renderStatusLabel("🔴", "[ERR!]")} | ❌ ${safeLeagueShort} (Fail)`;
   }
   throw new Error(`Invalid log entry action: ${entry.action}`);
 }
@@ -63,7 +66,7 @@ function isSyncEntry(entry) {
 }
 
 function isErrorEntry(entry) {
-  return entry.action === "BREAKER" || entry.action === "API_ERROR" || entry.level === "ERROR";
+  return entry.action === "BREAKER" || entry.action === "API_ERROR";
 }
 
 function normalizeActiveLogItems(activeLogItems) {
@@ -85,12 +88,17 @@ function normalizeLogEntries(activeLogItem) {
   return activeLogItem.logs;
 }
 
-export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, options = {}) {
+export function renderLogPage(activeLogItems, time, sha, cronInfo = unavailableCronInfo(), options = {}) {
   const maxLogEntries = Number(options.maxLogEntries);
   const logItems = normalizeActiveLogItems(activeLogItems);
+  const issueCards = renderSchemaIssueCards(options.issues === undefined ? [] : options.issues);
 
   const cardsHtml = logItems.map(activeLogItem => {
-    const name = activeLogItem.name || "";
+    const { name, leagueShort } = activeLogItem;
+    if (typeof name !== "string" || !name.trim()) throw new Error("Active log item name missing");
+    if (typeof leagueShort !== "string" || !leagueShort.trim()) {
+      throw new Error(`Active log item leagueShort missing: ${name}`);
+    }
     const safeName = escapeHtml(name);
     const entries = normalizeLogEntries(activeLogItem);
     const lastEntry = entries[0];
@@ -109,7 +117,7 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
 
     const rows = entries.slice(0, maxLogEntries).map(entry => {
       const rowTime = entry.loggedAt || "";
-      const formattedMessage = renderLogMessage(entry).replace(/(\+\d+(?:~\d+)?|~\d+|±0)/g, '<span class="hl">$1</span>');
+      const formattedMessage = renderLogMessage(entry, leagueShort).replace(/(\+\d+(?:~\d+)?|~\d+|±0)/g, '<span class="hl">$1</span>');
       return `<div class="log-mini-row"><span class="log-mini-time">${escapeHtml(rowTime)}</span><span class="log-mini-time-separator"> </span><span class="log-mini-msg">${formattedMessage}</span></div>`;
     }).join("");
 
@@ -121,9 +129,9 @@ export function renderLogPage(activeLogItems, time, sha, hasActiveCron = false, 
     </div>`;
   }).join("");
 
-  const bodyContent = cardsHtml || '<div class="empty-logs">No logs found</div>';
+  const bodyContent = `${cardsHtml}${issueCards}` || '<div class="empty-logs">No logs found</div>';
 
-  return renderPageShell("Logs", bodyContent, "logs", time, sha, hasActiveCron, {
+  return renderPageShell("Logs", bodyContent, "logs", time, sha, cronInfo, {
     css: logsCSS,
     containerClass: "logs-cards-container",
     showModal: false

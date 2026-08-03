@@ -7,6 +7,7 @@ import { handleDeleteActive } from './routes/api/activeActions.js';
 import { handleDeleteArchive, handleRebuildArchive } from './routes/api/archiveActions.js';
 import { handleRunCron } from './routes/api/runCron.js';
 import { handleReconcileTournaments } from './routes/api/reconcileTournaments.js';
+import { logActionResponse } from './routes/api/actionResponseLogger.js';
 import { runCron } from './core/cron/orchestrator.js';
 
 /**
@@ -30,22 +31,22 @@ export default {
         return ToolsRouter.handleToolsAuth(request, env);
       
       case "/force":
-        return handleForceUpdate(request, env);
+        return logActionResponse("FORCE", await handleForceUpdate(request, env));
       
       case "/rebuild-archive":
-        return handleRebuildArchive(request, env);
+        return logActionResponse("ARCHIVE_REBUILD", await handleRebuildArchive(request, env));
 
       case "/delete-active":
-        return handleDeleteActive(request, env);
+        return logActionResponse("ACTIVE_DELETE", await handleDeleteActive(request, env));
       
       case "/delete-archive":
-        return handleDeleteArchive(request, env);
+        return logActionResponse("ARCHIVE_DELETE", await handleDeleteArchive(request, env));
 
       case "/run-cron":
-        return handleRunCron(request, env);
+        return logActionResponse("CRON", await handleRunCron(request, env));
 
       case "/reconcile-tournaments":
-        return handleReconcileTournaments(request, env);
+        return logActionResponse("TOURNAMENT_RECONCILE", await handleReconcileTournaments(request, env));
 
       case "/logs":
         return LogsRouter.handleLogs(request, env);

@@ -5,7 +5,7 @@ export const toolsActions = `
 
           function readActionResult(res) {
               return res.json().then(function(result) {
-                  if (!result || typeof result.message !== 'string' || typeof result.hasActiveCron !== 'boolean') {
+                  if (!result || typeof result.message !== 'string' || !result.cronInfo || typeof result.cronInfo !== 'object') {
                       throw new Error('Invalid action result.');
                   }
                   return result;

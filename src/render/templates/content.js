@@ -14,9 +14,9 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentFragment(statisticsBySlug, timeGridBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, modalHistory) {
+export function renderContentFragment(statisticsBySlug, timeDistributionBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, modalHistory) {
   assertObject(statisticsBySlug, "statisticsBySlug");
-  assertObject(timeGridBySlug, "timeGridBySlug");
+  assertObject(timeDistributionBySlug, "timeDistributionBySlug");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
   if (!Array.isArray(modalHistory)) throw new Error("modalHistory must be an array");
@@ -37,13 +37,13 @@ export function renderContentFragment(statisticsBySlug, timeGridBySlug, schedule
   const injectedData = `<script>window.tournamentStatistics = Object.assign(window.tournamentStatistics ?? {}, ${serializeForInlineScript(statisticsBySlug)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
   const tablesHtml = tournaments
     .filter(tournament => tournament?.slug)
-    .map(tournament => renderTournamentSection(tournament, statisticsBySlug, timeGridBySlug, scheduleSessionsBySlug, isArchive))
+    .map(tournament => renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive))
     .join("");
   const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, combinedStatsBySlug);
 
   return `${tablesHtml} ${scheduleHtml} ${injectedData}`;
 }
 
-export function renderArchiveContentFragment(statisticsBySlug, timeGridBySlug, tournaments, modalHistory) {
-  return renderContentFragment(statisticsBySlug, timeGridBySlug, {}, tournaments, true, null, modalHistory);
+export function renderArchiveContentFragment(statisticsBySlug, timeDistributionBySlug, tournaments, modalHistory) {
+  return renderContentFragment(statisticsBySlug, timeDistributionBySlug, {}, tournaments, true, null, modalHistory);
 }

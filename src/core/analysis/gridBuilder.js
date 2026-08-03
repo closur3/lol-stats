@@ -1,51 +1,32 @@
-import { timeGridColumnCount } from '../../constants/index.js';
 import { buildTimeSlotLayout } from './timeCluster.js';
 
-function readGameResults(match, tournamentSlug) {
-  if (!Array.isArray(match.gameResults) || match.gameResults.length === 0) {
-    throw new Error(`Time Grid game results missing: ${tournamentSlug}.${match.matchDateStr}`);
-  }
+function readGameResults(match, label) {
+  if (!Object.hasOwn(match, "gameResults")) return null;
+  if (!Array.isArray(match.gameResults) || match.gameResults.length === 0) throw new Error(`Time Grid game results invalid: ${label}`);
   for (const result of match.gameResults) {
     if (result !== "W" && result !== "L") {
-      throw new Error(`Time Grid game result invalid: ${tournamentSlug}.${match.matchDateStr}`);
+      throw new Error(`Time Grid game result invalid: ${label}`);
     }
   }
   if (match.gameResults.filter(result => result === "W").length !== match.team1Score ||
       match.gameResults.filter(result => result === "L").length !== match.team2Score) {
-    throw new Error(`Time Grid game results do not match score: ${tournamentSlug}.${match.matchDateStr}`);
+    throw new Error(`Time Grid game results do not match score: ${label}`);
   }
   return [...match.gameResults];
 }
 
-export function buildTournamentTimeGrid(tournamentSlug, timeGridLayoutMatches, timeGridMatches, timeGrid) {
+export function buildTimeGridMatches(timeGridLayoutMatches, timeGridMatches) {
   const { clusters, assignmentByMatch } = buildTimeSlotLayout(timeGridLayoutMatches);
-
-  const createSlot = () => {
-    const slot = {};
-    for (let dayIndex = 0; dayIndex < timeGridColumnCount; dayIndex++) {
-      slot[dayIndex] = { totalMatchCount: 0, fullLengthMatchCount: 0, matches: [] };
-    }
-    return slot;
-  };
-
-  if (!timeGrid[tournamentSlug]) timeGrid[tournamentSlug] = { "Total": createSlot() };
-
-  const usedClusterIndexes = new Set(timeGridMatches.map(match => {
-    const clusterIndex = assignmentByMatch.get(match);
-    if (clusterIndex == null) throw new Error(`Time cluster assignment missing: ${tournamentSlug}.${match.matchDateStr}`);
-    return clusterIndex;
-  }));
-
-  clusters.forEach((cluster, clusterIndex) => {
-    if (!usedClusterIndexes.has(clusterIndex)) return;
-    if (!timeGrid[tournamentSlug][cluster.label]) {
-      timeGrid[tournamentSlug][cluster.label] = createSlot();
-    }
-  });
-
-  for (const timeGridMatchInput of timeGridMatches) {
-    const gameResults = readGameResults(timeGridMatchInput, tournamentSlug);
-    const timeGridMatch = {
+  return timeGridMatches.map(timeGridMatchInput => {
+    const label = `${timeGridMatchInput.overviewPage}.${timeGridMatchInput.matchDateStr}`;
+    const gameResults = readGameResults(timeGridMatchInput, label);
+    const assignedClusterIndex = assignmentByMatch.get(timeGridMatchInput);
+    if (assignedClusterIndex == null) throw new Error(`Time cluster assignment missing: ${label}`);
+    const bestCluster = clusters[assignedClusterIndex];
+    if (!bestCluster) throw new Error(`Time cluster missing: ${label}`);
+    return {
+      timeSlot: bestCluster.label,
+      weekdayIndex: timeGridMatchInput.weekdayIndex,
       overviewPage: timeGridMatchInput.overviewPage,
       tabName: timeGridMatchInput.tabName,
       dateDisplay: timeGridMatchInput.dateDisplay,
@@ -58,24 +39,8 @@ export function buildTournamentTimeGrid(tournamentSlug, timeGridLayoutMatches, t
       isForfeit: timeGridMatchInput.isForfeit,
       isFullLength: timeGridMatchInput.isFullLength,
       bestOf: timeGridMatchInput.bestOf,
-      gameResults,
+      ...(gameResults === null ? {} : { gameResults }),
       ...(timeGridMatchInput.turnaroundType == null ? {} : { turnaroundType: timeGridMatchInput.turnaroundType })
     };
-
-    const assignedClusterIndex = assignmentByMatch.get(timeGridMatchInput);
-    if (assignedClusterIndex == null) throw new Error(`Time cluster assignment missing: ${tournamentSlug}.${timeGridMatchInput.matchDateStr}`);
-    const bestCluster = clusters[assignedClusterIndex];
-    if (!bestCluster) throw new Error(`Time cluster missing: ${tournamentSlug}.${timeGridMatchInput.matchDateStr}`);
-
-    const dayIndex = timeGridMatchInput.weekdayIndex;
-    const addMatchToSlot = (tournamentTimeGrid, timeSlotLabel, targetDayIndex) => {
-      tournamentTimeGrid[timeSlotLabel][targetDayIndex].totalMatchCount++;
-      if (timeGridMatchInput.isFullLength) tournamentTimeGrid[timeSlotLabel][targetDayIndex].fullLengthMatchCount++;
-      tournamentTimeGrid[timeSlotLabel][targetDayIndex].matches.push(timeGridMatch);
-    };
-    addMatchToSlot(timeGrid[tournamentSlug], bestCluster.label, dayIndex);
-    addMatchToSlot(timeGrid[tournamentSlug], "Total", dayIndex);
-    addMatchToSlot(timeGrid[tournamentSlug], bestCluster.label, 7);
-    addMatchToSlot(timeGrid[tournamentSlug], "Total", 7);
-  }
+  });
 }

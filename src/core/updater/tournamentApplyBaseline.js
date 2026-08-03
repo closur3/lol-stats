@@ -56,7 +56,16 @@ function buildRecoveryApplyState(runtimeSlugs) {
   };
 }
 
-export async function resolveTournamentApplyBaseline(env, config) {
+function hasSameFingerprints(left, right) {
+  const leftEntries = Object.entries(left);
+  return leftEntries.length === Object.keys(right).length
+    && leftEntries.every(([slug, fingerprint]) => right[slug] === fingerprint);
+}
+
+export async function resolveTournamentApplyBaseline(env, config, desiredApplyState) {
+  if (!desiredApplyState || typeof desiredApplyState !== "object" || Array.isArray(desiredApplyState)) {
+    throw new Error("desiredApplyState must be an object");
+  }
   let existingApplyState;
   try {
     existingApplyState = await readExistingTournamentApplyState(env);
@@ -65,9 +74,17 @@ export async function resolveTournamentApplyBaseline(env, config) {
     console.error(`[TOURNAMENT:CHECKPOINT] replacing invalid TournamentApplyState: ${error.message}`);
     existingApplyState = null;
   }
-  if (existingApplyState) return existingApplyState;
-
   const runtimeSlugs = await readActiveRuntimeSlugs(env);
   assertKnownRuntimeSlugs(runtimeSlugs, config);
+  if (existingApplyState) {
+    if (
+      existingApplyState.configDigest === desiredApplyState.configDigest
+      && !hasSameFingerprints(existingApplyState.activeFingerprints, desiredApplyState.activeFingerprints)
+    ) {
+      console.error("[TOURNAMENT:CHECKPOINT] fingerprints do not match current TournamentConfig");
+      return buildRecoveryApplyState(runtimeSlugs);
+    }
+    return existingApplyState;
+  }
   return buildRecoveryApplyState(runtimeSlugs);
 }

@@ -5,7 +5,7 @@ export const toolsCron = `
                   if (checkAuthError(response.status)) return;
                   if (response.ok) {
                       return readActionResult(response).then(function(result) {
-                          updateCronStatus(result.hasActiveCron);
+                          updateCronInfo(result.cronInfo);
                           showResult(true, result.message);
                       });
                   }

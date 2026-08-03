@@ -8,9 +8,12 @@ function pickLatestRevisionTrigger(revidChanges) {
   if (revidChanges === undefined) return null;
   if (!Array.isArray(revidChanges)) throw new Error("revidChanges must be an array");
   if (revidChanges.length === 0) return null;
-  return revidChanges.reduce((latestChange, currentChange) =>
+  const latest = revidChanges.reduce((latestChange, currentChange) =>
     Number(currentChange.revid) > Number(latestChange.revid) ? currentChange : latestChange
   );
+  if (typeof latest.title !== "string" || latest.title.length === 0) throw new Error("ActiveLog trigger title missing");
+  if (!Number.isInteger(latest.revid) || latest.revid <= 0) throw new Error("ActiveLog trigger revid invalid");
+  return { title: latest.title, revid: latest.revid };
 }
 
 function readUpdateReason(value) {
@@ -20,17 +23,9 @@ function readUpdateReason(value) {
   return value;
 }
 
-export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors, authContext, displayNameMap) {
+export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors) {
   const loggedAt = timePolicy.getCurrentAppDateTime().fullDateTimeString;
-  const isAnon = (!authContext || authContext.isAnonymous);
   const logEntriesBySlug = {};
-
-  if (!(displayNameMap instanceof Map)) throw new Error("displayNameMap must be a Map");
-
-  const getDisplayName = (slug) => {
-    if (!displayNameMap.has(slug)) throw new Error(`Tournament display name missing: ${slug}`);
-    return displayNameMap.get(slug);
-  };
 
   const setLogEntry = (slug, logEntry) => {
     if (!slug) throw new Error("ActiveLog slug missing");
@@ -40,13 +35,10 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
   syncItems.forEach(syncItem => {
     setLogEntry(syncItem.slug, {
       action: "SYNC",
-      level: "SUCCESS",
-      displayName: getDisplayName(syncItem.slug),
       added: syncItem.added,
       updated: syncItem.updated,
       trigger: pickLatestRevisionTrigger(syncItem.revidChanges),
-      updateReason: readUpdateReason(syncItem.updateReason),
-      isAnon
+      updateReason: readUpdateReason(syncItem.updateReason)
     });
   });
 
@@ -54,13 +46,10 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
     if (logEntriesBySlug[skipItem.slug]) return;
     setLogEntry(skipItem.slug, {
       action: "SKIP",
-      level: "SUCCESS",
-      displayName: getDisplayName(skipItem.slug),
       added: skipItem.added,
       updated: skipItem.updated,
       trigger: pickLatestRevisionTrigger(skipItem.revidChanges),
-      updateReason: readUpdateReason(skipItem.updateReason),
-      isAnon
+      updateReason: readUpdateReason(skipItem.updateReason)
     });
   });
 
@@ -69,15 +58,13 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
     const slug = breaker.split("(")[0];
     const dropMatch = breaker.match(/\(Drop .+\)/);
     const dropInfo = dropMatch ? dropMatch[0] : "(Drop)";
-    const name = getDisplayName(slug);
-    setLogEntry(slug, { action: "BREAKER", level: "ERROR", displayName: name, dropInfo, isAnon });
+    setLogEntry(slug, { action: "BREAKER", dropInfo });
   });
 
   fetchErrors.forEach(fetchError => {
     if (typeof fetchError !== "string" || fetchError.length === 0) throw new Error("fetch error log item invalid");
     const slug = fetchError.split("(")[0];
-    const name = getDisplayName(slug);
-    setLogEntry(slug, { action: "API_ERROR", level: "ERROR", displayName: name, isAnon });
+    setLogEntry(slug, { action: "API_ERROR" });
   });
 
   return logEntriesBySlug;

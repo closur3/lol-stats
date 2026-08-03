@@ -2,21 +2,22 @@ import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 import { throwIfArtifactsUnavailable } from './artifactAvailability.js';
 import { createSchemaIssue, describeSchemaValue } from '../facts/schemaIssue.js';
 import { readTournamentStatisticsIssue } from '../facts/tournamentStatistics.js';
-import { readTimeGridCollectionIssue } from '../facts/timeGridCollection.js';
+import { readTimeDistributionIssue } from '../facts/timeDistribution.js';
+import { getOverviewPageNames } from '../../utils/data/overviewPages.js';
 
 export function readActiveHomeIssue(home, tournament, artifactKey) {
   if (home == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
   if (typeof home !== "object" || Array.isArray(home)) return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "JSON object", actual: describeSchemaValue(home) });
   const homeFields = Object.keys(home);
-  const expectedFields = ["tournamentSlug", "statistics", "timeGrid"];
+  const expectedFields = ["tournamentSlug", "statistics", "timeDistribution"];
   if (homeFields.length !== expectedFields.length || expectedFields.some(field => !Object.hasOwn(home, field))) {
-    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournamentSlug, statistics, timeGrid", actual: homeFields.length ? homeFields.join(", ") : "no fields" });
+    return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "fields tournamentSlug, statistics, timeDistribution", actual: homeFields.length ? homeFields.join(", ") : "no fields" });
   }
   if (home.tournamentSlug !== tournament.slug) return createSchemaIssue({ artifactKey, path: "tournamentSlug", kind: "invalid", expected: tournament.slug, actual: describeSchemaValue(home.tournamentSlug) });
   const statisticsIssue = readTournamentStatisticsIssue(home.statistics, tournament, artifactKey);
   if (statisticsIssue) return statisticsIssue;
-  const timeGridIssue = readTimeGridCollectionIssue(home.timeGrid, tournament, artifactKey);
-  if (timeGridIssue) return timeGridIssue;
+  const timeDistributionIssue = readTimeDistributionIssue(home.timeDistribution, artifactKey, getOverviewPageNames(tournament.overviewPages));
+  if (timeDistributionIssue) return timeDistributionIssue;
   return null;
 }
 

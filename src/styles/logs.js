@@ -1,6 +1,7 @@
 import baseCSS from "./base.js";
+import schemaIssuesCSS from "./schemaIssues.js";
 
-export default `${baseCSS}
+export default `${baseCSS}${schemaIssuesCSS}
     .logs-cards-container { max-width: 1000px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .tournament-card { --card-x-pad: 16px; background: #fff; border-radius: var(--radius-card); border: 1px solid #e2e8f0; box-shadow: var(--shadow-card); overflow: hidden; height: 300px; display: flex; flex-direction: column; }
     .tournament-card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; }
@@ -35,6 +36,7 @@ export default `${baseCSS}
     .log-trigger-link { color: inherit; text-decoration: none; }
     .log-trigger-link:hover { color: #1d4ed8; text-decoration: underline; }
     .empty-logs { padding: 40px; text-align: center; color: #94a3b8; grid-column: 1 / -1; }
+    .logs-cards-container > .error-issues { grid-column: 1 / -1; width: 100%; margin-top: 0; }
     @media (max-width: 650px) {
         .logs-cards-container { grid-template-columns: 1fr; }
         .tournament-card { --card-x-pad: 16px; }
