@@ -30,7 +30,7 @@ function formatCstSchedule(expression) {
   return {
     period: cstWeekday,
     timeRange: `${padHour(startCstHour)}:02–${padHour(endCstHour)}:58`,
-    frequency: "every 2 min"
+    frequency: "every 2 minutes"
   };
 }
 

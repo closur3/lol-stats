@@ -4,7 +4,7 @@ import {
   TournamentApplyStateSchemaError
 } from "../facts/tournamentApplyState.js";
 
-const ActiveRuntimePrefixes = [
+const ActiveArtifactPrefixes = [
   kvKeys.ActiveHomePrefix,
   kvKeys.ActiveLogPrefix,
   kvKeys.FandomRevisionPrefix,
@@ -35,24 +35,20 @@ async function listKeys(kv, prefix) {
   } while (true);
 }
 
-async function readActiveRuntimeSlugs(env) {
+async function readStoredActiveArtifactSlugs(env) {
   const kv = env["lol-stats-kv"];
-  const keyGroups = await Promise.all(ActiveRuntimePrefixes.map(prefix => listKeys(kv, prefix)));
-  return new Set(keyGroups.flatMap((keys, index) => keys.map(key => key.slice(ActiveRuntimePrefixes[index].length))));
+  const keyGroups = await Promise.all(ActiveArtifactPrefixes.map(prefix => listKeys(kv, prefix)));
+  return new Set(keyGroups.flatMap((keys, index) => keys.map(key => key.slice(ActiveArtifactPrefixes[index].length))));
 }
 
-function assertKnownRuntimeSlugs(runtimeSlugs, config) {
-  const configuredSlugs = new Set([...config.active, ...config.archive].map(tournament => tournament.slug));
-  const unknownSlugs = [...runtimeSlugs].filter(slug => !configuredSlugs.has(slug)).sort();
-  if (unknownSlugs.length > 0) {
-    throw new Error(`TournamentApplyState missing with unknown Active runtime: ${unknownSlugs.join(",")}`);
+function buildRecoveryApplyState(runtimeSlugs, existingApplyState) {
+  const activeFingerprints = { ...(existingApplyState?.activeFingerprints || {}) };
+  for (const slug of [...runtimeSlugs].sort()) {
+    if (!Object.hasOwn(activeFingerprints, slug)) activeFingerprints[slug] = "0".repeat(64);
   }
-}
-
-function buildRecoveryApplyState(runtimeSlugs) {
   return {
-    configDigest: "0".repeat(64),
-    activeFingerprints: Object.fromEntries([...runtimeSlugs].sort().map(slug => [slug, "0".repeat(64)]))
+    configDigest: existingApplyState?.configDigest || "0".repeat(64),
+    activeFingerprints
   };
 }
 
@@ -62,7 +58,7 @@ function hasSameFingerprints(left, right) {
     && leftEntries.every(([slug, fingerprint]) => right[slug] === fingerprint);
 }
 
-export async function resolveTournamentApplyBaseline(env, config, desiredApplyState) {
+export async function resolveTournamentApplyBaseline(env, desiredApplyState) {
   if (!desiredApplyState || typeof desiredApplyState !== "object" || Array.isArray(desiredApplyState)) {
     throw new Error("desiredApplyState must be an object");
   }
@@ -74,17 +70,14 @@ export async function resolveTournamentApplyBaseline(env, config, desiredApplySt
     console.error(`[TOURNAMENT:CHECKPOINT] replacing invalid TournamentApplyState: ${error.message}`);
     existingApplyState = null;
   }
-  const runtimeSlugs = await readActiveRuntimeSlugs(env);
-  assertKnownRuntimeSlugs(runtimeSlugs, config);
-  if (existingApplyState) {
-    if (
-      existingApplyState.configDigest === desiredApplyState.configDigest
-      && !hasSameFingerprints(existingApplyState.activeFingerprints, desiredApplyState.activeFingerprints)
-    ) {
-      console.error("[TOURNAMENT:CHECKPOINT] fingerprints do not match current TournamentConfig");
-      return buildRecoveryApplyState(runtimeSlugs);
-    }
-    return existingApplyState;
+  const storedArtifactSlugs = await readStoredActiveArtifactSlugs(env);
+  const baseline = buildRecoveryApplyState(storedArtifactSlugs, existingApplyState);
+  if (
+    existingApplyState?.configDigest === desiredApplyState.configDigest
+    && !hasSameFingerprints(baseline.activeFingerprints, desiredApplyState.activeFingerprints)
+  ) {
+    console.error("[TOURNAMENT:CHECKPOINT] runtime does not match current TournamentConfig; reconciling from Config");
+    baseline.configDigest = "0".repeat(64);
   }
-  return buildRecoveryApplyState(runtimeSlugs);
+  return baseline;
 }

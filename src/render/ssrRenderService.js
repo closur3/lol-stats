@@ -3,7 +3,7 @@ import { renderPageShell } from './templates/page.js';
 import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
 import { readActiveHomes, readAvailableActiveHomes } from '../core/updater/activeHomeReader.js';
 import { readAvailableArchiveSnapshots } from '../core/updater/archiveSnapshotReader.js';
-import { buildHomeRenderInput, readHomeScheduleFacts } from '../core/updater/homeRenderInputBuilder.js';
+import { buildHomeRenderInput, readScheduleSessionsMap } from '../core/updater/homeRenderInputBuilder.js';
 import { readCronInfo } from '../core/scheduler/cronInfo.js';
 import { buildModalHistory } from './modalHistoryBuilder.js';
 import { throwIfArtifactsUnavailable } from '../core/updater/artifactAvailability.js';
@@ -22,11 +22,10 @@ export async function renderHomeFromFacts(env) {
   }
 
   const orderedTournaments = tournaments;
-  const { scheduleSessionsMap, scheduleState } = await readHomeScheduleFacts(env, orderedTournaments);
+  const scheduleSessionsMap = await readScheduleSessionsMap(env, orderedTournaments);
   const renderInput = buildHomeRenderInput(activeHomes, orderedTournaments);
   const scheduleMap = selectHomeSchedule(
     scheduleSessionsMap,
-    scheduleState,
     orderedTournaments,
     new Date(),
     updateConfig.maxScheduleDays

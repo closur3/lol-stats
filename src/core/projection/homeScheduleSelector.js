@@ -1,7 +1,6 @@
 import { timePolicy } from "../../utils/timePolicy.js";
 import { assertScheduleSessionsFields } from "../facts/scheduleSessionsStore.js";
 import { parseScheduleSessionKey } from "../scheduleIdentity.js";
-import { assertScheduleControl } from "../scheduler/scheduleState.js";
 
 function requireObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -100,17 +99,17 @@ function buildScheduleRow(match, tournament, tabName) {
   };
 }
 
-function appendSelectedSessions(rowsByDate, artifact, control, tournament, today) {
-  const sessionsByKey = new Map(artifact.sessions.map(session => [session.sessionKey, session]));
-  const trackedKeys = new Set(control.trackedSessionKeys);
-  for (const sessionKey of trackedKeys) {
-    if (!sessionsByKey.has(sessionKey)) throw new Error(`ScheduleState tracked session missing: ${tournament.slug}:${sessionKey}`);
-  }
+function isCurrentSession(matches, today) {
+  return matches.some(match => match.date === today || (match.date < today && match.source.winner === null));
+}
+
+function appendSelectedSessions(rowsByDate, artifact, tournament, today) {
   for (const session of artifact.sessions) {
     const { tab } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${tournament.slug}.${session.sessionKey}`);
     const matches = readSessionMatches(session);
+    const currentSession = isCurrentSession(matches, today);
     for (const match of matches) {
-      if (match.date < today && !trackedKeys.has(session.sessionKey)) continue;
+      if (match.date < today && !currentSession) continue;
       if (!rowsByDate.has(match.date)) rowsByDate.set(match.date, []);
       rowsByDate.get(match.date).push(buildScheduleRow(match, tournament, tab));
     }
@@ -131,21 +130,13 @@ function buildScheduleMap(rowsByDate, maxDays) {
   return scheduleMap;
 }
 
-export function selectHomeSchedule(scheduleSessionsMap, scheduleState, tournaments, now, maxDays) {
+export function selectHomeSchedule(scheduleSessionsMap, tournaments, now, maxDays) {
   if (!Number.isInteger(maxDays) || maxDays < 1) throw new Error("maxDays must be a positive integer");
   const nowTimestamp = readNowTimestamp(now);
   const today = timePolicy.getAppDateKey(nowTimestamp);
   const orderedTournaments = readTournaments(tournaments);
   const tournamentSlugs = new Set(orderedTournaments.map(tournament => tournament.slug));
   assertMapScope(scheduleSessionsMap, "scheduleSessionsMap", tournamentSlugs);
-  requireObject(scheduleState, "ScheduleState");
-  if (scheduleState.date !== today) throw new Error(`ScheduleState date mismatch: ${scheduleState.date} != ${today}`);
-  requireObject(scheduleState.controlsBySlug, "ScheduleState.controlsBySlug");
-  const controlSlugs = new Set(Object.keys(scheduleState.controlsBySlug));
-  if (controlSlugs.size !== tournamentSlugs.size) throw new Error("ScheduleState scope does not match tournaments");
-  for (const slug of tournamentSlugs) {
-    if (!controlSlugs.has(slug)) throw new Error(`ScheduleState control missing: ${slug}`);
-  }
 
   const rowsByDate = new Map();
   for (const tournament of orderedTournaments) {
@@ -156,8 +147,7 @@ export function selectHomeSchedule(scheduleSessionsMap, scheduleState, tournamen
       "ScheduleSessions",
       assertScheduleSessionsFields
     );
-    const control = assertScheduleControl(tournament.slug, scheduleState.controlsBySlug[tournament.slug]);
-    appendSelectedSessions(rowsByDate, scheduleSessions, control, tournament, today);
+    appendSelectedSessions(rowsByDate, scheduleSessions, tournament, today);
   }
   return buildScheduleMap(rowsByDate, maxDays);
 }

@@ -23,6 +23,13 @@ function logTransition(transition) {
   );
 }
 
+function applyStateMatches(left, right) {
+  if (left.configDigest !== right.configDigest) return false;
+  const leftEntries = Object.entries(left.activeFingerprints);
+  return leftEntries.length === Object.keys(right.activeFingerprints).length
+    && leftEntries.every(([slug, fingerprint]) => right.activeFingerprints[slug] === fingerprint);
+}
+
 async function assertConfigUnchanged(env, expectedDigest) {
   const currentConfig = await readTournamentConfig(env);
   if (currentConfig.configDigest !== expectedDigest) {
@@ -49,8 +56,8 @@ function assertReconcileInputs(scheduledTimeMs, scheduleOptions) {
 
 async function reconcileConfig(env, config, scheduledTimeMs, scheduleOptions) {
   const desiredApplyState = await buildTournamentApplyState(config);
-  const previousApplyState = await resolveTournamentApplyBaseline(env, config, desiredApplyState);
-  if (previousApplyState.configDigest === desiredApplyState.configDigest) {
+  const previousApplyState = await resolveTournamentApplyBaseline(env, desiredApplyState);
+  if (applyStateMatches(previousApplyState, desiredApplyState)) {
     const transition = { added: [], updated: [], archived: [], dropped: [] };
     return { config, transition, configChanged: false, scheduleRuntime: null };
   }
