@@ -76,6 +76,8 @@ function setStatisticsScope(scopeOption) {
   });
   closeCompactMenus();
   root.dataset.statisticsScope = scope;
+  root.open = true;
+  if (typeof updateTournamentToggleButton === 'function') updateTournamentToggleButton();
   if (typeof syncFloatingActionsMobilePosition === 'function') syncFloatingActionsMobilePosition();
 }
 document.addEventListener('click', closeTournamentInfoPanels);
