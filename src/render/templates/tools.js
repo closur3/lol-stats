@@ -73,35 +73,34 @@ export function renderToolsPage(time, sha, activeTournaments = [], archivedTourn
 
   const bodyContent = `
           <div class="wrapper">
-              <div class="table-title"><span>⚙️ Operations</span></div>
+              <div class="table-title tools-title">
+                  <span>⚙️ Operations</span>
+                  <button class="secondary-btn tools-cron-btn" onclick="runWorkerCron(this)">Run Cron</button>
+              </div>
               <div class="section-body ops-body">
                   ${configErrorHtml}
-
-                  <div class="group-header">
-                      <input type="checkbox" class="group-chk" id="chk-active-all">
-                      <span class="group-label">Active</span>
+                  <div class="ops-grid">
+                      <section class="ops-panel">
+                          <div class="group-header">
+                              <input type="checkbox" class="group-chk" id="chk-active-all">
+                              <span class="group-label">Active</span>
+                              <button class="primary-btn group-action" onclick="forceSelected(this)">Force Update</button>
+                          </div>
+                          <div id="active-list" class="list">
+                              ${activeListHtml}
+                          </div>
+                      </section>
+                      <section class="ops-panel">
+                          <div class="group-header">
+                              <input type="checkbox" class="group-chk" id="chk-archived-all">
+                              <span class="group-label">Archived</span>
+                              <button class="primary-btn group-action" onclick="rebuildSelected(this)">Rebuild</button>
+                          </div>
+                          <div class="list">
+                              ${archiveListHtml}
+                          </div>
+                      </section>
                   </div>
-                  <div id="active-list" class="list">
-                      ${activeListHtml}
-                  </div>
-                  <div class="ops-actions">
-                      <button class="primary-btn" onclick="forceSelected(this)">Force Update</button>
-                      <button class="secondary-btn" onclick="runWorkerCron(this)">Run Cron</button>
-                  </div>
-
-                  <div class="item-sep"></div>
-
-                  <div class="group-header">
-                      <input type="checkbox" class="group-chk" id="chk-archived-all">
-                      <span class="group-label">Archived</span>
-                  </div>
-                  <div class="list">
-                      ${archiveListHtml}
-                  </div>
-                  <div class="ops-actions">
-                      <button class="primary-btn" onclick="rebuildSelected(this)">Rebuild</button>
-                  </div>
-
               </div>
           </div>`;
 

@@ -55,8 +55,4 @@ export const toolsActions = `
                   showForceUpdateResult(res, name);
               }).catch(function() { showResult(false, networkErrorMessage); }).then(restore);
           }
-
-          function deleteActive(slug, name, button) {
-              previewConfigAction('active-runtime-delete', button, { slug: slug, name: name });
-          }
 `;

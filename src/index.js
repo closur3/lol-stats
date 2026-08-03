@@ -3,8 +3,7 @@ import { ArchiveRouter } from './routes/archive.js';
 import { ToolsRouter } from './routes/tools.js';
 import { LogsRouter } from './routes/logs.js';
 import { handleForceUpdate } from './routes/api/force.js';
-import { handleDeleteActive } from './routes/api/activeActions.js';
-import { handleDeleteArchive, handleRebuildArchive } from './routes/api/archiveActions.js';
+import { handleRebuildArchive } from './routes/api/archiveActions.js';
 import { handleRunCron } from './routes/api/runCron.js';
 import { handleReconcileTournaments } from './routes/api/reconcileTournaments.js';
 import { logActionResponse } from './routes/api/actionResponseLogger.js';
@@ -35,12 +34,6 @@ export default {
       
       case "/rebuild-archive":
         return logActionResponse("ARCHIVE_REBUILD", await handleRebuildArchive(request, env));
-
-      case "/delete-active":
-        return logActionResponse("ACTIVE_DELETE", await handleDeleteActive(request, env));
-      
-      case "/delete-archive":
-        return logActionResponse("ARCHIVE_DELETE", await handleDeleteArchive(request, env));
 
       case "/run-cron":
         return logActionResponse("CRON", await handleRunCron(request, env));

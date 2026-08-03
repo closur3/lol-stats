@@ -1,4 +1,3 @@
-import { deleteArchiveSnapshot } from "../../core/updater/archiveSnapshotDeletion.js";
 import { readTournamentConfig } from "../../core/facts/tournamentConfigReader.js";
 import { rebuildArchiveSnapshot } from "../../core/updater/archiveSnapshotRebuilder.js";
 import { requireAdmin, requirePost } from "./auth.js";
@@ -27,24 +26,5 @@ export async function handleRebuildArchive(request, env) {
     return new Response("OK", { status: 200 });
   } catch (error) {
     return new Response(`Error: ${error.message}`, { status: 500 });
-  }
-}
-
-export async function handleDeleteArchive(request, env) {
-  const methodError = requirePost(request);
-  if (methodError) return methodError;
-  const unauthorized = requireAdmin(request, env);
-  if (unauthorized) return unauthorized;
-
-  const payload = await readJsonPayload(request);
-  if (!payload) return new Response("Invalid JSON payload", { status: 400 });
-  const slug = readSlug(payload);
-  if (!slug) return new Response("Missing required field: slug", { status: 400 });
-
-  try {
-    await deleteArchiveSnapshot(env, slug);
-    return new Response("OK", { status: 200 });
-  } catch (error) {
-    return new Response(`Delete Error: ${error.message}`, { status: 500 });
   }
 }

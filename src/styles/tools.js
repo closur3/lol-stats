@@ -1,26 +1,28 @@
 import baseCSS from "./base.js";
 
 export default `${baseCSS}
-    .container { flex: 1; max-width: 900px; display: flex; flex-direction: column; gap: 20px; }
+    .container { flex: 1; max-width: 1000px; display: flex; flex-direction: column; gap: 20px; }
 
-    .table-title { padding: 15px 20px; font-weight: 600; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; background: #fff; color: #0f172a; font-size: 15px; box-sizing: border-box; }
-    .section-body { padding: 25px 20px; box-sizing: border-box; }
-    .config-error-alert { box-sizing: border-box; width: calc(100% - 24px); margin: 0 12px 12px; padding: 12px 14px; border: 1px solid #fdba74; border-left: 4px solid #f97316; border-radius: var(--radius-card); color: #9a3412; background: #fff7ed; font-size: 13px; line-height: 1.55; }
+    .table-title { padding: 13px 20px; min-height: 58px; font-weight: 600; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #fff; color: #0f172a; font-size: 15px; box-sizing: border-box; }
+    .tools-cron-btn { width: auto; padding: 7px 12px; font-size: 12px; }
+    .section-body { padding: 20px; box-sizing: border-box; }
+    .config-error-alert { box-sizing: border-box; width: 100%; margin: 0 0 14px; padding: 12px 14px; border: 1px solid #fdba74; border-left: 4px solid #f97316; border-radius: var(--radius-card); color: #9a3412; background: #fff7ed; font-size: 13px; line-height: 1.55; }
     .config-error-alert strong { display: block; color: #c2410c; font-size: 13px; margin-bottom: 4px; }
     .config-error-alert span { color: #9a3412; overflow-wrap: anywhere; }
 
-    .ops-body .list { display: flex; flex-direction: column; gap: 4px; }
+    .ops-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+    .ops-panel { min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
+    .ops-body .list { display: flex; flex-direction: column; gap: 2px; padding: 6px; }
     .ops-body .item { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--radius-control); transition: 0.2s; border: 1px solid transparent; }
     .ops-body .item:hover { background: #f8fafc; border-color: #e2e8f0; }
     .ops-body .item-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; cursor: pointer; }
     .ops-body .item-chk { width: 16px; height: 16px; accent-color: #2563eb; flex-shrink: 0; }
     .ops-body .item-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ops-body .item-right { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
-    .ops-body .group-header { display: flex; align-items: center; gap: 8px; padding: 12px 12px 6px 12px; }
+    .ops-body .group-header { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 18px; border-bottom: 1px solid var(--color-border); background: var(--color-surface-muted); }
     .ops-body .group-chk { width: 16px; height: 16px; accent-color: #2563eb; flex-shrink: 0; cursor: pointer; }
-    .ops-body .group-label { font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
-    .ops-body .item-sep { height: 1px; background: #f1f5f9; margin: 4px 0; }
-    .ops-body .ops-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px; }
+    .ops-body .group-label { font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+    .ops-body .group-action { width: auto; min-width: 86px; padding: 7px 11px; font-size: 11px; }
 
     .index-confirm-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.38); z-index: 1001; padding: 20px; }
     .index-confirm-overlay.open { display: flex; }
@@ -34,7 +36,8 @@ export default `${baseCSS}
 
     .icon-btn:disabled, .primary-btn:disabled, .secondary-btn:disabled { opacity: 0.7; cursor: wait; }
 
-    @media (max-width: 650px) { .primary-btn, .secondary-btn { width: 100%; } .index-confirm-dialog { grid-template-columns: 1fr; } .index-confirm-actions { flex-direction: column-reverse; } .ops-actions { flex-direction: column; } .ops-body .item { flex-wrap: wrap; } .ops-body .item-right { width: 100%; justify-content: flex-end; margin-top: 4px; } }
+    @media (max-width: 760px) { .ops-grid { grid-template-columns: 1fr; gap: 12px; } }
+    @media (max-width: 650px) { .primary-btn, .secondary-btn { width: 100%; } .tools-cron-btn, .ops-body .group-action { width: auto; } .section-body { padding: 12px; } .index-confirm-dialog { grid-template-columns: 1fr; } .index-confirm-actions { flex-direction: column-reverse; } .ops-body .item { flex-wrap: nowrap; } .ops-body .item-right { width: auto; justify-content: flex-end; margin-top: 0; } }
 
     #auth-overlay { position: fixed; top: 64px; right: 0; bottom: calc(44px + env(safe-area-inset-bottom)); left: 0; background: #f1f5f9; display: flex; justify-content: center; align-items: center; z-index: 90; }
     .auth-card { background: #fff; padding: 35px 30px; border-radius: var(--radius-card); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); width: 340px; text-align: center; box-sizing: border-box; border: 1px solid #e2e8f0; }

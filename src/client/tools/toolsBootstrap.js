@@ -78,32 +78,6 @@ export const toolsBootstrap = `
           var pendingConfigActionPayload = null;
           function getConfigActionMeta(action, payload) {
               if (!payload || typeof payload !== 'object') throw new Error('Configuration action payload missing.');
-              if (action === 'active-runtime-delete') {
-                  return {
-                      label: 'Delete active runtime state',
-                      flow: 'Target: ' + (payload.name || payload.slug || 'Active tournament'),
-                      icon: '!',
-                      url: '/delete-active',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ slug: payload.slug }),
-                      submitText: 'Delete',
-                      successMessage: 'Active runtime state deleted: ' + (payload.name || payload.slug),
-                      failurePrefix: 'Delete failed: ' + (payload.name || payload.slug)
-                  };
-              }
-              if (action === 'archive-delete') {
-                  return {
-                      label: 'Delete archive snapshot',
-                      flow: 'Target: ' + (payload.name || payload.slug || 'Archive tournament'),
-                      icon: '!',
-                      url: '/delete-archive',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ slug: payload.slug }),
-                      submitText: 'Delete',
-                      successMessage: 'Archive snapshot deleted: ' + (payload.name || payload.slug),
-                      failurePrefix: 'Delete failed: ' + (payload.name || payload.slug)
-                  };
-              }
               if (action === 'active-force-all') {
                   return {
                       label: 'Force update all active tournaments',
@@ -171,13 +145,6 @@ export const toolsBootstrap = `
                   if (checkAuthError(res.status)) return;
                   if (res.ok) {
                       closeConfigActionConfirm();
-                      if (action === 'active-runtime-delete') {
-                          return readActionResult(res).then(function(result) {
-                              updateCronInfo(result.cronInfo);
-                              if (res.status === 207) showWarning(result.message);
-                              else showResult(true, meta.successMessage);
-                          });
-                      }
                       if (res.status === 207) {
                           return readActionMessage(res, 'Operation completed with warnings.').then(showWarning);
                       } else {
