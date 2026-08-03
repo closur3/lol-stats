@@ -2,10 +2,22 @@ import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 import { updateConfig } from "./updateConfig.js";
 import { normalizeActiveLogEntries, normalizeActiveLogEntry } from "../facts/activeLog.js";
 
+class ActiveLogDataError extends Error {}
+
 async function readExistingLogEntries(kv, logKey) {
-  const logs = await kv.get(logKey, { type: "json" });
-  if (logs == null) return [];
-  return normalizeActiveLogEntries(logs, logKey);
+  const stored = await kv.get(logKey);
+  if (stored == null) return [];
+  let logs;
+  try {
+    logs = typeof stored === "string" ? JSON.parse(stored) : stored;
+    return normalizeActiveLogEntries(logs, logKey);
+  } catch (error) {
+    throw new ActiveLogDataError(`Invalid ${logKey}`, { cause: error });
+  }
+}
+
+function buildNextLogs(logEntry, oldLogs) {
+  return [logEntry, ...oldLogs].slice(0, updateConfig.maxLogEntries);
 }
 
 export async function appendActiveLogs(env, activeLogEntries) {
@@ -18,12 +30,12 @@ export async function appendActiveLogs(env, activeLogEntries) {
     const normalizedEntry = normalizeActiveLogEntry(entry, `ActiveLog_${slug} entry`);
     const logKey = kvKeys.log(slug);
     const oldLogs = await readExistingLogEntries(kv, logKey);
-    const nextLogs = [normalizedEntry, ...oldLogs].slice(0, updateConfig.maxLogEntries);
+    const nextLogs = buildNextLogs(normalizedEntry, oldLogs);
     await env["lol-stats-kv"].put(logKey, JSON.stringify(nextLogs));
   }));
 }
 
-export async function replaceActiveLogs(env, activeLogEntries) {
+export async function repairInvalidActiveLogs(env, activeLogEntries) {
   if (!activeLogEntries || typeof activeLogEntries !== "object" || Array.isArray(activeLogEntries)) {
     throw new Error("activeLogEntries must be a JSON object");
   }
@@ -31,7 +43,14 @@ export async function replaceActiveLogs(env, activeLogEntries) {
   await Promise.all(Object.entries(activeLogEntries).map(async ([slug, entry]) => {
     if (!slug) throw new Error("ActiveLog slug missing");
     const normalizedEntry = normalizeActiveLogEntry(entry, `ActiveLog_${slug} entry`);
-    await kv.put(kvKeys.log(slug), JSON.stringify([normalizedEntry]));
+    const logKey = kvKeys.log(slug);
+    try {
+      const oldLogs = await readExistingLogEntries(kv, logKey);
+      await kv.put(logKey, JSON.stringify(buildNextLogs(normalizedEntry, oldLogs)));
+    } catch (error) {
+      if (!(error instanceof ActiveLogDataError)) throw error;
+      await kv.put(logKey, JSON.stringify([normalizedEntry]));
+    }
   }));
 }
 
@@ -39,10 +58,10 @@ export async function commitActiveLogWrites(env, writes) {
   if (!writes || typeof writes !== "object" || Array.isArray(writes)) {
     throw new Error("ActiveLog writes must be a JSON object");
   }
+  const expectedFields = ["appendEntries", "repairEntries"];
   const fields = Object.keys(writes);
-  const expectedFields = ["appendEntries", "replaceEntries"];
   if (fields.length !== expectedFields.length || expectedFields.some(field => !Object.hasOwn(writes, field))) {
-    throw new Error("ActiveLog writes fields must be appendEntries and replaceEntries");
+    throw new Error("ActiveLog writes fields must be appendEntries and repairEntries");
   }
   for (const field of expectedFields) {
     if (!writes[field] || typeof writes[field] !== "object" || Array.isArray(writes[field])) {
@@ -50,10 +69,10 @@ export async function commitActiveLogWrites(env, writes) {
     }
   }
   const appendSlugs = new Set(Object.keys(writes.appendEntries));
-  const overlappingSlug = Object.keys(writes.replaceEntries).find(slug => appendSlugs.has(slug));
+  const overlappingSlug = Object.keys(writes.repairEntries).find(slug => appendSlugs.has(slug));
   if (overlappingSlug) throw new Error(`ActiveLog write mode conflict: ${overlappingSlug}`);
   await Promise.all([
     appendActiveLogs(env, writes.appendEntries),
-    replaceActiveLogs(env, writes.replaceEntries)
+    repairInvalidActiveLogs(env, writes.repairEntries)
   ]);
 }

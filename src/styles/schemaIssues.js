@@ -3,7 +3,7 @@ export default `
   .error-issue { display: grid; grid-template-columns: 8px minmax(0, 1fr); align-items: start; gap: 10px; padding: 12px 13px 12px 10px; border: 1px solid #e2e8f0; border-left: 3px solid #f87171; border-radius: var(--radius-card); background: #ffffff; color: #64748b; font-size: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
   .error-issue.is-archive { border-left-color: #f59e0b; }
   .error-issue.is-active { border-left-color: #3b82f6; }
-  .error-issue-mark { width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; background: #ef4444; }
+  .error-issue-mark { width: 6px; height: 6px; margin-top: 6px; border-radius: var(--radius-circle); background: #ef4444; }
   .error-issue-content { min-width: 0; }
   .error-issue-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
   .error-issue-heading code { min-width: 0; color: #334155; font-size: 12px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }

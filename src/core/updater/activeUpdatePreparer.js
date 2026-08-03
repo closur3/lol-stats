@@ -87,12 +87,12 @@ function buildActiveUpdateLogs(rawMatchUpdate) {
 
 function partitionActiveLogs(activeLogEntries, reasonsBySlug) {
   const appendEntries = {};
-  const replaceEntries = {};
+  const repairEntries = {};
   for (const [slug, entry] of Object.entries(activeLogEntries)) {
-    const target = reasonsBySlug.get(slug) === "force" ? replaceEntries : appendEntries;
+    const target = reasonsBySlug.get(slug) === "force" ? repairEntries : appendEntries;
     target[slug] = entry;
   }
-  return { appendEntries, replaceEntries };
+  return { appendEntries, repairEntries };
 }
 
 function buildRejectedPlan(rawMatchUpdate, activeLogEntries) {
@@ -114,7 +114,7 @@ function buildRejectedPlan(rawMatchUpdate, activeLogEntries) {
   return {
     accepted: false,
     failureMessage: `Active update rejected (${details.join("; ")})`,
-    activeLogWrites: { appendEntries: failureEntries, replaceEntries: {} }
+    activeLogWrites: { appendEntries: failureEntries, repairEntries: {} }
   };
 }
 
@@ -166,8 +166,7 @@ export async function prepareActiveUpdate(env, tournaments, rawMatchesBySlug, ta
   const activeLogEntries = buildActiveUpdateLogs(rawMatchUpdate);
   const rejectedPlan = buildRejectedPlan(rawMatchUpdate, activeLogEntries);
   if (rejectedPlan) return rejectedPlan;
-  const { appendEntries, replaceEntries } = partitionActiveLogs(activeLogEntries, reasonsBySlug);
-
+  const { appendEntries, repairEntries } = partitionActiveLogs(activeLogEntries, reasonsBySlug);
   const writeScopeSlugs = buildWriteScopeSlugs([...syncItems, ...skipItems], rebuild ? targetSlugs : new Set());
   const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
   const analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
@@ -179,6 +178,6 @@ export async function prepareActiveUpdate(env, tournaments, rawMatchesBySlug, ta
     rawMatchesBySlug: selectWriteValues(rawMatchesBySlug, writeScopeSlugs, "RawMatches"),
     scheduleSessionsBySlug,
     homeSnapshotsBySlug,
-    activeLogWrites: { appendEntries, replaceEntries }
+    activeLogWrites: { appendEntries, repairEntries }
   };
 }

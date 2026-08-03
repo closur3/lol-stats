@@ -15,10 +15,10 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
         --color-primary-soft: #eff6ff;
         --color-danger: #dc2626;
         --gradient-header: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-        --radius-card: 12px;
-        --radius-control: 8px;
-        --radius-badge: 4px;
-        --radius-pill: 999px;
+        --radius-card: 10px;
+        --radius-control: 6px;
+        --radius-badge: 6px;
+        --radius-circle: 50%;
         --shadow-card: 0 4px 6px rgba(0,0,0,0.05);
     }
     body, code, input, button, select, textarea { font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }

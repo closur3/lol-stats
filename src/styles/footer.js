@@ -8,9 +8,9 @@ export default `.build-footer { margin-top: auto; text-align: center; padding: 1
     .footer-cron-info.unavailable { display: none; }
     .footer-cron-info::before { content: ""; display: none; position: absolute; left: 50%; bottom: 100%; width: 28px; height: 8px; transform: translateX(-50%); }
     .footer-cron-info:hover::before, .footer-cron-info.is-open::before { display: block; }
-    .footer-cron-trigger { width: 6px; height: 6px; display: block; padding: 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; }
+    .footer-cron-trigger { width: 6px; height: 6px; display: block; padding: 0; border: 0; background: transparent; border-radius: var(--radius-circle); cursor: pointer; }
     .footer-cron-trigger:focus-visible { outline: 2px solid rgba(37,99,235,0.35); outline-offset: 1px; }
-    .cron-dot { display: block; width: 6px; height: 6px; border-radius: 50%; }
+    .cron-dot { display: block; width: 6px; height: 6px; border-radius: var(--radius-circle); }
     .footer-cron-info.idle .cron-dot, .footer-cron-info.idle .footer-cron-panel-dot { background-color: #94a3b8; }
     .footer-cron-info.active .cron-dot, .footer-cron-info.active .footer-cron-panel-dot { background-color: #22c55e; }
     .footer-cron-info.active .footer-cron-trigger:hover .cron-dot { box-shadow: 0 0 0 3px rgba(34,197,94,0.16); }
@@ -19,10 +19,10 @@ export default `.build-footer { margin-top: auto; text-align: center; padding: 1
     .footer-cron-info:hover .footer-cron-panel, .footer-cron-info.is-open .footer-cron-panel { display: flex; flex-direction: column; gap: 9px; }
     .footer-cron-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 2px; }
     .footer-cron-label { color: var(--color-text-faint); font-size: 9px; font-weight: 700; letter-spacing: 0.8px; }
-    .footer-cron-state { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 0 7px; border-radius: var(--radius-pill); font-size: 9px; font-weight: 700; letter-spacing: 0.4px; }
+    .footer-cron-state { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 0 7px; border-radius: var(--radius-badge); font-size: 9px; font-weight: 700; letter-spacing: 0.4px; }
     .footer-cron-info.active .footer-cron-state { background: #f0fdf4; color: #15803d; }
     .footer-cron-info.idle .footer-cron-state { background: #f1f5f9; color: #64748b; }
-    .footer-cron-panel-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 6px; }
+    .footer-cron-panel-dot { width: 6px; height: 6px; border-radius: var(--radius-circle); flex: 0 0 6px; }
     .footer-cron-schedules { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-muted); }
     .footer-cron-schedule { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; }
     .footer-cron-schedule + .footer-cron-schedule { border-top: 1px solid var(--color-border); }

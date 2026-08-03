@@ -11,7 +11,7 @@ export default `${baseCSS}
     .config-error-alert span { color: #9a3412; overflow-wrap: anywhere; }
 
     .ops-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-    .ops-panel { min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
+    .ops-panel { min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); }
     .ops-body .list { display: flex; flex-direction: column; gap: 2px; padding: 6px; }
     .ops-body .item { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--radius-control); transition: 0.2s; border: 1px solid transparent; }
     .ops-body .item:hover { background: #f8fafc; border-color: #e2e8f0; }
@@ -27,7 +27,7 @@ export default `${baseCSS}
     .index-confirm-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.38); z-index: 1001; padding: 20px; }
     .index-confirm-overlay.open { display: flex; }
     .index-confirm-dialog { width: min(420px, 100%); background: #fff; border: 1px solid #e2e8f0; border-radius: var(--radius-card); box-shadow: 0 24px 60px rgba(15,23,42,0.22); padding: 20px; display: grid; grid-template-columns: auto 1fr; gap: 14px; }
-    .index-confirm-icon { width: 38px; height: 38px; border-radius: var(--radius-control); background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; line-height: 1; }
+    .index-confirm-icon { width: 38px; height: 38px; border-radius: var(--radius-circle); background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; line-height: 1; }
     .index-confirm-content { min-width: 0; }
     .index-confirm-content h2 { margin: 0 0 8px; font-size: 16px; line-height: 1.35; color: #0f172a; letter-spacing: 0; }
     .index-confirm-flow { font-size: 12px; line-height: 1.45; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-control); padding: 8px 10px; overflow-wrap: anywhere; }
@@ -58,9 +58,9 @@ export default `${baseCSS}
     #toast-container { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 10px; width: auto; max-width: 92vw; pointer-events: none; }
     .toast { --toast-accent: #2563eb; position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) 24px; align-items: center; gap: 10px; width: max-content; min-width: min(340px, 92vw); max-width: min(92vw, 520px); padding: 12px 11px 13px 12px; overflow: hidden; border: 1px solid #dbe4ee; border-radius: var(--radius-card); background: rgba(255,255,255,0.97); color: #334155; font-size: 13px; line-height: 1.45; font-weight: 600; letter-spacing: 0.1px; box-shadow: 0 16px 36px -20px rgba(15,23,42,0.45), 0 6px 16px -10px rgba(15,23,42,0.2); opacity: 0; transform: translateY(-12px) scale(0.98); transition: opacity 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease; text-align: left; word-break: break-word; pointer-events: auto; }
     .toast.show { opacity: 1; transform: translateY(0) scale(1); box-shadow: 0 18px 42px -20px rgba(15,23,42,0.5), 0 8px 18px -10px rgba(15,23,42,0.24); }
-    .toast-icon { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: color-mix(in srgb, var(--toast-accent) 12%, white); color: var(--toast-accent); font-size: 15px; line-height: 1; font-weight: 800; }
+    .toast-icon { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-circle); background: color-mix(in srgb, var(--toast-accent) 12%, white); color: var(--toast-accent); font-size: 15px; line-height: 1; font-weight: 800; }
     .toast-message { min-width: 0; }
-    .toast-close { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: #94a3b8; font: inherit; font-size: 17px; line-height: 1; cursor: pointer; }
+    .toast-close { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: var(--radius-circle); background: transparent; color: #94a3b8; font: inherit; font-size: 17px; line-height: 1; cursor: pointer; }
     .toast-close:hover { background: #f1f5f9; color: #475569; }
     .toast-progress { position: absolute; left: 0; bottom: 0; width: 100%; height: 3px; background: var(--toast-accent); transform-origin: left center; animation: toastProgress var(--toast-duration) linear forwards; }
     .toast.paused .toast-progress { animation-play-state: paused; }
