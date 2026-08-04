@@ -24,10 +24,9 @@ export default `${baseCSS}
     .schedule-phase-icon-idle { color: var(--color-phase-idle); }
     .schedule-phase-icon-done { color: var(--color-phase-done); }
     .schedule-phase-icon-offday { color: var(--color-phase-offday); }
-    .tournament-info { position: relative; display: inline-flex; flex: 0 0 22px; }
-    .table-title .tournament-info-trigger { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-circle); background: transparent; color: #64748b; flex: 0 0 22px; cursor: pointer; transition: color 0.15s, border-color 0.15s, background-color 0.15s, box-shadow 0.15s; }
-    .table-title .tournament-info-trigger svg { width: 15px; height: 15px; stroke-width: 2.2; }
-    .table-title .tournament-info-trigger:hover, .tournament-info.is-open .tournament-info-trigger { border-color: #93c5fd; color: #1d4ed8; background: #eff6ff; box-shadow: 0 1px 2px rgba(37,99,235,0.08); }
+    .tournament-info { position: relative; display: inline-flex; flex: 0 0 auto; }
+    .table-title .tournament-info-trigger { cursor: pointer; transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s; }
+    .table-title .tournament-info-trigger:hover, .tournament-info.is-open .tournament-info-trigger { border-color: #93c5fd; background: #e6f0ff; box-shadow: 0 1px 2px rgba(37,99,235,0.08); }
     .table-title .tournament-info-trigger:focus-visible { outline: 2px solid rgba(37,99,235,0.35); outline-offset: 1px; }
     .tournament-info-panel { --tournament-info-title-date-gap: 4px; display: none; position: absolute; z-index: 120; top: calc(100% + 8px); left: 50%; transform: translateX(calc(-50% + var(--tournament-info-shift, 0px))); width: min(284px, calc(100vw - 30px)); box-sizing: border-box; overflow: hidden; border: 1px solid #dbe3ec; border-radius: var(--radius-card); background: #ffffff; color: #334155; box-shadow: 0 16px 36px rgba(15,23,42,0.18); text-align: left; cursor: default; }
     .tournament-info.is-open .tournament-info-panel { display: block; }
