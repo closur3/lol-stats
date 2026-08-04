@@ -18,7 +18,7 @@ export function renderSchemaIssueCards(issues) {
   return `<ul class="error-issues">${artifacts.map(artifact => {
     const artifactClass = artifact.artifactKey.startsWith("ArchiveSnapshot_")
       ? " is-archive"
-      : artifact.artifactKey.startsWith("ActiveHome_") ? " is-active" : "";
+      : artifact.artifactKey.startsWith("ActiveSnapshot_") ? " is-active" : "";
     const reasonsHtml = artifact.issues.map(issue => {
       const actualHtml = issue.actual ? `<span><b>Actual</b>${escapeHtml(issue.actual)}</span>` : "";
       return `<li><div class="error-reason-heading"><code>${escapeHtml(issue.path)}</code><span class="error-kind error-kind-${issue.kind}">${escapeHtml(issue.kind)}</span></div><div class="error-expectation"><span><b>Expected</b>${escapeHtml(issue.expected)}</span>${actualHtml}</div></li>`;

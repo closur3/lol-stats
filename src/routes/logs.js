@@ -10,17 +10,17 @@ import { createSchemaIssue } from '../core/facts/schemaIssue.js';
 import { renderDataErrorPage } from '../render/templates/error.js';
 import { createNoCacheHtmlHeaders } from './htmlResponse.js';
 
-async function readLogsBySlug(kv, slugs) {
-  if (!Array.isArray(slugs)) throw new Error("slugs must be an array");
-  const logPairs = await Promise.all(slugs.map(async slug => {
-    const logKey = kvKeys.log(slug);
+async function readLogsByName(kv, names) {
+  if (!Array.isArray(names)) throw new Error("names must be an array");
+  const logPairs = await Promise.all(names.map(async tournamentName => {
+    const logKey = kvKeys.log(tournamentName);
     const result = await inspectLogEntries(kv, logKey);
-    return { slug, ...result };
+    return { tournamentName, ...result };
   }));
   return {
-    logsBySlug: new Map(logPairs
+    logsByName: new Map(logPairs
       .filter(result => !result.issue && result.logs.length > 0)
-      .map(result => [result.slug, result.logs])),
+      .map(result => [result.tournamentName, result.logs])),
     issues: logPairs.flatMap(result => result.issue ? [result.issue] : [])
   };
 }
@@ -63,13 +63,13 @@ async function inspectLogEntries(kv, logKey) {
   }
 }
 
-async function readLogMetaBySlug(env, slugs) {
-  const metaPairs = await Promise.all(slugs.map(async slug => {
+async function readLogMetaByName(env, names) {
+  const metaPairs = await Promise.all(names.map(async tournamentName => {
     const [rawMatches, scheduleSessions] = await Promise.all([
-      readRawMatches(env, slug),
-      readScheduleSessions(env, slug)
+      readRawMatches(env, tournamentName),
+      readScheduleSessions(env, tournamentName)
     ]);
-    return [slug, {
+    return [tournamentName, {
       totalMatchCount: rawMatches.length,
       scheduleSessions: { sessions: scheduleSessions.sessions }
     }];
@@ -77,27 +77,28 @@ async function readLogMetaBySlug(env, slugs) {
   return new Map(metaPairs);
 }
 
-function buildActiveLogItem(tournament, logs, homeMeta) {
-  const { slug, name, leagueShort } = tournament;
-  if (!Array.isArray(logs)) throw new Error(`ActiveLog entries missing: ${slug}`);
-  if (!homeMeta) throw new Error(`ActiveLog meta missing: ${slug}`);
+function buildActiveLogItem(tournament, logs, activeMeta) {
+  const { name, leagueShort } = tournament;
+  const tournamentName = name;
+  if (!Array.isArray(logs)) throw new Error(`ActiveLog entries missing: ${tournamentName}`);
+  if (!activeMeta) throw new Error(`ActiveLog meta missing: ${tournamentName}`);
   return {
     name,
     leagueShort,
     logs,
-    totalMatches: homeMeta.totalMatchCount,
-    scheduleSessions: homeMeta.scheduleSessions
+    totalMatches: activeMeta.totalMatchCount,
+    scheduleSessions: activeMeta.scheduleSessions
   };
 }
 
-function buildActiveLogItems(tournaments, logsBySlug, homeBySlug) {
+function buildActiveLogItems(tournaments, logsByName, activeByName) {
   const activeLogItems = [];
 
   for (const tournament of tournaments) {
-    const slug = tournament?.slug;
-    if (!slug || !logsBySlug.has(slug)) continue;
-    const logs = logsBySlug.get(slug);
-    activeLogItems.push(buildActiveLogItem(tournament, logs, homeBySlug.get(slug)));
+    const tournamentName = tournament?.name;
+    if (!tournamentName || !logsByName.has(tournamentName)) continue;
+    const logs = logsByName.get(tournamentName);
+    activeLogItems.push(buildActiveLogItem(tournament, logs, activeByName.get(tournamentName)));
   }
 
   return activeLogItems;
@@ -108,11 +109,11 @@ export class LogsRouter {
     try {
       const kv = env["lol-stats-kv"];
       const { active: tournaments } = await readTournamentConfig(env);
-      const slugs = tournaments.map(tournament => tournament.slug);
-      const logResult = await readLogsBySlug(kv, slugs);
-      const logSlugs = Array.from(logResult.logsBySlug.keys());
-      const homeBySlug = await readLogMetaBySlug(env, logSlugs);
-      const activeLogItems = buildActiveLogItems(tournaments, logResult.logsBySlug, homeBySlug);
+      const names = tournaments.map(tournament => tournament.name);
+      const logResult = await readLogsByName(kv, names);
+      const logNames = Array.from(logResult.logsByName.keys());
+      const activeByName = await readLogMetaByName(env, logNames);
+      const activeLogItems = buildActiveLogItems(tournaments, logResult.logsByName, activeByName);
       const cronInfo = await readCronInfo(env);
       const html = renderLogPage(activeLogItems, env.GITHUB_TIME, env.GITHUB_SHA, cronInfo, {
         maxLogEntries: updateConfig.maxLogEntries,

@@ -1,23 +1,23 @@
 export const modalHistory = `
-function requireModalTeamStats(slug, statisticsScope, teamName) {
-    const statistics = window.tournamentStatistics && window.tournamentStatistics[slug];
+function requireModalTeamStats(tournamentName, statisticsScope, teamName) {
+    const statistics = window.tournamentStatistics && window.tournamentStatistics[tournamentName];
     if (!statistics || !statistics.combined || !Array.isArray(statistics.pages)) {
-        throw new Error('Tournament statistics missing: ' + slug);
+        throw new Error('Tournament statistics missing: ' + tournamentName);
     }
     let scopedStats;
     if (statisticsScope === 'combined') {
         scopedStats = statistics.combined;
     } else {
         const page = statistics.pages.find(item => item.overviewPage === statisticsScope);
-        if (!page || !page.stats) throw new Error('Tournament statistics scope missing: ' + slug + ':' + statisticsScope);
+        if (!page || !page.stats) throw new Error('Tournament statistics scope missing: ' + tournamentName + ':' + statisticsScope);
         scopedStats = page.stats;
     }
     if (!scopedStats[teamName]) {
-        throw new Error('Team stats missing: ' + slug + ':' + statisticsScope + ':' + teamName);
+        throw new Error('Team stats missing: ' + tournamentName + ':' + statisticsScope + ':' + teamName);
     }
     const teamStats = scopedStats[teamName];
     if (!Array.isArray(teamStats.history)) {
-        throw new Error('Team history missing: ' + slug + ':' + statisticsScope + ':' + teamName);
+        throw new Error('Team history missing: ' + tournamentName + ':' + statisticsScope + ':' + teamName);
     }
     return teamStats;
 }
@@ -63,14 +63,11 @@ function sortHistoryMatches(matches, newestFirst) {
 function groupHistoryMatches(history, newestFirst) {
     const groups = new Map();
     history.forEach(match => {
-        if (typeof match.tournamentSlug !== 'string' || match.tournamentSlug.length === 0) {
-            throw new Error('Tournament slug missing from modal history');
-        }
         if (typeof match.tournamentName !== 'string' || match.tournamentName.length === 0) {
             throw new Error('Tournament name missing from modal history');
         }
         if (typeof match.tabName !== 'string') throw new Error('Tab name missing from modal history');
-        let current = groups.get(match.tournamentSlug);
+        let current = groups.get(match.tournamentName);
         if (current) {
             current.matches.push(match);
             current.latestTimestamp = Math.max(current.latestTimestamp, match.timestamp);
@@ -83,7 +80,7 @@ function groupHistoryMatches(history, newestFirst) {
             }
             return;
         }
-        groups.set(match.tournamentSlug, {
+        groups.set(match.tournamentName, {
             tournamentName: match.tournamentName,
             matches: [match],
             latestTimestamp: match.timestamp,
@@ -271,8 +268,8 @@ function formatHistoryRecord(history, label) {
     return formatStatsRecord(wins, history.length, label);
 }
 
-function openStats(slug, statisticsScope, teamName, type) {
-    const teamStats = requireModalTeamStats(slug, statisticsScope, teamName);
+function openStats(tournamentName, statisticsScope, teamName, type) {
+    const teamStats = requireModalTeamStats(tournamentName, statisticsScope, teamName);
     const finishedHistory = teamStats.history.filter(isFinishedHistoryMatch);
     let historyByType;
     let statLabel;

@@ -17,51 +17,51 @@ function hasRevisionRecordChanged(previousRecord, nextRecord) {
   return false;
 }
 
-function normalizePreviousRevisionState(slug, previousRevisionState) {
+function normalizePreviousRevisionState(tournamentName, previousRevisionState) {
   if (previousRevisionState == null) return { pages: {} };
   if (typeof previousRevisionState !== "object" || Array.isArray(previousRevisionState)) {
-    throw new Error(`REV state must be a JSON object: ${slug}`);
+    throw new Error(`REV state must be a JSON object: ${tournamentName}`);
   }
   const fields = Object.keys(previousRevisionState);
-  if (fields.length !== 1 || fields[0] !== "pages") throw new Error(`REV state fields invalid: ${slug}`);
+  if (fields.length !== 1 || fields[0] !== "pages") throw new Error(`REV state fields invalid: ${tournamentName}`);
   const storedPages = previousRevisionState.pages;
   if (!storedPages || typeof storedPages !== "object" || Array.isArray(storedPages)) {
-    throw new Error(`REV pages must be a JSON object: ${slug}`);
+    throw new Error(`REV pages must be a JSON object: ${tournamentName}`);
   }
   const pages = {};
   for (const [title, revid] of Object.entries(storedPages)) {
-    if (!title) throw new Error(`REV page title missing: ${slug}`);
-    if (!Number.isInteger(revid) || revid <= 0) throw new Error(`REV revid invalid: ${slug}:${title}`);
+    if (!title) throw new Error(`REV page title missing: ${tournamentName}`);
+    if (!Number.isInteger(revid) || revid <= 0) throw new Error(`REV revid invalid: ${tournamentName}:${title}`);
     pages[title] = revid;
   }
   return { pages };
 }
 
 async function prepareRevisionCheck(env, tournament) {
-  const slug = tournament?.slug;
-  if (!slug) throw new Error("Tournament slug missing");
+  const tournamentName = tournament?.name;
+  if (!tournamentName) throw new Error("Tournament tournamentName missing");
 
   const pages = getOverviewPageNames(tournament.overviewPages);
-  if (pages.length === 0) throw new Error(`Tournament overviewPage missing: ${slug}`);
+  if (pages.length === 0) throw new Error(`Tournament overviewPage missing: ${tournamentName}`);
 
   const dataPages = Array.from(new Set(pages.map(toDataPage)));
   const subpageResults = await Promise.all(dataPages.map(page => fetchAllSubpages(page)));
   const revisionDataPages = Array.from(new Set(subpageResults.flat()));
 
-  const storedRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(slug));
+  const storedRevisionState = await env["lol-stats-kv"].get(kvKeys.rev(tournamentName));
   let previousRevisionState = storedRevisionState;
   if (typeof storedRevisionState === "string") {
     try {
       previousRevisionState = JSON.parse(storedRevisionState);
     } catch (error) {
-      console.error(`[REV:REPAIR] unreadable FandomRevision ${slug}: ${error.message}`);
+      console.error(`[REV:REPAIR] unreadable FandomRevision ${tournamentName}: ${error.message}`);
       previousRevisionState = null;
     }
   }
-  console.log(`[REV:CHECK] ${slug}`);
+  console.log(`[REV:CHECK] ${tournamentName}`);
 
   return {
-    slug,
+    tournamentName,
     dataPages: revisionDataPages,
     previousRevisionState
   };
@@ -78,12 +78,12 @@ async function fetchLatestRevisionPages(dataPages) {
 }
 
 async function evaluateRevisionCheck(check) {
-  const { slug, dataPages, previousRevisionState } = check;
+  const { tournamentName, dataPages, previousRevisionState } = check;
   let prevRecord;
   try {
-    prevRecord = normalizePreviousRevisionState(slug, previousRevisionState);
+    prevRecord = normalizePreviousRevisionState(tournamentName, previousRevisionState);
   } catch (error) {
-    console.error(`[REV:REPAIR] replacing invalid FandomRevision ${slug}: ${error.message}`);
+    console.error(`[REV:REPAIR] replacing invalid FandomRevision ${tournamentName}: ${error.message}`);
     prevRecord = { pages: {} };
   }
   const prevPages = prevRecord.pages;
@@ -96,7 +96,7 @@ async function evaluateRevisionCheck(check) {
   for (const { page, latest } of pageResults) {
     const title = latest.title;
     if (typeof title !== "string" || title.length === 0) {
-      throw new Error(`REV latest title missing: ${slug}:${page}`);
+      throw new Error(`REV latest title missing: ${tournamentName}:${page}`);
     }
     nextPages[title] = latest.revid;
 
@@ -112,7 +112,7 @@ async function evaluateRevisionCheck(check) {
 
   const nextRecord = { pages: nextPages };
   return {
-    slug,
+    tournamentName,
     shouldWriteRev: hasRevisionRecordChanged({ pages: prevPages }, nextRecord),
     nextRecord,
     revisionChanged: changedPages.length > 0,
@@ -127,23 +127,23 @@ async function collectRevisionChecks(env, tournaments) {
 }
 
 function applyRevisionCheckResult(revisionDetectionState, checkResult) {
-  const { slug, shouldWriteRev, nextRecord, revisionChanged, changedPages, revidChanges: slugRevidChanges } = checkResult;
+  const { tournamentName, shouldWriteRev, nextRecord, revisionChanged, changedPages, revidChanges: tournamentRevidChanges } = checkResult;
 
   if (shouldWriteRev) {
-    revisionDetectionState.pendingRevisionWrites[slug] = nextRecord;
+    revisionDetectionState.pendingRevisionWrites[tournamentName] = nextRecord;
   }
 
   if (revisionChanged) {
-    revisionDetectionState.changedSlugs.add(slug);
-    revisionDetectionState.revidChanges[slug] = slugRevidChanges;
-    console.log(`[REV:CHANGE] ${slug} pages=${changedPages.length}${changedPages.length ? ` | ${changedPages.join(", ")}` : ""}`);
+    revisionDetectionState.changedNames.add(tournamentName);
+    revisionDetectionState.revidChanges[tournamentName] = tournamentRevidChanges;
+    console.log(`[REV:CHANGE] ${tournamentName} pages=${changedPages.length}${changedPages.length ? ` | ${changedPages.join(", ")}` : ""}`);
   }
 }
 
 export async function detectRevisionChanges(env, tournaments) {
   const checks = await collectRevisionChecks(env, tournaments);
   const revisionDetectionState = {
-    changedSlugs: new Set(),
+    changedNames: new Set(),
     revidChanges: {},
     pendingRevisionWrites: {}
   };
@@ -154,9 +154,9 @@ export async function detectRevisionChanges(env, tournaments) {
   }
 
   return {
-    changedSlugs: revisionDetectionState.changedSlugs,
+    changedNames: revisionDetectionState.changedNames,
     revidChanges: revisionDetectionState.revidChanges,
     pendingRevisionWrites: revisionDetectionState.pendingRevisionWrites,
-    checkedSlugs: checks.length
+    checkedNames: checks.length
   };
 }

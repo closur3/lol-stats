@@ -2,23 +2,23 @@ export function deriveTournamentTransition(archiveTournaments, desiredApplyState
   if (!Array.isArray(archiveTournaments)) throw new Error("archiveTournaments must be an array");
   const currentActiveFingerprints = desiredApplyState.activeFingerprints;
   const previousActiveFingerprints = previousApplyState.activeFingerprints;
-  const currentArchiveSlugs = new Set(archiveTournaments.map(tournament => tournament.slug));
+  const currentArchiveNames = new Set(archiveTournaments.map(tournament => tournament.name));
 
   const added = [];
   const updated = [];
   const archived = [];
   const dropped = [];
 
-  for (const [slug, fingerprint] of Object.entries(currentActiveFingerprints)) {
-    const previousFingerprint = previousActiveFingerprints[slug];
-    if (previousFingerprint === undefined) added.push(slug);
-    else if (previousFingerprint !== fingerprint) updated.push(slug);
+  for (const [tournamentName, fingerprint] of Object.entries(currentActiveFingerprints)) {
+    const previousFingerprint = previousActiveFingerprints[tournamentName];
+    if (previousFingerprint === undefined) added.push(tournamentName);
+    else if (previousFingerprint !== fingerprint) updated.push(tournamentName);
   }
 
-  for (const slug of Object.keys(previousActiveFingerprints)) {
-    if (Object.hasOwn(currentActiveFingerprints, slug)) continue;
-    if (currentArchiveSlugs.has(slug)) archived.push(slug);
-    else dropped.push(slug);
+  for (const tournamentName of Object.keys(previousActiveFingerprints)) {
+    if (Object.hasOwn(currentActiveFingerprints, tournamentName)) continue;
+    if (currentArchiveNames.has(tournamentName)) archived.push(tournamentName);
+    else dropped.push(tournamentName);
   }
 
   return { added, updated, archived, dropped };

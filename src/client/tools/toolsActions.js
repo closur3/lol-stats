@@ -12,8 +12,8 @@ export const toolsActions = `
               });
           }
 
-          function requestForceUpdate(slugs) {
-              return sendAuthorizedPost('/force', { 'Content-Type': 'application/json' }, JSON.stringify({ slugs: slugs }));
+          function requestForceUpdate(names) {
+              return sendAuthorizedPost('/force', { 'Content-Type': 'application/json' }, JSON.stringify({ names: names }));
           }
 
           function showForceUpdateResult(res, target) {
@@ -38,20 +38,20 @@ export const toolsActions = `
                   var available = Array.from(document.querySelectorAll('#active-list .item-chk'));
                   if (available.length === 0) { showWarning('No active tournaments are available.'); return; }
                   previewConfigAction('active-force-all', button, {
-                      slugs: available.map(function(checkboxElement) { return checkboxElement.value; })
+                      names: available.map(function(checkboxElement) { return checkboxElement.value; })
                   });
                   return;
               }
-              var slugs = Array.from(checked).map(function(checkboxElement) { return checkboxElement.value; });
+              var names = Array.from(checked).map(function(checkboxElement) { return checkboxElement.value; });
               var restore = disableButton(button);
-              requestForceUpdate(slugs).then(function(res) {
-                  showForceUpdateResult(res, slugs.length + '/' + slugs.length);
+              requestForceUpdate(names).then(function(res) {
+                  showForceUpdateResult(res, names.length + '/' + names.length);
               }).catch(function() { showResult(false, networkErrorMessage); }).then(restore);
           }
 
-          function forceOne(slug, name, btnEl) {
+          function forceOne(name, btnEl) {
               var restore = disableButton(btnEl);
-              requestForceUpdate([slug]).then(function(res) {
+              requestForceUpdate([name]).then(function(res) {
                   showForceUpdateResult(res, name);
               }).catch(function() { showResult(false, networkErrorMessage); }).then(restore);
           }

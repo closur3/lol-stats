@@ -2,13 +2,33 @@ export const pageActionsScript = `
 const floatingActionsFooterGap = 12;
 
 function getTournamentSections() {
-    return Array.from(document.querySelectorAll("section.home-sec"));
+    return Array.from(document.querySelectorAll("section.active-sec"));
 }
 
 function readTournamentTitle(section) {
     const title = section.querySelector(".tournament-title-text");
     if (!title) throw new Error("Tournament title missing");
     return title.textContent.trim();
+}
+
+function readTournamentYear(title) {
+    const match = title.match(/^((?:19|20)[0-9]{2}) /);
+    if (!match) throw new Error("Tournament title must use the canonical year-first format");
+    return match[1];
+}
+
+function createTournamentYearGroup(popup, year) {
+    const group = document.createElement("div");
+    group.className = "tournament-jump-year-group compact-menu-group";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", year);
+    const heading = document.createElement("div");
+    heading.className = "tournament-jump-year-label compact-menu-group-label";
+    heading.setAttribute("aria-hidden", "true");
+    heading.textContent = year;
+    group.append(heading);
+    popup.append(group);
+    return group;
 }
 
 function updateTournamentJumpCurrent() {
@@ -45,34 +65,35 @@ function initTournamentJump() {
     if (!trigger || !popup) throw new Error("Tournament jump structure invalid");
     const sections = getTournamentSections();
     if (sections.length === 0) return;
+    const showYearHeadings = popup.dataset.yearHeadings === "true";
+    let currentYear = "";
+    let optionParent = popup;
     sections.forEach((section, index) => {
+        const title = readTournamentTitle(section);
+        if (showYearHeadings) {
+            const year = readTournamentYear(title);
+            if (year !== currentYear) {
+                currentYear = year;
+                optionParent = createTournamentYearGroup(popup, year);
+            }
+        }
         const option = document.createElement("button");
         option.type = "button";
         option.className = "tournament-jump-option compact-menu-option";
         option.setAttribute("role", "option");
-        option.textContent = readTournamentTitle(section);
+        option.textContent = title;
         option.addEventListener("click", () => jumpToTournament(section, index));
-        popup.append(option);
+        optionParent.append(option);
     });
     trigger.disabled = false;
-    let closeTimeout = 0;
-    const clearCloseTimeout = () => {
-        window.clearTimeout(closeTimeout);
-        closeTimeout = 0;
-    };
     const openMenu = () => {
-        clearCloseTimeout();
         syncTournamentJumpMobilePosition();
         if (!menu.classList.contains("is-open")) toggleCompactMenu(trigger);
     };
-    const scheduleClose = () => {
-        clearCloseTimeout();
-        closeTimeout = window.setTimeout(() => closeCompactMenus(), 180);
-    };
-    trigger.addEventListener("mouseenter", openMenu);
-    trigger.addEventListener("mouseleave", scheduleClose);
-    popup.addEventListener("mouseenter", clearCloseTimeout);
-    popup.addEventListener("mouseleave", scheduleClose);
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        menu.addEventListener("pointerenter", openMenu);
+        menu.addEventListener("pointerleave", closeCompactMenus);
+    }
     syncTournamentJumpMobilePosition();
     updateTournamentJumpCurrent();
 }

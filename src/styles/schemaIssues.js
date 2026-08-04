@@ -12,10 +12,10 @@ export default `
   .error-issue-reasons li { min-width: 0; padding: 6px 8px; border-radius: var(--radius-control); background: #f8fafc; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; }
   .error-reason-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
   .error-issue-reasons code { min-width: 0; color: #475569; font-size: 11px; font-weight: 600; }
-  .error-kind { flex-shrink: 0; padding: 1px 5px; border-radius: var(--radius-badge); font-size: 8px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
-  .error-kind-missing { background: #fee2e2; color: #b91c1c; }
-  .error-kind-invalid { background: #ffedd5; color: #c2410c; }
-  .error-kind-mismatch { background: #fef3c7; color: #a16207; }
+  .error-kind { flex-shrink: 0; padding: 1px 5px; border: 1px solid transparent; border-radius: var(--radius-badge); font-size: 8px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  .error-kind-missing { border-color: #fecaca; background: #fee2e2; color: #b91c1c; }
+  .error-kind-invalid { border-color: #fed7aa; background: #ffedd5; color: #c2410c; }
+  .error-kind-mismatch { border-color: #fde68a; background: #fef3c7; color: #a16207; }
   .error-expectation { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 4px; color: #64748b; font-size: 10px; }
   .error-expectation span { display: inline-flex; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
   .error-expectation b { color: #94a3b8; font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase; }

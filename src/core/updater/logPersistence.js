@@ -25,10 +25,10 @@ export async function appendActiveLogs(env, activeLogEntries) {
     throw new Error("activeLogEntries must be a JSON object");
   }
   const kv = env["lol-stats-kv"];
-  await Promise.all(Object.entries(activeLogEntries).map(async ([slug, entry]) => {
-    if (!slug) throw new Error("ActiveLog slug missing");
-    const normalizedEntry = normalizeActiveLogEntry(entry, `ActiveLog_${slug} entry`);
-    const logKey = kvKeys.log(slug);
+  await Promise.all(Object.entries(activeLogEntries).map(async ([tournamentName, entry]) => {
+    if (!tournamentName) throw new Error("ActiveLog tournamentName missing");
+    const normalizedEntry = normalizeActiveLogEntry(entry, `ActiveLog_${tournamentName} entry`);
+    const logKey = kvKeys.log(tournamentName);
     const oldLogs = await readExistingLogEntries(kv, logKey);
     const nextLogs = buildNextLogs(normalizedEntry, oldLogs);
     await env["lol-stats-kv"].put(logKey, JSON.stringify(nextLogs));
@@ -40,10 +40,10 @@ export async function repairInvalidActiveLogs(env, activeLogEntries) {
     throw new Error("activeLogEntries must be a JSON object");
   }
   const kv = env["lol-stats-kv"];
-  await Promise.all(Object.entries(activeLogEntries).map(async ([slug, entry]) => {
-    if (!slug) throw new Error("ActiveLog slug missing");
-    const normalizedEntry = normalizeActiveLogEntry(entry, `ActiveLog_${slug} entry`);
-    const logKey = kvKeys.log(slug);
+  await Promise.all(Object.entries(activeLogEntries).map(async ([tournamentName, entry]) => {
+    if (!tournamentName) throw new Error("ActiveLog tournamentName missing");
+    const normalizedEntry = normalizeActiveLogEntry(entry, `ActiveLog_${tournamentName} entry`);
+    const logKey = kvKeys.log(tournamentName);
     try {
       const oldLogs = await readExistingLogEntries(kv, logKey);
       await kv.put(logKey, JSON.stringify(buildNextLogs(normalizedEntry, oldLogs)));
@@ -68,9 +68,9 @@ export async function commitActiveLogWrites(env, writes) {
       throw new Error(`ActiveLog writes.${field} must be a JSON object`);
     }
   }
-  const appendSlugs = new Set(Object.keys(writes.appendEntries));
-  const overlappingSlug = Object.keys(writes.repairEntries).find(slug => appendSlugs.has(slug));
-  if (overlappingSlug) throw new Error(`ActiveLog write mode conflict: ${overlappingSlug}`);
+  const appendNames = new Set(Object.keys(writes.appendEntries));
+  const overlappingName = Object.keys(writes.repairEntries).find(tournamentName => appendNames.has(tournamentName));
+  if (overlappingName) throw new Error(`ActiveLog write mode conflict: ${overlappingName}`);
   await Promise.all([
     appendActiveLogs(env, writes.appendEntries),
     repairInvalidActiveLogs(env, writes.repairEntries)

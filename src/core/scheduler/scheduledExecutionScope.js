@@ -1,4 +1,4 @@
-import { buildActiveBucketCronsFromState, shouldRunScheduledSlugAt } from "./cronBuckets.js";
+import { buildActiveBucketCronsFromState, shouldRunScheduledTournamentAt } from "./cronBuckets.js";
 import { assertScheduleRuntimeScope } from "./scheduleRuntime.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
@@ -12,9 +12,9 @@ export function resolveScheduledExecutionScope(scheduleRuntime, tournaments, sch
   const activeCrons = new Set(buildActiveBucketCronsFromState(state, now));
   if (!activeCrons.has(eventCron)) return { type: "all" };
 
-  const slugs = new Set();
-  for (const [slug, control] of Object.entries(state.controlsBySlug)) {
-    if (shouldRunScheduledSlugAt(control, now)) slugs.add(slug);
+  const names = new Set();
+  for (const [tournamentName, control] of Object.entries(state.controlsByName)) {
+    if (shouldRunScheduledTournamentAt(control, now)) names.add(tournamentName);
   }
-  return slugs.size === 0 ? { type: "none" } : { type: "scoped", slugs };
+  return names.size === 0 ? { type: "none" } : { type: "scoped", names };
 }

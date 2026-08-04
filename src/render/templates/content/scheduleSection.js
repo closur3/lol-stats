@@ -2,7 +2,7 @@ import { escapeHtml } from '../../../utils/htmlEscape.js';
 import { timePolicy } from '../../../utils/timePolicy.js';
 import { renderScheduleRow } from '../../components/scheduleRow.js';
 
-export function renderScheduleSection(scheduleMap, combinedStatsBySlug) {
+export function renderScheduleSection(scheduleMap, combinedStatsByName) {
   const dates = Object.keys(scheduleMap).sort();
   if (dates.length === 0) return `<section id="scheduleSection"><div class="sch-empty">NO FUTURE MATCHES SCHEDULED</div></section>`;
 
@@ -14,7 +14,7 @@ export function renderScheduleSection(scheduleMap, combinedStatsBySlug) {
     let lastGroupKey = "";
 
     matches.forEach(match => {
-      if (typeof match.tabName !== "string") throw new Error(`Schedule tabName missing: ${match.slug}`);
+      if (typeof match.tabName !== "string") throw new Error(`Schedule tabName missing: ${match.tournamentName}`);
       const tabName = match.tabName;
       const groupKey = `${match.leagueShort}_${tabName}`;
       if (groupKey !== lastGroupKey) {
@@ -22,7 +22,7 @@ export function renderScheduleSection(scheduleMap, combinedStatsBySlug) {
         cardHtml += `<div class="sch-group-header"><div class="spine-row sch-group-row"><span class="spine-l sch-group-name">${escapeHtml(match.leagueShort)}</span>${blockHtml}</div></div>`;
         lastGroupKey = groupKey;
       }
-      cardHtml += renderScheduleRow(match, combinedStatsBySlug);
+      cardHtml += renderScheduleRow(match, combinedStatsByName);
     });
 
     cardHtml += `</div></div>`;

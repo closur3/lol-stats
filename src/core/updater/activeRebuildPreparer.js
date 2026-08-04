@@ -1,27 +1,27 @@
-import { readExistingRawMatchesBySlug } from "../facts/rawMatchesStore.js";
+import { readExistingRawMatchesByName } from "../facts/rawMatchesStore.js";
 import { detectRevisionChanges } from "./revisionDetector.js";
 import { prepareActiveUpdate } from "./activeUpdatePreparer.js";
 import { rejectActiveUpdate } from "./activeUpdateRejection.js";
 
 const rebuildReasons = new Set(["added", "updated"]);
 
-export async function prepareActiveTournaments(env, activeTournaments, reasonsBySlug) {
+export async function prepareActiveTournaments(env, activeTournaments, reasonsByName) {
   if (!Array.isArray(activeTournaments)) throw new Error("activeTournaments must be an array");
-  if (!(reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
-  if (reasonsBySlug.size === 0) return { pendingRevisionWrites: {}, activeUpdatePlan: null };
-  for (const [slug, reason] of reasonsBySlug) {
-    if (typeof slug !== "string" || !slug) throw new Error("Active rebuild slug missing");
+  if (!(reasonsByName instanceof Map)) throw new Error("reasonsByName must be a Map");
+  if (reasonsByName.size === 0) return { pendingRevisionWrites: {}, activeUpdatePlan: null };
+  for (const [tournamentName, reason] of reasonsByName) {
+    if (typeof tournamentName !== "string" || !tournamentName) throw new Error("Active rebuild tournamentName missing");
     if (!rebuildReasons.has(reason)) throw new Error(`Invalid active rebuild reason: ${reason}`);
   }
 
-  const targetSlugs = new Set(reasonsBySlug.keys());
-  const targetTournaments = activeTournaments.filter(tournament => targetSlugs.has(tournament.slug));
-  if (targetTournaments.length !== targetSlugs.size) throw new Error("Active rebuild tournament not present in TournamentConfig.active");
+  const targetNames = new Set(reasonsByName.keys());
+  const targetTournaments = activeTournaments.filter(tournament => targetNames.has(tournament.name));
+  if (targetTournaments.length !== targetNames.size) throw new Error("Active rebuild tournament not present in TournamentConfig.active");
 
-  const rawMatchesBySlug = await readExistingRawMatchesBySlug(env, targetTournaments);
+  const rawMatchesByName = await readExistingRawMatchesByName(env, targetTournaments);
   const { revidChanges, pendingRevisionWrites } = await detectRevisionChanges(env, targetTournaments);
-  const activeUpdatePlan = await prepareActiveUpdate(env, activeTournaments, rawMatchesBySlug, targetSlugs, {
-    reasonsBySlug,
+  const activeUpdatePlan = await prepareActiveUpdate(env, activeTournaments, rawMatchesByName, targetNames, {
+    reasonsByName,
     rebuild: true,
     revidChanges
   });

@@ -5,29 +5,29 @@ import { selectFetchCandidates } from './candidates.js';
 import { fetchRawMatchesForCandidates } from './matchDataFetcher.js';
 import { applyRawMatchFetchOutcomes } from './rawMatchFetchResultApplier.js';
 import { buildActiveLogEntries } from './logWriter.js';
-import { buildHomeSnapshots, buildWriteScopeSlugs } from '../projection/homeProjector.js';
+import { buildActiveSnapshots, buildWriteScopeNames } from '../projection/activeProjector.js';
 import { buildScheduleSessions } from '../analysis/scheduleSessions.js';
 import { normalizeScheduleSessions } from '../facts/scheduleSessionsStore.js';
-import { readActiveHomeIssue } from './activeHomeReader.js';
+import { readActiveSnapshotIssue } from './activeSnapshotReader.js';
 import { throwIfArtifactsUnavailable } from './artifactAvailability.js';
 import { kvKeys } from '../../infrastructure/kv/keyFactory.js';
 
-function buildScopedTournaments(tournaments, scopeSlugs) {
+function buildScopedTournaments(tournaments, scopeNames) {
   if (!Array.isArray(tournaments)) {
     throw new Error("tournaments must be an array");
   }
-  return tournaments.filter(tournament => scopeSlugs.has(tournament.slug));
+  return tournaments.filter(tournament => scopeNames.has(tournament.name));
 }
 
-function buildScopedRawMatches(rawMatches, scopeSlugs) {
-  return Object.fromEntries([...scopeSlugs].map(slug => {
-    const matches = rawMatches[slug];
-    if (!Array.isArray(matches)) throw new Error(`RawMatches missing in analysis scope: ${slug}`);
-    return [slug, matches];
+function buildScopedRawMatches(rawMatches, scopeNames) {
+  return Object.fromEntries([...scopeNames].map(tournamentName => {
+    const matches = rawMatches[tournamentName];
+    if (!Array.isArray(matches)) throw new Error(`RawMatches missing in analysis scope: ${tournamentName}`);
+    return [tournamentName, matches];
   }));
 }
 
-function buildUpdateOptions(targetSlugs, options) {
+function buildUpdateOptions(targetNames, options) {
   if (!options || typeof options !== "object" || Array.isArray(options)) {
     throw new Error("fandom options must be a JSON object");
   }
@@ -35,21 +35,21 @@ function buildUpdateOptions(targetSlugs, options) {
   if (!revidChanges || typeof revidChanges !== "object" || Array.isArray(revidChanges)) {
     throw new Error("revidChanges must be a JSON object");
   }
-  if (!(targetSlugs instanceof Set)) throw new Error("targetSlugs must be a Set");
-  if (!(options.reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
-  if (options.reasonsBySlug.size !== targetSlugs.size) throw new Error("Active update reasons do not match target slugs");
+  if (!(targetNames instanceof Set)) throw new Error("targetNames must be a Set");
+  if (!(options.reasonsByName instanceof Map)) throw new Error("reasonsByName must be a Map");
+  if (options.reasonsByName.size !== targetNames.size) throw new Error("Active update reasons do not match target names");
   const rebuild = options.rebuild === true;
   const allowedReasons = new Set(["added", "updated", "force", "revision"]);
-  for (const slug of targetSlugs) {
-    const reason = options.reasonsBySlug.get(slug);
-    if (!reason) throw new Error(`Active update reason missing: ${slug}`);
-    if (!allowedReasons.has(reason)) throw new Error(`Invalid active update reason: ${slug}:${reason}`);
+  for (const tournamentName of targetNames) {
+    const reason = options.reasonsByName.get(tournamentName);
+    if (!reason) throw new Error(`Active update reason missing: ${tournamentName}`);
+    if (!allowedReasons.has(reason)) throw new Error(`Invalid active update reason: ${tournamentName}:${reason}`);
     if (rebuild ? reason === "revision" : reason !== "revision") {
-      throw new Error(`Active update reason does not match execution mode: ${slug}:${reason}`);
+      throw new Error(`Active update reason does not match execution mode: ${tournamentName}:${reason}`);
     }
   }
   return {
-    reasonsBySlug: options.reasonsBySlug,
+    reasonsByName: options.reasonsByName,
     rebuild,
     revidChanges
   };
@@ -60,13 +60,13 @@ async function createFandomClient(env) {
   return new FandomClient(authContext);
 }
 
-async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSlugs, rebuild, reasonsBySlug) {
-  const candidates = selectFetchCandidates(tournaments, targetSlugs);
-  if (candidates.length !== targetSlugs.size) throw new Error("Active fetch candidate scope mismatch");
+async function fetchRawMatchChanges(env, tournaments, rawMatchesByName, targetNames, rebuild, reasonsByName) {
+  const candidates = selectFetchCandidates(tournaments, targetNames);
+  if (candidates.length !== targetNames.size) throw new Error("Active fetch candidate scope mismatch");
 
   const fandomClient = await createFandomClient(env);
   const fetchOutcomes = await fetchRawMatchesForCandidates(fandomClient, candidates);
-  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug);
+  const rawMatchUpdate = applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesByName, rebuild, reasonsByName);
   const { syncItems, skipItems, dropBreakers, fetchErrors } = rawMatchUpdate;
   console.log(`[FANDOM:PROCESS] sync=${syncItems.length} skip=${skipItems.length} breakers=${dropBreakers.length} errors=${fetchErrors.length}`);
   return rawMatchUpdate;
@@ -74,8 +74,8 @@ async function fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSl
 
 function attachRevisionChanges(updateItems, revidChanges) {
   for (const updateItem of updateItems) {
-    if (revidChanges[updateItem.slug]) {
-      updateItem.revidChanges = revidChanges[updateItem.slug];
+    if (revidChanges[updateItem.tournamentName]) {
+      updateItem.revidChanges = revidChanges[updateItem.tournamentName];
     }
   }
 }
@@ -85,31 +85,31 @@ function buildActiveUpdateLogs(rawMatchUpdate) {
   return buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors);
 }
 
-function partitionActiveLogs(activeLogEntries, reasonsBySlug) {
+function partitionActiveLogs(activeLogEntries, reasonsByName) {
   const appendEntries = {};
   const repairEntries = {};
-  for (const [slug, entry] of Object.entries(activeLogEntries)) {
-    const target = reasonsBySlug.get(slug) === "force" ? repairEntries : appendEntries;
-    target[slug] = entry;
+  for (const [tournamentName, entry] of Object.entries(activeLogEntries)) {
+    const target = reasonsByName.get(tournamentName) === "force" ? repairEntries : appendEntries;
+    target[tournamentName] = entry;
   }
   return { appendEntries, repairEntries };
 }
 
 function buildRejectedPlan(rawMatchUpdate, activeLogEntries) {
-  const failedSlugs = new Set([...rawMatchUpdate.brokenSlugs, ...rawMatchUpdate.errorSlugs]);
-  if (failedSlugs.size === 0) return null;
+  const failedNames = new Set([...rawMatchUpdate.brokenNames, ...rawMatchUpdate.errorNames]);
+  if (failedNames.size === 0) return null;
 
-  const failureEntries = Object.fromEntries([...failedSlugs].map(slug => {
-    const entry = activeLogEntries[slug];
-    if (!entry) throw new Error(`Active update failure log missing: ${slug}`);
-    return [slug, entry];
+  const failureEntries = Object.fromEntries([...failedNames].map(tournamentName => {
+    const entry = activeLogEntries[tournamentName];
+    if (!entry) throw new Error(`Active update failure log missing: ${tournamentName}`);
+    return [tournamentName, entry];
   }));
   const details = [];
-  if (rawMatchUpdate.brokenSlugs.size > 0) {
-    details.push(`drop breaker: ${[...rawMatchUpdate.brokenSlugs].sort().join(",")}`);
+  if (rawMatchUpdate.brokenNames.size > 0) {
+    details.push(`drop breaker: ${[...rawMatchUpdate.brokenNames].sort().join(",")}`);
   }
-  if (rawMatchUpdate.errorSlugs.size > 0) {
-    details.push(`fetch failed: ${[...rawMatchUpdate.errorSlugs].sort().join(",")}`);
+  if (rawMatchUpdate.errorNames.size > 0) {
+    details.push(`fetch failed: ${[...rawMatchUpdate.errorNames].sort().join(",")}`);
   }
   return {
     accepted: false,
@@ -118,66 +118,66 @@ function buildRejectedPlan(rawMatchUpdate, activeLogEntries) {
   };
 }
 
-function buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs) {
-  const scopedRawMatches = buildScopedRawMatches(rawMatchesBySlug, writeScopeSlugs);
+function buildActiveAnalysis(scopedTournaments, rawMatchesByName, writeScopeNames) {
+  const scopedRawMatches = buildScopedRawMatches(rawMatchesByName, writeScopeNames);
   return analyzeTournaments(scopedRawMatches, scopedTournaments);
 }
 
-function buildScheduleSessionsBySlug(scopedTournaments, rawMatchesBySlug) {
+function buildScheduleSessionsByName(scopedTournaments, rawMatchesByName) {
   return Object.fromEntries(scopedTournaments.map(tournament => {
-    const rawMatches = rawMatchesBySlug[tournament.slug];
-    if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in schedule scope: ${tournament.slug}`);
+    const rawMatches = rawMatchesByName[tournament.name];
+    if (!Array.isArray(rawMatches)) throw new Error(`RawMatches missing in schedule scope: ${tournament.name}`);
     const normalized = normalizeScheduleSessions(
-      tournament.slug,
+      tournament.name,
       buildScheduleSessions(rawMatches, tournament)
     );
-    return [tournament.slug, { sessions: normalized.sessions }];
+    return [tournament.name, { sessions: normalized.sessions }];
   }));
 }
 
-function selectWriteValues(valuesBySlug, writeScopeSlugs, label) {
-  return Object.fromEntries([...writeScopeSlugs].map(slug => {
-    const value = valuesBySlug[slug];
-    if (value === undefined) throw new Error(`${label} missing in write scope: ${slug}`);
-    return [slug, value];
+function selectWriteValues(valuesByName, writeScopeNames, label) {
+  return Object.fromEntries([...writeScopeNames].map(tournamentName => {
+    const value = valuesByName[tournamentName];
+    if (value === undefined) throw new Error(`${label} missing in write scope: ${tournamentName}`);
+    return [tournamentName, value];
   }));
 }
 
-function assertHomeSnapshots(scopedTournaments, homeSnapshotsBySlug) {
+function assertActiveSnapshots(scopedTournaments, activeSnapshotsByName) {
   const issues = scopedTournaments.flatMap(tournament => {
-    const issue = readActiveHomeIssue(
-      homeSnapshotsBySlug[tournament.slug],
+    const issue = readActiveSnapshotIssue(
+      activeSnapshotsByName[tournament.name],
       tournament,
-      kvKeys.home(tournament.slug)
+      kvKeys.active(tournament.name)
     );
     return issue ? [issue] : [];
   });
-  throwIfArtifactsUnavailable("prepared ActiveHome", issues);
+  throwIfArtifactsUnavailable("prepared ActiveSnapshot", issues);
 }
 
-export async function prepareActiveUpdate(env, tournaments, rawMatchesBySlug, targetSlugs, options = {}) {
-  const { reasonsBySlug, rebuild, revidChanges } = buildUpdateOptions(targetSlugs, options);
-  const targetTournaments = buildScopedTournaments(tournaments, targetSlugs);
-  if (targetTournaments.length !== targetSlugs.size) throw new Error("Active update tournament scope mismatch");
-  const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesBySlug, targetSlugs, rebuild, reasonsBySlug);
+export async function prepareActiveUpdate(env, tournaments, rawMatchesByName, targetNames, options = {}) {
+  const { reasonsByName, rebuild, revidChanges } = buildUpdateOptions(targetNames, options);
+  const targetTournaments = buildScopedTournaments(tournaments, targetNames);
+  if (targetTournaments.length !== targetNames.size) throw new Error("Active update tournament scope mismatch");
+  const rawMatchUpdate = await fetchRawMatchChanges(env, tournaments, rawMatchesByName, targetNames, rebuild, reasonsByName);
 
   const { syncItems, skipItems } = rawMatchUpdate;
   attachRevisionChanges([...syncItems, ...skipItems], revidChanges);
   const activeLogEntries = buildActiveUpdateLogs(rawMatchUpdate);
   const rejectedPlan = buildRejectedPlan(rawMatchUpdate, activeLogEntries);
   if (rejectedPlan) return rejectedPlan;
-  const { appendEntries, repairEntries } = partitionActiveLogs(activeLogEntries, reasonsBySlug);
-  const writeScopeSlugs = buildWriteScopeSlugs([...syncItems, ...skipItems], rebuild ? targetSlugs : new Set());
-  const scopedTournaments = buildScopedTournaments(tournaments, writeScopeSlugs);
-  const analysis = buildActiveAnalysis(scopedTournaments, rawMatchesBySlug, writeScopeSlugs);
-  const scheduleSessionsBySlug = buildScheduleSessionsBySlug(scopedTournaments, rawMatchesBySlug);
-  const homeSnapshotsBySlug = buildHomeSnapshots(scopedTournaments, analysis, writeScopeSlugs);
-  assertHomeSnapshots(scopedTournaments, homeSnapshotsBySlug);
+  const { appendEntries, repairEntries } = partitionActiveLogs(activeLogEntries, reasonsByName);
+  const writeScopeNames = buildWriteScopeNames([...syncItems, ...skipItems], rebuild ? targetNames : new Set());
+  const scopedTournaments = buildScopedTournaments(tournaments, writeScopeNames);
+  const analysis = buildActiveAnalysis(scopedTournaments, rawMatchesByName, writeScopeNames);
+  const scheduleSessionsByName = buildScheduleSessionsByName(scopedTournaments, rawMatchesByName);
+  const activeSnapshotsByName = buildActiveSnapshots(scopedTournaments, analysis, writeScopeNames);
+  assertActiveSnapshots(scopedTournaments, activeSnapshotsByName);
   return {
     accepted: true,
-    rawMatchesBySlug: selectWriteValues(rawMatchesBySlug, writeScopeSlugs, "RawMatches"),
-    scheduleSessionsBySlug,
-    homeSnapshotsBySlug,
+    rawMatchesByName: selectWriteValues(rawMatchesByName, writeScopeNames, "RawMatches"),
+    scheduleSessionsByName,
+    activeSnapshotsByName,
     activeLogWrites: { appendEntries, repairEntries }
   };
 }

@@ -16,53 +16,53 @@ function assertExactFields(value, fields, label) {
   }
 }
 
-function assertCronWindow(slug, window) {
+function assertCronWindow(tournamentName, window) {
   if (window === null) return;
   if (!window || typeof window !== "object" || Array.isArray(window)) {
-    throw new Error(`ScheduleState.controlsBySlug.${slug}.cronWindow must be a JSON object or null`);
+    throw new Error(`ScheduleState.controlsByName.${tournamentName}.cronWindow must be a JSON object or null`);
   }
-  assertExactFields(window, ["startHour", "endHour"], `ScheduleState.controlsBySlug.${slug}.cronWindow`);
+  assertExactFields(window, ["startHour", "endHour"], `ScheduleState.controlsByName.${tournamentName}.cronWindow`);
   const { startHour, endHour } = window;
   if (!Number.isInteger(startHour) || !Number.isInteger(endHour) || startHour < 0 || endHour > 23 || startHour > endHour) {
-    throw new Error(`ScheduleState.controlsBySlug.${slug}.cronWindow is invalid`);
+    throw new Error(`ScheduleState.controlsByName.${tournamentName}.cronWindow is invalid`);
   }
 }
 
-function assertTrackedSessionKeys(slug, sessionKeys) {
+function assertTrackedSessionKeys(tournamentName, sessionKeys) {
   if (!Array.isArray(sessionKeys)) {
-    throw new Error(`ScheduleState.controlsBySlug.${slug}.trackedSessionKeys must be an array`);
+    throw new Error(`ScheduleState.controlsByName.${tournamentName}.trackedSessionKeys must be an array`);
   }
   const keys = new Set();
   for (const [index, sessionKey] of sessionKeys.entries()) {
-    const label = `ScheduleState.controlsBySlug.${slug}.trackedSessionKeys[${index}]`;
+    const label = `ScheduleState.controlsByName.${tournamentName}.trackedSessionKeys[${index}]`;
     parseScheduleSessionKey(sessionKey, label);
     if (keys.has(sessionKey)) throw new Error(`${label} is duplicated`);
     keys.add(sessionKey);
   }
 }
 
-export function assertScheduleControl(slug, control) {
+export function assertScheduleControl(tournamentName, control) {
   if (!control || typeof control !== "object" || Array.isArray(control)) {
-    throw new Error(`ScheduleState.controlsBySlug.${slug} must be a JSON object`);
+    throw new Error(`ScheduleState.controlsByName.${tournamentName} must be a JSON object`);
   }
-  assertExactFields(control, ["cronWindow", "trackedSessionKeys"], `ScheduleState.controlsBySlug.${slug}`);
-  assertCronWindow(slug, control.cronWindow);
-  assertTrackedSessionKeys(slug, control.trackedSessionKeys);
+  assertExactFields(control, ["cronWindow", "trackedSessionKeys"], `ScheduleState.controlsByName.${tournamentName}`);
+  assertCronWindow(tournamentName, control.cronWindow);
+  assertTrackedSessionKeys(tournamentName, control.trackedSessionKeys);
   return control;
 }
 
 function normalizeScheduleState(state) {
   if (!state || typeof state !== "object" || Array.isArray(state)) throw new Error("ScheduleState must be a JSON object");
-  assertExactFields(state, ["date", "controlsBySlug", "appliedCrons"], "ScheduleState");
+  assertExactFields(state, ["date", "controlsByName", "appliedCrons"], "ScheduleState");
   if (typeof state.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(state.date)) throw new Error("ScheduleState.date is invalid");
-  if (!state.controlsBySlug || typeof state.controlsBySlug !== "object" || Array.isArray(state.controlsBySlug)) {
-    throw new Error("ScheduleState.controlsBySlug must be a JSON object");
+  if (!state.controlsByName || typeof state.controlsByName !== "object" || Array.isArray(state.controlsByName)) {
+    throw new Error("ScheduleState.controlsByName must be a JSON object");
   }
   if (!Array.isArray(state.appliedCrons) || state.appliedCrons.some(cron => typeof cron !== "string")) {
     throw new Error("ScheduleState.appliedCrons must be an array of strings");
   }
   if (new Set(state.appliedCrons).size !== state.appliedCrons.length) throw new Error("ScheduleState.appliedCrons contains duplicates");
-  for (const [slug, control] of Object.entries(state.controlsBySlug)) assertScheduleControl(slug, control);
+  for (const [tournamentName, control] of Object.entries(state.controlsByName)) assertScheduleControl(tournamentName, control);
   return state;
 }
 

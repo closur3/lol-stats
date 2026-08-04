@@ -7,14 +7,14 @@ export default `${baseCSS}${schemaIssuesCSS}
     .tournament-card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; }
     .tournament-card-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .tournament-card-name { font-weight: 600; font-size: 16px; color: #0f172a; }
-    .tournament-total-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; padding: 0 8px; border-radius: var(--radius-badge); background: #e2e8f0; color: #334155; font-size: 12px; font-weight: 700; line-height: 1; }
+    .tournament-total-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 22px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: var(--radius-badge); background: #e2e8f0; color: #334155; font-size: 12px; font-weight: 700; line-height: 1; }
     .tournament-card-status { display: flex; align-items: center; gap: 6px; }
-    .phase-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: var(--radius-badge); }
+    .phase-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 22px; padding: 3px 8px; border: 1px solid transparent; border-radius: var(--radius-badge); font-size: 12px; font-weight: 600; line-height: 1; }
     .phase-tag .schedule-phase-icon { width: 16px; height: 16px; flex-shrink: 0; }
-    .phase-play { background: #dbeafe; color: #1d4ed8; }
-    .phase-done { background: #dcfce7; color: #166534; }
-    .phase-offday { background: #e2e8f0; color: #475569; }
-    .phase-idle { background: #ede9fe; color: #5b21b6; }
+    .phase-play { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
+    .phase-done { border-color: #86efac; background: #dcfce7; color: #166534; }
+    .phase-offday { border-color: #cbd5e1; background: #e2e8f0; color: #475569; }
+    .phase-idle { border-color: #c4b5fd; background: #ede9fe; color: #5b21b6; }
     .card-stats { display: flex; gap: 16px; padding: 8px var(--card-x-pad); font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f8fafc; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
     .stat-val { color: #0f172a; font-weight: 600; }
     .timeline { display: flex; gap: 2px; height: 16px; align-items: flex-end; padding: 6px 16px 0 16px; border-bottom: 1px solid #f8fafc; }

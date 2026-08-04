@@ -5,9 +5,24 @@ import { getOverviewPageNames } from "../../utils/data/overviewPages.js";
 import { assertTournamentConfigDigest, calculateTournamentConfigDigest } from "./tournamentConfigDigest.js";
 
 const TournamentConfigFields = ["configDigest", "active", "archive"];
-const TournamentFields = ["slug", "name", "leagueShort", "overviewPages", "startDate", "endDate", "teamMap", "participantGroups"];
+const TournamentFields = ["name", "leagueShort", "overviewPages", "startDate", "endDate", "teamMap", "participantGroups"];
 const OverviewPageFields = ["overviewPage", "startDate", "endDate", "participantCount"];
 const DatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const TournamentNamePattern = /^(?:19|20)\d{2} \S(?:.*\S)?$/;
+const LongestTournamentKeyPrefix = kvKeys.ArchiveSnapshotPrefix;
+
+function normalizeTournamentName(value, label) {
+  const name = typeof value === "string" ? value.trim() : "";
+  if (!TournamentNamePattern.test(name) || Array.from(name).some(character => {
+    const codePoint = character.codePointAt(0);
+    return codePoint < 32 || codePoint === 127;
+  })) {
+    throw new Error(`${label}.name must start with a four-digit year`);
+  }
+  const keySize = new globalThis.TextEncoder().encode(`${LongestTournamentKeyPrefix}${name}`).byteLength;
+  if (keySize > 512) throw new Error(`${label}.name exceeds the KV key size limit`);
+  return name;
+}
 
 function isDate(value) {
   if (!DatePattern.test(value)) return false;
@@ -48,28 +63,26 @@ function normalizeTournament(configName, tournament) {
     throw new Error(`${configName} tournament fields must match the schema`);
   }
 
-  const slug = typeof tournament.slug === "string" ? tournament.slug.trim() : "";
-  const name = typeof tournament.name === "string" ? tournament.name.trim() : "";
+  const name = normalizeTournamentName(tournament.name, configName);
   const leagueShort = typeof tournament.leagueShort === "string" ? tournament.leagueShort.trim() : null;
   const startDate = typeof tournament.startDate === "string" ? tournament.startDate.trim() : "";
   const endDate = typeof tournament.endDate === "string" ? tournament.endDate.trim() : "";
-  const overviewPages = normalizeOverviewPages(tournament.overviewPages, `${configName}.${slug || "(missing slug)"}.overviewPages`);
+  const overviewPages = normalizeOverviewPages(tournament.overviewPages, `${configName}.${name}.overviewPages`);
   const overviewPageNames = getOverviewPageNames(overviewPages);
-  if (!slug || !name || !leagueShort || !startDate || !endDate) {
-    throw new Error(`Invalid ${configName} tournament: ${slug || "(missing slug)"}`);
+  if (!leagueShort || !startDate || !endDate) {
+    throw new Error(`Invalid ${configName} tournament: ${name}`);
   }
   if (!isDate(startDate) || !isDate(endDate) || startDate > endDate) {
-    throw new Error(`Invalid ${configName} date range: ${slug}`);
+    throw new Error(`Invalid ${configName} date range: ${name}`);
   }
   const overviewStartDate = overviewPages.reduce((earliest, page) => page.startDate < earliest ? page.startDate : earliest, overviewPages[0].startDate);
   const overviewEndDate = overviewPages.reduce((latest, page) => page.endDate > latest ? page.endDate : latest, overviewPages[0].endDate);
   if (startDate !== overviewStartDate || endDate !== overviewEndDate) {
-    throw new Error(`${configName}.${slug} date range does not match overviewPages`);
+    throw new Error(`${configName}.${name} date range does not match overviewPages`);
   }
 
-  const teamMap = assertTeamMap(tournament.teamMap, `${configName}.${slug}.teamMap`);
+  const teamMap = assertTeamMap(tournament.teamMap, `${configName}.${name}.teamMap`);
   return {
-    slug,
     name,
     leagueShort,
     overviewPages,
@@ -80,7 +93,7 @@ function normalizeTournament(configName, tournament) {
       tournament.participantGroups,
       overviewPageNames,
       teamMap,
-      `${configName}.${slug}.participantGroups`
+      `${configName}.${name}.participantGroups`
     )
   };
 }
@@ -88,10 +101,10 @@ function normalizeTournament(configName, tournament) {
 function normalizeTournamentList(configName, storedConfig) {
   if (!Array.isArray(storedConfig)) throw new Error(`${configName} must be an array`);
   const tournaments = storedConfig.map(tournament => normalizeTournament(configName, tournament));
-  const slugs = new Set();
+  const names = new Set();
   for (const tournament of tournaments) {
-    if (slugs.has(tournament.slug)) throw new Error(`Duplicate ${configName} slug: ${tournament.slug}`);
-    slugs.add(tournament.slug);
+    if (names.has(tournament.name)) throw new Error(`Duplicate ${configName} name: ${tournament.name}`);
+    names.add(tournament.name);
   }
   return tournaments;
 }
@@ -107,8 +120,8 @@ function assertConfigFields(storedConfig) {
 }
 
 function assertDisjoint(active, archive) {
-  const activeSlugs = new Set(active.map(tournament => tournament.slug));
-  const overlap = archive.map(tournament => tournament.slug).filter(slug => activeSlugs.has(slug));
+  const activeNames = new Set(active.map(tournament => tournament.name));
+  const overlap = archive.map(tournament => tournament.name).filter(tournamentName => activeNames.has(tournamentName));
   if (overlap.length > 0) throw new Error(`TournamentConfig active/archive overlap: ${overlap.join(",")}`);
 }
 
@@ -117,7 +130,7 @@ function assertOverviewPageOwnership(active, archive) {
   for (const [group, tournaments] of [["active", active], ["archive", archive]]) {
     for (const tournament of tournaments) {
       for (const page of getOverviewPageNames(tournament.overviewPages)) {
-        const owner = `${group}:${tournament.slug}`;
+        const owner = `${group}:${tournament.name}`;
         const currentOwner = owners.get(page);
         if (currentOwner !== undefined && currentOwner !== owner) {
           throw new Error(`TournamentConfig overviewPage identity conflict: ${page}`);

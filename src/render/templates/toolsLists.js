@@ -3,16 +3,15 @@ import { forceIconHtml } from '../../constants/uiIcons.js';
 
 export function renderActiveTournamentList(activeTournaments = []) {
   const html = activeTournaments.map(activeTournament => {
-    const slug = String(activeTournament.slug || "");
     const name = String(activeTournament.name || "");
     return `
       <div class="item">
           <label class="item-left">
-              <input type="checkbox" class="item-chk" value="${escapeHtml(slug)}" data-name="${escapeHtml(name)}">
+              <input type="checkbox" class="item-chk" value="${escapeHtml(name)}">
               <span class="item-name">${escapeHtml(name)}</span>
           </label>
           <div class="item-right">
-              <button class="icon-btn" onclick="forceOne(${escapeJsArg(slug)}, ${escapeJsArg(name)}, this)" aria-label="Force update ${escapeHtml(name)}">${forceIconHtml}</button>
+              <button class="icon-btn" onclick="forceOne(${escapeJsArg(name)}, this)" aria-label="Force update ${escapeHtml(name)}">${forceIconHtml}</button>
           </div>
       </div>`;
   }).join("");
@@ -21,16 +20,15 @@ export function renderActiveTournamentList(activeTournaments = []) {
 
 export function renderArchivedTournamentList(archivedTournaments = []) {
   const html = archivedTournaments.map(archiveTournament => {
-    const slug = String(archiveTournament.slug || "");
     const name = String(archiveTournament.name || "");
     return `
       <div class="item">
           <label class="item-left">
-              <input type="checkbox" class="item-chk qr-chk-archived" value="${escapeHtml(slug)}" data-name="${escapeHtml(name)}">
+              <input type="checkbox" class="item-chk qr-chk-archived" value="${escapeHtml(name)}">
               <span class="item-name">${escapeHtml(name)}</span>
           </label>
           <div class="item-right">
-              <button class="icon-btn" onclick="rebuildArchive(${escapeJsArg(slug)}, ${escapeJsArg(name)}, this)" aria-label="Rebuild archive snapshot for ${escapeHtml(name)}">${forceIconHtml}</button>
+              <button class="icon-btn" onclick="rebuildArchive(${escapeJsArg(name)}, this)" aria-label="Rebuild archive snapshot for ${escapeHtml(name)}">${forceIconHtml}</button>
           </div>
       </div>`;
   }).join("");

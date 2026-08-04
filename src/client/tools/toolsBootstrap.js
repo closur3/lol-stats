@@ -81,13 +81,13 @@ export const toolsBootstrap = `
               if (action === 'active-force-all') {
                   return {
                       label: 'Force update all active tournaments',
-                      flow: 'No tournament selected. Target: all ' + payload.slugs.length + ' active tournaments',
+                      flow: 'No tournament selected. Target: all ' + payload.names.length + ' active tournaments',
                       icon: '↻',
                       url: '/force',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ slugs: payload.slugs }),
+                      body: JSON.stringify({ names: payload.names }),
                       submitText: 'Force Update',
-                      successMessage: 'Force update completed: ' + payload.slugs.length + '/' + payload.slugs.length,
+                      successMessage: 'Force update completed: ' + payload.names.length + '/' + payload.names.length,
                       failurePrefix: 'Force update failed'
                   };
               }

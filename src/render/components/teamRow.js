@@ -5,7 +5,7 @@ import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 import { escapeHtml, escapeJsArg } from '../../utils/htmlEscape.js';
 
-export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta, showGroupMark) {
+export function renderTeamRow(teamStats, tournamentName, statisticsScope, sortMeta, showGroupMark) {
   validateTurnaroundStats(teamStats);
   const bo3Rate = rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount);
   const bo5Rate = rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount);
@@ -23,14 +23,14 @@ export function renderTeamRow(teamStats, slug, statisticsScope, sortMeta, showGr
   const lastMatch = teamStats.last ? timePolicy.formatMonthDayTime(teamStats.last) : "-";
   const lastMatchColor = dateUtils.colorDate(teamStats.last);
 
-  const slugArgument = escapeJsArg(slug);
+  const tournamentArgument = escapeJsArg(tournamentName);
   const scopeArgument = escapeJsArg(statisticsScope);
   const teamNameArgument = escapeJsArg(teamStats.name);
   const safeDisplayName = escapeHtml(teamStats.name);
   const groupMark = showGroupMark ? `<span class="team-group-row-mark" aria-hidden="true"></span>` : "";
 
   const getClass = (baseClass, count) => count > 0 ? `${baseClass} team-clickable` : baseClass;
-  const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${slugArgument}, ${scopeArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
+  const getClickHandler = (type, count) => count > 0 ? `onclick="openStats(${tournamentArgument}, ${scopeArgument}, ${teamNameArgument}, ${escapeJsArg(type)})"` : "";
   const gameHistoryCount = teamStats.history.filter(match => Array.isArray(match.gameResults)).length;
   const comebackText = renderTurnaroundCells(
     teamStats.comebackCount,

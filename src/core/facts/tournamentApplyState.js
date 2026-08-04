@@ -21,9 +21,9 @@ function normalizeActiveFingerprints(value) {
     throw new Error("TournamentApplyState.activeFingerprints must be an object");
   }
   const fingerprints = {};
-  for (const [slug, fingerprint] of Object.entries(value)) {
-    if (!slug.trim()) throw new Error("TournamentApplyState active slug missing");
-    fingerprints[slug] = assertDigest(fingerprint, `TournamentApplyState.activeFingerprints.${slug}`);
+  for (const [tournamentName, fingerprint] of Object.entries(value)) {
+    if (!tournamentName.trim()) throw new Error("TournamentApplyState active tournamentName missing");
+    fingerprints[tournamentName] = assertDigest(fingerprint, `TournamentApplyState.activeFingerprints.${tournamentName}`);
   }
   return fingerprints;
 }

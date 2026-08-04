@@ -1,5 +1,5 @@
-export function renderRateBadge(teamName, slug, bestOf, combinedStatsBySlug) {
-  const teamStats = combinedStatsBySlug[slug];
+export function renderRateBadge(teamName, tournamentName, bestOf, combinedStatsByName) {
+  const teamStats = combinedStatsByName[tournamentName];
   if (!teamStats || !teamStats[teamName]) return "";
 
   const teamData = teamStats[teamName];

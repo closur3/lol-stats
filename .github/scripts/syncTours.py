@@ -12,15 +12,17 @@ import requests
 from tournamentConfig import (
     TOURNAMENT_FIELDS,
     assert_config_digest,
+    assert_tournament_name,
     assert_active_source_complete,
     assert_configs_disjoint,
-    assign_name_slugs,
+    assert_candidate_names,
     build_tournament_config,
     build_membership_transition,
     build_transition_manifest,
     classify_tournament_eligibility,
     deduplicate_source_rows,
     overview_page_names,
+    normalize_tournament_name,
     parse_date,
 )
 
@@ -51,8 +53,8 @@ def validate_tournament_list(value, label: str) -> list:
     if not isinstance(value, list):
         raise ValueError(f"{label} must be a JSON array")
     schema_fields = set(TOURNAMENT_FIELDS)
-    required = ("slug", "name", "startDate", "endDate")
-    slugs = set()
+    required = ("name", "startDate", "endDate")
+    names = set()
     for index, item in enumerate(value):
         if not isinstance(item, dict):
             raise ValueError(f"{label}[{index}] must be an object")
@@ -60,6 +62,10 @@ def validate_tournament_list(value, label: str) -> list:
             raise ValueError(f"{label}[{index}] fields must match the tournament schema")
         if any(not isinstance(item.get(field), str) or not item[field].strip() for field in required):
             raise ValueError(f"{label}[{index}] fields missing")
+        try:
+            assert_tournament_name(item["name"])
+        except ValueError as error:
+            raise ValueError(f"{label}[{index}].name must use the canonical year-first format") from error
         if not isinstance(item.get("leagueShort"), str) or not item["leagueShort"].strip():
             raise ValueError(f"{label}[{index}].leagueShort must be a non-empty string")
         team_map = item.get("teamMap")
@@ -139,9 +145,9 @@ def validate_tournament_list(value, label: str) -> list:
             raise ValueError(f"{label}[{index}].startDate must match the earliest overview page")
         if end_date != max(parse_date(page["endDate"]) for page in overview_pages):
             raise ValueError(f"{label}[{index}].endDate must match the latest overview page")
-        if item["slug"] in slugs:
-            raise ValueError(f"Duplicate slug in {label}: {item['slug']}")
-        slugs.add(item["slug"])
+        if item["name"] in names:
+            raise ValueError(f"Duplicate name in {label}: {item['name']}")
+        names.add(item["name"])
     return value
 
 
@@ -512,7 +518,7 @@ def attach_team_maps(
             for team, short in page_map.items():
                 existing = team_map.get(team)
                 if existing is not None and existing != short:
-                    raise ValueError(f"Conflicting tournament team short: {tournament['slug']}:{team}")
+                    raise ValueError(f"Conflicting tournament team short: {tournament['name']}:{team}")
                 team_map[team] = short
         tournament["teamMap"] = dict(sorted(team_map.items()))
 
@@ -1173,7 +1179,7 @@ def build_tournament_nodes(
             raise ValueError(f"Tournament date range invalid: {overview_page}")
         nodes[overview_page] = {
             "overviewPage": overview_page,
-            "name": row["Name"],
+            "name": normalize_tournament_name(row["Name"]),
             "isPlayoffs": row["IsPlayoffs"] == "1",
             "split": read_optional_string(row, "Split"),
             "tabScope": tab_scope_by_page.get(overview_page),
@@ -1512,11 +1518,11 @@ def project_tournament_candidates(main_events: dict) -> list:
 
 
 def resolve_config_transition(old_active: list, old_archive: list, candidates: list) -> dict:
-    named_candidates = assign_name_slugs(candidates, old_active, old_archive)
+    assert_candidate_names(candidates, old_active, old_archive)
     return build_membership_transition(
         old_active,
         old_archive,
-        named_candidates,
+        candidates,
         today_dt,
         PREHEAT_DAYS,
         EXPIRE_DAYS,
@@ -1615,8 +1621,8 @@ def build_manifest(old_active: list, transition: dict) -> dict:
     return build_transition_manifest(
         old_active,
         transition["active"],
-        transition["archivedSlugs"],
-        transition["droppedSlugs"],
+        transition["archivedNames"],
+        transition["droppedNames"],
     )
 
 
@@ -1627,45 +1633,45 @@ def write_config(active: list, archive: list) -> None:
         file.write("\n")
 
 
-def format_change_group(symbol: str, slugs: list, summarize: bool) -> str:
-    if not slugs:
-        raise ValueError("Change group slugs must be non-empty")
+def format_change_group(symbol: str, names: list, summarize: bool) -> str:
+    if not names:
+        raise ValueError("Change group names must be non-empty")
     if summarize:
-        return f"{symbol}{len(slugs)}"
-    return ", ".join(f"{symbol}{slug}" for slug in slugs)
+        return f"{symbol}{len(names)}"
+    return ", ".join(f"{symbol}{name}" for name in names)
 
 
 def format_change_parts(
-    add_slugs: list,
-    update_slugs: list,
-    remove_slugs: list,
+    add_names: list,
+    update_names: list,
+    remove_names: list,
     summarize: bool = False,
 ) -> str:
     parts = []
-    if add_slugs:
-        parts.append(format_change_group("+", add_slugs, summarize))
-    if update_slugs:
-        parts.append(format_change_group("~", update_slugs, summarize))
-    if remove_slugs:
-        parts.append(format_change_group("-", remove_slugs, summarize))
+    if add_names:
+        parts.append(format_change_group("+", add_names, summarize))
+    if update_names:
+        parts.append(format_change_group("~", update_names, summarize))
+    if remove_names:
+        parts.append(format_change_group("-", remove_names, summarize))
     return "; ".join(parts)
 
 
 def build_change_summary(manifest: dict) -> dict:
-    active_removed = sorted(manifest["activeArchivedSlugs"] + manifest["activeDroppedSlugs"])
+    active_removed = sorted(manifest["activeArchivedNames"] + manifest["activeDroppedNames"])
     total_changes = sum((
-        len(manifest["activeAddedSlugs"]),
-        len(manifest["activeUpdatedSlugs"]),
+        len(manifest["activeAddedNames"]),
+        len(manifest["activeUpdatedNames"]),
         len(active_removed),
-        len(manifest["archiveAddedSlugs"]),
+        len(manifest["archiveAddedNames"]),
     ))
     active_parts = format_change_parts(
-        manifest["activeAddedSlugs"],
-        manifest["activeUpdatedSlugs"],
+        manifest["activeAddedNames"],
+        manifest["activeUpdatedNames"],
         active_removed,
     )
     archive_parts = format_change_parts(
-        manifest["archiveAddedSlugs"],
+        manifest["archiveAddedNames"],
         [],
         [],
     )
@@ -1677,16 +1683,16 @@ def build_change_summary(manifest: dict) -> dict:
 
 
 def build_commit_message(manifest: dict, summary: dict) -> str:
-    active_removed = manifest["activeArchivedSlugs"] + manifest["activeDroppedSlugs"]
+    active_removed = manifest["activeArchivedNames"] + manifest["activeDroppedNames"]
     if summary["totalChanges"] > 5:
         active_parts = format_change_parts(
-            manifest["activeAddedSlugs"],
-            manifest["activeUpdatedSlugs"],
+            manifest["activeAddedNames"],
+            manifest["activeUpdatedNames"],
             active_removed,
             summarize=True,
         )
         archive_parts = format_change_parts(
-            manifest["archiveAddedSlugs"],
+            manifest["archiveAddedNames"],
             [],
             [],
             summarize=True,

@@ -43,10 +43,10 @@ function calcChangedCount(currentRawMatches, fetchedRawMatches) {
   return { added, updated, deleted, changed: added + updated + deleted };
 }
 
-export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebuild, reasonsBySlug) {
-  if (!(reasonsBySlug instanceof Map)) throw new Error("reasonsBySlug must be a Map");
-  const brokenSlugs = new Set();
-  const errorSlugs = new Set();
+export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesByName, rebuild, reasonsByName) {
+  if (!(reasonsByName instanceof Map)) throw new Error("reasonsByName must be a Map");
+  const brokenNames = new Set();
+  const errorNames = new Set();
   const syncItems = [];
   const skipItems = [];
   const dropBreakers = [];
@@ -54,48 +54,48 @@ export function applyRawMatchFetchOutcomes(fetchOutcomes, rawMatchesBySlug, rebu
 
   fetchOutcomes.forEach(fetchOutcome => {
     if (fetchOutcome.status === 'fulfilled') {
-      const slug = fetchOutcome.slug;
+      const tournamentName = fetchOutcome.tournamentName;
       const fetchedRawMatches = fetchOutcome.rawMatches;
-      const currentRawMatches = rawMatchesBySlug[slug];
-      const updateReason = reasonsBySlug.get(slug);
-      if (!updateReason) throw new Error(`Active update reason missing: ${slug}`);
+      const currentRawMatches = rawMatchesByName[tournamentName];
+      const updateReason = reasonsByName.get(tournamentName);
+      if (!updateReason) throw new Error(`Active update reason missing: ${tournamentName}`);
 
       if (currentRawMatches === null) {
-        rawMatchesBySlug[slug] = fetchedRawMatches;
+        rawMatchesByName[tournamentName] = fetchedRawMatches;
         syncItems.push({
-          slug,
+          tournamentName,
           added: fetchedRawMatches.length,
           updated: 0,
           updateReason
         });
         return;
       }
-      if (!Array.isArray(currentRawMatches)) throw new Error(`RawMatches invalid in active update scope: ${slug}`);
+      if (!Array.isArray(currentRawMatches)) throw new Error(`RawMatches invalid in active update scope: ${tournamentName}`);
 
       if (!rebuild && currentRawMatches.length > 10 && fetchedRawMatches.length < currentRawMatches.length * updateConfig.dropThreshold) {
-        dropBreakers.push(`${slug}(Drop ${currentRawMatches.length}->${fetchedRawMatches.length})`);
-        brokenSlugs.add(slug);
+        dropBreakers.push(`${tournamentName}(Drop ${currentRawMatches.length}->${fetchedRawMatches.length})`);
+        brokenNames.add(tournamentName);
       } else {
         const changedCount = calcChangedCount(currentRawMatches, fetchedRawMatches);
-        rawMatchesBySlug[slug] = fetchedRawMatches;
+        rawMatchesByName[tournamentName] = fetchedRawMatches;
         if (changedCount.changed > 0) {
           syncItems.push({
-            slug,
+            tournamentName,
             added: changedCount.added,
             updated: changedCount.updated,
             updateReason
           });
         } else {
-          skipItems.push({ slug, added: 0, updated: 0, updateReason });
+          skipItems.push({ tournamentName, added: 0, updated: 0, updateReason });
         }
       }
     } else {
       const fetchErrorMessage = fetchOutcome.error?.message || fetchOutcome.error?.toString() || 'unknown';
-      console.log(`[FANDOM:FETCH_ERR] ${fetchOutcome.slug} error=${fetchErrorMessage}`);
-      fetchErrors.push(`${fetchOutcome.slug}(Fail: ${fetchErrorMessage.substring(0, 50)})`);
-      errorSlugs.add(fetchOutcome.slug);
+      console.log(`[FANDOM:FETCH_ERR] ${fetchOutcome.tournamentName} error=${fetchErrorMessage}`);
+      fetchErrors.push(`${fetchOutcome.tournamentName}(Fail: ${fetchErrorMessage.substring(0, 50)})`);
+      errorNames.add(fetchOutcome.tournamentName);
     }
   });
 
-  return { brokenSlugs, errorSlugs, syncItems, skipItems, dropBreakers, fetchErrors };
+  return { brokenNames, errorNames, syncItems, skipItems, dropBreakers, fetchErrors };
 }

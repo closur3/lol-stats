@@ -19,9 +19,9 @@ export default `.build-footer { margin-top: auto; text-align: center; padding: 1
     .footer-cron-info:hover .footer-cron-panel, .footer-cron-info.is-open .footer-cron-panel { display: flex; flex-direction: column; gap: 9px; }
     .footer-cron-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 2px; }
     .footer-cron-label { color: var(--color-text-faint); font-size: 9px; font-weight: 700; letter-spacing: 0.8px; }
-    .footer-cron-state { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 0 7px; border-radius: var(--radius-badge); font-size: 9px; font-weight: 700; letter-spacing: 0.4px; }
-    .footer-cron-info.active .footer-cron-state { background: #f0fdf4; color: #15803d; }
-    .footer-cron-info.idle .footer-cron-state { background: #f1f5f9; color: #64748b; }
+    .footer-cron-state { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 0 7px; border: 1px solid transparent; border-radius: var(--radius-badge); font-size: 9px; font-weight: 700; letter-spacing: 0.4px; }
+    .footer-cron-info.active .footer-cron-state { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
+    .footer-cron-info.idle .footer-cron-state { border-color: #cbd5e1; background: #f1f5f9; color: #64748b; }
     .footer-cron-panel-dot { width: 6px; height: 6px; border-radius: var(--radius-circle); flex: 0 0 6px; }
     .footer-cron-schedules { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-muted); }
     .footer-cron-schedule { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; }

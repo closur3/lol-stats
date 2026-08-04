@@ -1,4 +1,4 @@
-import { HomeRouter } from './routes/home.js';
+import { ActiveRouter } from './routes/active.js';
 import { ArchiveRouter } from './routes/archive.js';
 import { ToolsRouter } from './routes/tools.js';
 import { LogsRouter } from './routes/logs.js';
@@ -18,7 +18,7 @@ export default {
 
     switch (url.pathname) {
       case "/":
-        return HomeRouter.handleHome(env);
+        return ActiveRouter.handleActive(env);
       
       case "/archive":
         return ArchiveRouter.handleArchive(env);

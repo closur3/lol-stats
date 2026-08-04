@@ -2,7 +2,6 @@ const DigestPattern = /^[a-f0-9]{64}$/;
 
 function canonicalTournament(tournament) {
   return {
-    slug: tournament.slug,
     name: tournament.name,
     leagueShort: tournament.leagueShort,
     overviewPages: tournament.overviewPages,

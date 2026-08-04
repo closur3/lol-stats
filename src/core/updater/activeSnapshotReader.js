@@ -5,7 +5,7 @@ import { readTournamentStatisticsIssue } from '../facts/tournamentStatistics.js'
 import { readTimeDistributionIssue } from '../facts/timeDistribution.js';
 import { getOverviewPageNames } from '../../utils/data/overviewPages.js';
 
-export function readArchiveSnapshotIssue(snapshot, tournament, artifactKey) {
+export function readActiveSnapshotIssue(snapshot, tournament, artifactKey) {
   if (snapshot == null) return createSchemaIssue({ artifactKey, path: "$", kind: "missing", expected: "stored JSON object" });
   if (typeof snapshot !== "object" || Array.isArray(snapshot)) return createSchemaIssue({ artifactKey, path: "$", kind: "invalid", expected: "JSON object", actual: describeSchemaValue(snapshot) });
   const snapshotFields = Object.keys(snapshot);
@@ -21,36 +21,39 @@ export function readArchiveSnapshotIssue(snapshot, tournament, artifactKey) {
   return null;
 }
 
-async function inspectArchiveSnapshots(env, tournaments) {
+export async function inspectActiveSnapshots(env, tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const kv = env["lol-stats-kv"];
-  const storedValues = await Promise.all(tournaments.map(tournament => kv.get(kvKeys.archive(tournament.name))));
-  const snapshots = [];
-  const issues = [];
-  storedValues.forEach((stored, index) => {
+  const storedValues = await Promise.all(tournaments.map(tournament => kv.get(kvKeys.active(tournament.name))));
+  return storedValues.map((stored, index) => {
     const tournament = tournaments[index];
-    let snapshot = stored;
+    const tournamentName = tournament.name;
+    let activeSnapshot = stored;
     if (typeof stored === "string") {
       try {
-        snapshot = JSON.parse(stored);
+        activeSnapshot = JSON.parse(stored);
       } catch {
-        issues.push(createSchemaIssue({ artifactKey: kvKeys.archive(tournament.name), path: "$", kind: "invalid", expected: "stored JSON object", actual: "malformed JSON" }));
-        return;
+        return {
+          tournamentName,
+          activeSnapshot: null,
+          issue: createSchemaIssue({ artifactKey: kvKeys.active(tournamentName), path: "$", kind: "invalid", expected: "stored JSON object", actual: "malformed JSON" })
+        };
       }
     }
-    const issue = readArchiveSnapshotIssue(snapshot, tournament, kvKeys.archive(tournament.name));
-    if (issue) issues.push(issue);
-    else snapshots.push(snapshot);
+    return { tournamentName, activeSnapshot, issue: readActiveSnapshotIssue(activeSnapshot, tournament, kvKeys.active(tournamentName)) };
   });
-  return { snapshots, issues };
 }
 
-export async function readArchiveSnapshots(env, tournaments) {
-  const result = await inspectArchiveSnapshots(env, tournaments);
-  throwIfArtifactsUnavailable("ArchiveSnapshot", result.issues);
-  return result.snapshots;
+export async function readActiveSnapshots(env, tournaments) {
+  const entries = await inspectActiveSnapshots(env, tournaments);
+  throwIfArtifactsUnavailable("ActiveSnapshot", entries.flatMap(entry => entry.issue ? [entry.issue] : []));
+  return entries.map(entry => entry.activeSnapshot);
 }
 
-export async function readAvailableArchiveSnapshots(env, tournaments) {
-  return inspectArchiveSnapshots(env, tournaments);
+export async function readAvailableActiveSnapshots(env, tournaments) {
+  const entries = await inspectActiveSnapshots(env, tournaments);
+  return {
+    activeSnapshots: entries.filter(entry => !entry.issue).map(entry => entry.activeSnapshot),
+    issues: entries.flatMap(entry => entry.issue ? [entry.issue] : [])
+  };
 }

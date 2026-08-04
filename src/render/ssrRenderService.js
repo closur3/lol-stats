@@ -1,50 +1,50 @@
 import { renderArchiveContentFragment, renderContentFragment } from './templates/content.js';
 import { renderPageShell } from './templates/page.js';
 import { readTournamentConfig } from '../core/facts/tournamentConfigReader.js';
-import { readActiveHomes, readAvailableActiveHomes } from '../core/updater/activeHomeReader.js';
+import { readActiveSnapshots, readAvailableActiveSnapshots } from '../core/updater/activeSnapshotReader.js';
 import { readAvailableArchiveSnapshots } from '../core/updater/archiveSnapshotReader.js';
-import { buildHomeRenderInput, readScheduleSessionsMap } from '../core/updater/homeRenderInputBuilder.js';
+import { buildActiveRenderInput, readScheduleSessionsMap } from '../core/updater/activeRenderInputBuilder.js';
 import { readCronInfo } from '../core/scheduler/cronInfo.js';
 import { buildModalHistory } from './modalHistoryBuilder.js';
 import { throwIfArtifactsUnavailable } from '../core/updater/artifactAvailability.js';
-import { selectHomeSchedule } from '../core/projection/homeScheduleSelector.js';
+import { selectActiveSchedule } from '../core/projection/activeScheduleSelector.js';
 import { updateConfig } from '../core/updater/updateConfig.js';
 
-export async function renderHomeFromFacts(env) {
+export async function renderActiveFromFacts(env) {
   const { active: tournaments, archive: archiveTournaments } = await readTournamentConfig(env);
-  const [activeHomes, archiveResult] = await Promise.all([
-    readActiveHomes(env, tournaments),
+  const [activeSnapshots, archiveResult] = await Promise.all([
+    readActiveSnapshots(env, tournaments),
     readAvailableArchiveSnapshots(env, archiveTournaments)
   ]);
   const archiveSnapshots = archiveResult.snapshots;
   if (archiveResult.issues.length > 0) {
-    console.error(`[HOME:ARCHIVE] unavailable=${archiveResult.issues.map(issue => issue.artifactKey).join(",")}`);
+    console.error(`[ACTIVE:ARCHIVE] unavailable=${archiveResult.issues.map(issue => issue.artifactKey).join(",")}`);
   }
 
   const orderedTournaments = tournaments;
   const scheduleSessionsMap = await readScheduleSessionsMap(env, orderedTournaments);
-  const renderInput = buildHomeRenderInput(activeHomes, orderedTournaments);
-  const scheduleMap = selectHomeSchedule(
+  const renderInput = buildActiveRenderInput(activeSnapshots, orderedTournaments);
+  const scheduleMap = selectActiveSchedule(
     scheduleSessionsMap,
     orderedTournaments,
     new Date(),
     updateConfig.maxScheduleDays
   );
-  const scheduleSessionsBySlug = Object.fromEntries(Array.from(scheduleSessionsMap, ([slug, value]) => [slug, { sessions: value.sessions }]));
-  const modalHistory = buildModalHistory(activeHomes, archiveSnapshots, [...tournaments, ...archiveTournaments], tournaments, scheduleSessionsMap);
+  const scheduleSessionsByName = Object.fromEntries(Array.from(scheduleSessionsMap, ([tournamentName, value]) => [tournamentName, { sessions: value.sessions }]));
+  const modalHistory = buildModalHistory(activeSnapshots, archiveSnapshots, [...tournaments, ...archiveTournaments], tournaments, scheduleSessionsMap);
 
-  const homeFragment = renderContentFragment(
-    renderInput.statisticsBySlug,
-    renderInput.timeDistributionBySlug,
+  const activeFragment = renderContentFragment(
+    renderInput.statisticsByName,
+    renderInput.timeDistributionByName,
     scheduleMap,
     renderInput.tournaments,
     false,
-    scheduleSessionsBySlug,
+    scheduleSessionsByName,
     modalHistory
   );
 
   const cronInfo = await readCronInfo(env);
-  return renderPageShell("LoL Stats", homeFragment, "home", env.GITHUB_TIME, env.GITHUB_SHA, cronInfo);
+  return renderPageShell("LoL Stats", activeFragment, "active", env.GITHUB_TIME, env.GITHUB_SHA, cronInfo);
 }
 
 export async function renderArchiveFromFacts(env) {
@@ -57,7 +57,7 @@ export async function renderArchiveFromFacts(env) {
 
   const [archiveResult, activeResult] = await Promise.all([
     readAvailableArchiveSnapshots(env, tournaments),
-    readAvailableActiveHomes(env, activeTournaments)
+    readAvailableActiveSnapshots(env, activeTournaments)
   ]);
   const archiveSnapshots = archiveResult.snapshots;
   const unavailable = [...archiveResult.issues, ...activeResult.issues];
@@ -68,17 +68,17 @@ export async function renderArchiveFromFacts(env) {
     throwIfArtifactsUnavailable("ArchiveSnapshot", archiveResult.issues);
     throw new Error("ArchiveSnapshot unavailable without schema issues");
   }
-  const availableSlugs = new Set(archiveSnapshots.map(snapshot => snapshot.tournamentSlug));
-  const availableTournaments = tournaments.filter(tournament => availableSlugs.has(tournament.slug));
-  const modalHistory = buildModalHistory(activeResult.activeHomes, archiveSnapshots, [...activeTournaments, ...tournaments], [], new Map());
+  const availableNames = new Set(archiveSnapshots.map(snapshot => snapshot.tournamentName));
+  const availableTournaments = tournaments.filter(tournament => availableNames.has(tournament.name));
+  const modalHistory = buildModalHistory(activeResult.activeSnapshots, archiveSnapshots, [...activeTournaments, ...tournaments], [], new Map());
 
-  const statisticsBySlug = {};
-  const timeDistributionBySlug = {};
+  const statisticsByName = {};
+  const timeDistributionByName = {};
   for (const snapshot of archiveSnapshots) {
-    statisticsBySlug[snapshot.tournamentSlug] = snapshot.statistics;
-    timeDistributionBySlug[snapshot.tournamentSlug] = snapshot.timeDistribution;
+    statisticsByName[snapshot.tournamentName] = snapshot.statistics;
+    timeDistributionByName[snapshot.tournamentName] = snapshot.timeDistribution;
   }
-  const combined = renderArchiveContentFragment(statisticsBySlug, timeDistributionBySlug, availableTournaments, modalHistory);
+  const combined = renderArchiveContentFragment(statisticsByName, timeDistributionByName, availableTournaments, modalHistory);
 
   const cronInfo = await readCronInfo(env);
   return renderPageShell("Archive", `<div class="arch-content">${combined}</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, cronInfo);

@@ -143,57 +143,57 @@ export function assertScheduleSessionsFields(label, value) {
   return { sessions };
 }
 
-export function normalizeScheduleSessions(slug, value) {
-  const normalizedSlug = readText(slug, "schedule sessions slug");
+export function normalizeScheduleSessions(tournamentName, value) {
+  const normalizedName = readText(tournamentName, "schedule sessions tournamentName");
   return {
-    slug: normalizedSlug,
-    ...assertScheduleSessionsFields(`ScheduleSessions.${normalizedSlug}`, value)
+    tournamentName: normalizedName,
+    ...assertScheduleSessionsFields(`ScheduleSessions.${normalizedName}`, value)
   };
 }
 
-function readTournamentSlug(tournament) {
+function readTournamentName(tournament) {
   assertObject(tournament, "tournament");
-  const slug = readText(tournament.slug, "tournament.slug");
-  assertTeamMap(tournament.teamMap, `tournament.${slug}.teamMap`);
-  return slug;
+  const tournamentName = readText(tournament.name, "tournament.name");
+  assertTeamMap(tournament.teamMap, `tournament.${tournamentName}.teamMap`);
+  return tournamentName;
 }
 
 export async function rebuildScheduleSessionsFromRawMatches(env, tournament) {
-  const slug = readTournamentSlug(tournament);
-  const rawMatches = await readRawMatches(env, slug);
-  return writeScheduleSessions(env, slug, buildScheduleSessions(rawMatches, tournament));
+  const tournamentName = readTournamentName(tournament);
+  const rawMatches = await readRawMatches(env, tournamentName);
+  return writeScheduleSessions(env, tournamentName, buildScheduleSessions(rawMatches, tournament));
 }
 
-export async function readScheduleSessions(env, slug) {
-  const normalizedSlug = readText(slug, "schedule sessions slug");
-  const value = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(normalizedSlug), { type: "json" });
-  if (value == null) throw new Error(`ScheduleSessions missing: ${normalizedSlug}`);
-  return normalizeScheduleSessions(normalizedSlug, value);
+export async function readScheduleSessions(env, tournamentName) {
+  const normalizedName = readText(tournamentName, "schedule sessions tournamentName");
+  const value = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(normalizedName), { type: "json" });
+  if (value == null) throw new Error(`ScheduleSessions missing: ${normalizedName}`);
+  return normalizeScheduleSessions(normalizedName, value);
 }
 
-export async function readExistingScheduleSessions(env, slug) {
-  const normalizedSlug = readText(slug, "schedule sessions slug");
-  const value = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(normalizedSlug), { type: "json" });
+export async function readExistingScheduleSessions(env, tournamentName) {
+  const normalizedName = readText(tournamentName, "schedule sessions tournamentName");
+  const value = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(normalizedName), { type: "json" });
   if (value == null) return null;
-  return normalizeScheduleSessions(normalizedSlug, value);
+  return normalizeScheduleSessions(normalizedName, value);
 }
 
 export async function ensureScheduleSessions(env, tournament) {
-  const slug = readTournamentSlug(tournament);
-  const stored = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(slug));
+  const tournamentName = readTournamentName(tournament);
+  const stored = await env["lol-stats-kv"].get(kvKeys.scheduleSessions(tournamentName));
   if (stored == null) return rebuildScheduleSessionsFromRawMatches(env, tournament);
   try {
     const value = typeof stored === "string" ? JSON.parse(stored) : stored;
-    return normalizeScheduleSessions(slug, value);
+    return normalizeScheduleSessions(tournamentName, value);
   } catch (error) {
-    console.error(`[SCHEDULE:REPAIR] replacing invalid ScheduleSessions ${slug}: ${error.message}`);
+    console.error(`[SCHEDULE:REPAIR] replacing invalid ScheduleSessions ${tournamentName}: ${error.message}`);
     return rebuildScheduleSessionsFromRawMatches(env, tournament);
   }
 }
 
-export async function writeScheduleSessions(env, slug, value) {
-  const normalized = normalizeScheduleSessions(slug, value);
+export async function writeScheduleSessions(env, tournamentName, value) {
+  const normalized = normalizeScheduleSessions(tournamentName, value);
   const stored = { sessions: normalized.sessions };
-  await env["lol-stats-kv"].put(kvKeys.scheduleSessions(normalized.slug), JSON.stringify(stored));
+  await env["lol-stats-kv"].put(kvKeys.scheduleSessions(normalized.tournamentName), JSON.stringify(stored));
   return normalized;
 }

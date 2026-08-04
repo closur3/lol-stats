@@ -27,41 +27,41 @@ function readNowTimestamp(now) {
 
 function readTournaments(tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  const slugs = new Set();
+  const names = new Set();
   return tournaments.map((tournament, tournamentIndex) => {
     const label = `tournaments[${tournamentIndex}]`;
     requireObject(tournament, label);
-    if (typeof tournament.slug !== "string" || tournament.slug.trim() === "") {
-      throw new Error(`${label}.slug must be a string`);
+    if (typeof tournament.name !== "string" || tournament.name.trim() === "") {
+      throw new Error(`${label}.name must be a string`);
     }
     if (typeof tournament.leagueShort !== "string" || tournament.leagueShort.trim() === "") {
       throw new Error(`${label}.leagueShort must be a string`);
     }
-    if (slugs.has(tournament.slug)) throw new Error(`Duplicate tournament slug: ${tournament.slug}`);
-    slugs.add(tournament.slug);
+    if (names.has(tournament.name)) throw new Error(`Duplicate tournament name: ${tournament.name}`);
+    names.add(tournament.name);
     return {
-      slug: tournament.slug,
+      name: tournament.name,
       leagueShort: tournament.leagueShort,
       tournamentIndex
     };
   });
 }
 
-function assertMapScope(value, label, tournamentSlugs) {
+function assertMapScope(value, label, tournamentNames) {
   if (!(value instanceof Map)) throw new Error(`${label} must be a Map`);
-  for (const slug of value.keys()) {
-    if (!tournamentSlugs.has(slug)) throw new Error(`${label} contains unexpected slug: ${String(slug)}`);
+  for (const tournamentName of value.keys()) {
+    if (!tournamentNames.has(tournamentName)) throw new Error(`${label} contains unexpected tournamentName: ${String(tournamentName)}`);
   }
-  for (const slug of tournamentSlugs) {
-    if (!value.has(slug)) throw new Error(`${label} missing slug: ${slug}`);
+  for (const tournamentName of tournamentNames) {
+    if (!value.has(tournamentName)) throw new Error(`${label} missing tournamentName: ${tournamentName}`);
   }
 }
 
-function readStoreValue(map, slug, field, artifactName, assertArtifactFields) {
-  const stored = map.get(slug);
-  const label = `${artifactName}.${slug}`;
-  assertFields(stored, ["slug", field], label);
-  if (stored.slug !== slug) throw new Error(`${label}.slug must match ${slug}`);
+function readStoreValue(map, tournamentName, field, artifactName, assertArtifactFields) {
+  const stored = map.get(tournamentName);
+  const label = `${artifactName}.${tournamentName}`;
+  assertFields(stored, ["tournamentName", field], label);
+  if (stored.tournamentName !== tournamentName) throw new Error(`${label}.tournamentName must match ${tournamentName}`);
   return assertArtifactFields(label, { [field]: stored[field] });
 }
 
@@ -92,7 +92,7 @@ function buildScheduleRow(match, tournament, tabName) {
     isFinished: source.winner !== null,
     isLive: source.isLive,
     leagueShort: tournament.leagueShort,
-    slug: tournament.slug,
+    tournamentName: tournament.name,
     tournamentIndex: tournament.tournamentIndex,
     tabName,
     timestamp: match.timestamp
@@ -105,7 +105,7 @@ function isCurrentSession(matches, today) {
 
 function appendSelectedSessions(rowsByDate, artifact, tournament, today) {
   for (const session of artifact.sessions) {
-    const { tab } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${tournament.slug}.${session.sessionKey}`);
+    const { tab } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${tournament.name}.${session.sessionKey}`);
     const matches = readSessionMatches(session);
     const currentSession = isCurrentSession(matches, today);
     for (const match of matches) {
@@ -130,19 +130,19 @@ function buildScheduleMap(rowsByDate, maxDays) {
   return scheduleMap;
 }
 
-export function selectHomeSchedule(scheduleSessionsMap, tournaments, now, maxDays) {
+export function selectActiveSchedule(scheduleSessionsMap, tournaments, now, maxDays) {
   if (!Number.isInteger(maxDays) || maxDays < 1) throw new Error("maxDays must be a positive integer");
   const nowTimestamp = readNowTimestamp(now);
   const today = timePolicy.getAppDateKey(nowTimestamp);
   const orderedTournaments = readTournaments(tournaments);
-  const tournamentSlugs = new Set(orderedTournaments.map(tournament => tournament.slug));
-  assertMapScope(scheduleSessionsMap, "scheduleSessionsMap", tournamentSlugs);
+  const tournamentNames = new Set(orderedTournaments.map(tournament => tournament.name));
+  assertMapScope(scheduleSessionsMap, "scheduleSessionsMap", tournamentNames);
 
   const rowsByDate = new Map();
   for (const tournament of orderedTournaments) {
     const scheduleSessions = readStoreValue(
       scheduleSessionsMap,
-      tournament.slug,
+      tournament.name,
       "sessions",
       "ScheduleSessions",
       assertScheduleSessionsFields

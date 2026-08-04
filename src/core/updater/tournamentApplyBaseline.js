@@ -5,7 +5,7 @@ import {
 } from "../facts/tournamentApplyState.js";
 
 const ActiveArtifactPrefixes = [
-  kvKeys.ActiveHomePrefix,
+  kvKeys.ActiveSnapshotPrefix,
   kvKeys.ActiveLogPrefix,
   kvKeys.FandomRevisionPrefix,
   kvKeys.RawMatchesPrefix,
@@ -35,16 +35,16 @@ async function listKeys(kv, prefix) {
   } while (true);
 }
 
-async function readStoredActiveArtifactSlugs(env) {
+async function readStoredActiveArtifactNames(env) {
   const kv = env["lol-stats-kv"];
   const keyGroups = await Promise.all(ActiveArtifactPrefixes.map(prefix => listKeys(kv, prefix)));
   return new Set(keyGroups.flatMap((keys, index) => keys.map(key => key.slice(ActiveArtifactPrefixes[index].length))));
 }
 
-function buildRecoveryApplyState(runtimeSlugs, existingApplyState) {
+function buildRecoveryApplyState(runtimeNames, existingApplyState) {
   const activeFingerprints = { ...(existingApplyState?.activeFingerprints || {}) };
-  for (const slug of [...runtimeSlugs].sort()) {
-    if (!Object.hasOwn(activeFingerprints, slug)) activeFingerprints[slug] = "0".repeat(64);
+  for (const tournamentName of [...runtimeNames].sort()) {
+    if (!Object.hasOwn(activeFingerprints, tournamentName)) activeFingerprints[tournamentName] = "0".repeat(64);
   }
   return {
     configDigest: existingApplyState?.configDigest || "0".repeat(64),
@@ -55,7 +55,7 @@ function buildRecoveryApplyState(runtimeSlugs, existingApplyState) {
 function hasSameFingerprints(left, right) {
   const leftEntries = Object.entries(left);
   return leftEntries.length === Object.keys(right).length
-    && leftEntries.every(([slug, fingerprint]) => right[slug] === fingerprint);
+    && leftEntries.every(([tournamentName, fingerprint]) => right[tournamentName] === fingerprint);
 }
 
 export async function resolveTournamentApplyBaseline(env, desiredApplyState) {
@@ -70,8 +70,8 @@ export async function resolveTournamentApplyBaseline(env, desiredApplyState) {
     console.error(`[TOURNAMENT:CHECKPOINT] replacing invalid TournamentApplyState: ${error.message}`);
     existingApplyState = null;
   }
-  const storedArtifactSlugs = await readStoredActiveArtifactSlugs(env);
-  const baseline = buildRecoveryApplyState(storedArtifactSlugs, existingApplyState);
+  const storedArtifactNames = await readStoredActiveArtifactNames(env);
+  const baseline = buildRecoveryApplyState(storedArtifactNames, existingApplyState);
   if (
     existingApplyState?.configDigest === desiredApplyState.configDigest
     && !hasSameFingerprints(baseline.activeFingerprints, desiredApplyState.activeFingerprints)

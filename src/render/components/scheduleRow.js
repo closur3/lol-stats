@@ -1,7 +1,7 @@
 import { renderRateBadge } from './rateBadge.js';
 import { escapeHtml, escapeJsArg } from '../../utils/htmlEscape.js';
 
-export function renderScheduleRow(match, combinedStatsBySlug) {
+export function renderScheduleRow(match, combinedStatsByName) {
   const bestOfLabel = `BO${match.bestOf}`;
   const bestOfClass = `best-of-pill bo${match.bestOf}`;
   const isTbd1 = match.team1Name === "TBD", isTbd2 = match.team2Name === "TBD";
@@ -11,8 +11,8 @@ export function renderScheduleRow(match, combinedStatsBySlug) {
   const safeDisplay2 = escapeHtml(match.team2Name);
   const team1ClickHandler = isTbd1 ? "" : `onclick="openTeam(${team1Argument})"`;
   const team2ClickHandler = isTbd2 ? "" : `onclick="openTeam(${team2Argument})"`;
-  const team1RateHint = renderRateBadge(match.team1Name, match.slug, match.bestOf, combinedStatsBySlug);
-  const team2RateHint = renderRateBadge(match.team2Name, match.slug, match.bestOf, combinedStatsBySlug);
+  const team1RateHint = renderRateBadge(match.team1Name, match.tournamentName, match.bestOf, combinedStatsByName);
+  const team2RateHint = renderRateBadge(match.team2Name, match.tournamentName, match.bestOf, combinedStatsByName);
 
   let midContent = `<span class="vs-text">vs</span>`;
   if (match.isFinished) {

@@ -1,9 +1,8 @@
 {
-    "configDigest": "f985b7cac983706c7c01e8a93dd23a83c2000d2112cb495654b6f47f6a4d24c5",
+    "configDigest": "7142b7ef5552ced1ea5b1b30edf57631eac5b6bf4bfcc61ee406bca70935d921",
     "active": [
         {
-            "slug": "lpl-2026-split-3",
-            "name": "LPL 2026 Split 3",
+            "name": "2026 LPL Split 3",
             "leagueShort": "LPL",
             "overviewPages": [
                 {
@@ -57,8 +56,7 @@
             ]
         },
         {
-            "slug": "lck-2026-rounds-1-2-3-4",
-            "name": "LCK 2026 Rounds 1-2 + 3-4",
+            "name": "2026 LCK Rounds 1-2 + 3-4",
             "leagueShort": "LCK",
             "overviewPages": [
                 {
@@ -128,8 +126,7 @@
     ],
     "archive": [
         {
-            "slug": "esports-world-cup-2026",
-            "name": "Esports World Cup 2026",
+            "name": "2026 Esports World Cup",
             "leagueShort": "EWC",
             "overviewPages": [
                 {
@@ -162,8 +159,7 @@
             "participantGroups": []
         },
         {
-            "slug": "msi-2026",
-            "name": "MSI 2026",
+            "name": "2026 MSI",
             "leagueShort": "MSI",
             "overviewPages": [
                 {
@@ -191,8 +187,7 @@
             "participantGroups": []
         },
         {
-            "slug": "lck-2026-road-to-msi",
-            "name": "LCK 2026 Road to MSI",
+            "name": "2026 LCK Road to MSI",
             "leagueShort": "LCK",
             "overviewPages": [
                 {
@@ -215,8 +210,7 @@
             "participantGroups": []
         },
         {
-            "slug": "lpl-2026-split-2",
-            "name": "LPL 2026 Split 2",
+            "name": "2026 LPL Split 2",
             "leagueShort": "LPL",
             "overviewPages": [
                 {
@@ -280,8 +274,7 @@
             ]
         },
         {
-            "slug": "first-stand-2026",
-            "name": "First Stand 2026",
+            "name": "2026 First Stand",
             "leagueShort": "FST",
             "overviewPages": [
                 {
@@ -306,8 +299,7 @@
             "participantGroups": []
         },
         {
-            "slug": "lpl-2026-split-1",
-            "name": "LPL 2026 Split 1",
+            "name": "2026 LPL Split 1",
             "leagueShort": "LPL",
             "overviewPages": [
                 {
@@ -377,8 +369,7 @@
             ]
         },
         {
-            "slug": "lck-cup-2026",
-            "name": "LCK Cup 2026",
+            "name": "2026 LCK Cup",
             "leagueShort": "LCK",
             "overviewPages": [
                 {

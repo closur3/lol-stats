@@ -1,21 +1,21 @@
 import { analyzeTournaments } from "../analyzer.js";
 import { readRawMatches } from "../facts/rawMatchesStore.js";
-import { buildHomeSnapshots, writeHomeSnapshots } from "../projection/homeProjector.js";
-import { inspectActiveHomes } from "./activeHomeReader.js";
+import { buildActiveSnapshots, writeActiveSnapshots } from "../projection/activeProjector.js";
+import { inspectActiveSnapshots } from "./activeSnapshotReader.js";
 
-export async function repairActiveHomeProjections(env, tournaments) {
+export async function repairActiveSnapshotProjections(env, tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
-  const entries = await inspectActiveHomes(env, tournaments);
+  const entries = await inspectActiveSnapshots(env, tournaments);
   const targets = tournaments.filter((_tournament, index) => entries[index].issue);
   if (targets.length === 0) return;
 
-  const rawMatchesBySlug = Object.fromEntries(await Promise.all(targets.map(async tournament => [
-    tournament.slug,
-    await readRawMatches(env, tournament.slug)
+  const rawMatchesByName = Object.fromEntries(await Promise.all(targets.map(async tournament => [
+    tournament.name,
+    await readRawMatches(env, tournament.name)
   ])));
-  const analysis = analyzeTournaments(rawMatchesBySlug, targets);
-  const targetSlugs = new Set(targets.map(tournament => tournament.slug));
-  const snapshotsBySlug = buildHomeSnapshots(targets, analysis, targetSlugs);
-  await writeHomeSnapshots(env, snapshotsBySlug);
-  console.log(`[ACTIVE:PROJECTION] repaired=${[...targetSlugs].join(",")}`);
+  const analysis = analyzeTournaments(rawMatchesByName, targets);
+  const targetNames = new Set(targets.map(tournament => tournament.name));
+  const snapshotsByName = buildActiveSnapshots(targets, analysis, targetNames);
+  await writeActiveSnapshots(env, snapshotsByName);
+  console.log(`[ACTIVE:PROJECTION] repaired=${[...targetNames].join(",")}`);
 }

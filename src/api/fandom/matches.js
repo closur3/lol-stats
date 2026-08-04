@@ -24,27 +24,27 @@ function projectMatchSchedule(record) {
   };
 }
 
-function buildOverviewPages(slug, sourceInput) {
+function buildOverviewPages(tournamentName, sourceInput) {
   const pages = Array.isArray(sourceInput) ? sourceInput : [sourceInput];
-  if (pages.length === 0) throw new Error(`No source pages for ${slug}`);
-  pages.forEach((page, index) => cargoStringLiteral(page, `${slug}.overviewPage[${index}]`));
+  if (pages.length === 0) throw new Error(`No source pages for ${tournamentName}`);
+  pages.forEach((page, index) => cargoStringLiteral(page, `${tournamentName}.overviewPage[${index}]`));
   return pages;
 }
 
-function buildOverviewWhere(slug, pages, fieldName = "OverviewPage") {
-  const inClause = pages.map((page, index) => cargoStringLiteral(page, `${slug}.overviewPage[${index}]`)).join(", ");
+function buildOverviewWhere(tournamentName, pages, fieldName = "OverviewPage") {
+  const inClause = pages.map((page, index) => cargoStringLiteral(page, `${tournamentName}.overviewPage[${index}]`)).join(", ");
   return pages.length === 1
-    ? `${fieldName} = ${cargoStringLiteral(pages[0], `${slug}.overviewPage[0]`)}`
+    ? `${fieldName} = ${cargoStringLiteral(pages[0], `${tournamentName}.overviewPage[0]`)}`
     : `${fieldName} IN (${inClause})`;
 }
 
-async function fetchMatchSchedule(fandomClient, slug, pages) {
+async function fetchMatchSchedule(fandomClient, tournamentName, pages) {
   let all = [];
   let offset = 0;
   const limit = 200;
   const seenIds = new Set();
   let unscheduledCount = 0;
-  const whereClause = buildOverviewWhere(slug, pages);
+  const whereClause = buildOverviewWhere(tournamentName, pages);
 
   while (true) {
     const cargoParams = new URLSearchParams({
@@ -72,7 +72,7 @@ async function fetchMatchSchedule(fandomClient, slug, pages) {
     });
 
     if (hasDuplicates) {
-      throw new Error(`[FANDOM:MATCHES] ${slug} duplicate MatchId, aborting to prevent infinite loop`);
+      throw new Error(`[FANDOM:MATCHES] ${tournamentName} duplicate MatchId, aborting to prevent infinite loop`);
     }
 
     const scheduledBatch = batch.filter(hasScheduledDateTime).map(projectMatchSchedule);
@@ -86,11 +86,11 @@ async function fetchMatchSchedule(fandomClient, slug, pages) {
   }
 
   if (all.length === 0) {
-    throw new Error(`[FANDOM:MATCHES] ${slug} returned 0 scheduled records`);
+    throw new Error(`[FANDOM:MATCHES] ${tournamentName} returned 0 scheduled records`);
   }
 
   if (unscheduledCount > 0) {
-    console.log(`[FANDOM:MATCHES] ${slug} skipped unscheduled=${unscheduledCount}`);
+    console.log(`[FANDOM:MATCHES] ${tournamentName} skipped unscheduled=${unscheduledCount}`);
   }
 
   return all;
@@ -116,16 +116,16 @@ function requireGameText(value, label) {
   return value;
 }
 
-function parseMatchScheduleGame(record, slug) {
+function parseMatchScheduleGame(record, tournamentName) {
   const matchId = record.MatchId;
   if (matchId === "" || matchId === null || matchId === undefined) {
-    throw new Error(`[FANDOM:GAMES] ${slug} missing MatchId`);
+    throw new Error(`[FANDOM:GAMES] ${tournamentName} missing MatchId`);
   }
   const number = Number.parseInt(record.NGameInMatch, 10);
   if (!Number.isInteger(number) || number < 1) {
-    throw new Error(`[FANDOM:GAMES] ${slug}.${matchId} invalid NGameInMatch`);
+    throw new Error(`[FANDOM:GAMES] ${tournamentName}.${matchId} invalid NGameInMatch`);
   }
-  const label = `${slug}.${matchId}.${number}`;
+  const label = `${tournamentName}.${matchId}.${number}`;
   const winner = parseOptionalInteger(record.Winner, `${label}.Winner`, [1, 2]);
   const blue = winner === null ? record.Blue : requireGameText(record.Blue, `${label}.Blue`);
   const red = winner === null ? record.Red : requireGameText(record.Red, `${label}.Red`);
@@ -140,10 +140,10 @@ function parseMatchScheduleGame(record, slug) {
   };
 }
 
-async function fetchMatchScheduleGames(fandomClient, slug, pages) {
+async function fetchMatchScheduleGames(fandomClient, tournamentName, pages) {
   const all = [];
   const seenGameIds = new Set();
-  const whereClause = buildOverviewWhere(slug, pages, "MS.OverviewPage");
+  const whereClause = buildOverviewWhere(tournamentName, pages, "MS.OverviewPage");
   let offset = 0;
   const limit = 500;
 
@@ -162,12 +162,12 @@ async function fetchMatchScheduleGames(fandomClient, slug, pages) {
     });
 
     const batchRaw = await fandomClient.fetchWithRetry(`${fandomApi}?${cargoParams}`);
-    const batch = batchRaw.map(record => parseMatchScheduleGame(record.title, slug));
+    const batch = batchRaw.map(record => parseMatchScheduleGame(record.title, tournamentName));
     if (batch.length === 0) break;
 
     for (const game of batch) {
       if (seenGameIds.has(game.gameId)) {
-        throw new Error(`[FANDOM:GAMES] ${slug} duplicate GameId: ${game.gameId}`);
+        throw new Error(`[FANDOM:GAMES] ${tournamentName} duplicate GameId: ${game.gameId}`);
       }
       seenGameIds.add(game.gameId);
       all.push(game);
@@ -181,7 +181,7 @@ async function fetchMatchScheduleGames(fandomClient, slug, pages) {
   return all;
 }
 
-function attachGames(matches, matchScheduleGames, slug) {
+function attachGames(matches, matchScheduleGames, tournamentName) {
   const matchIds = new Set(matches.map(match => String(match.MatchId)));
   const gamesByMatchId = new Map();
   let ignoredGames = 0;
@@ -203,7 +203,7 @@ function attachGames(matches, matchScheduleGames, slug) {
   }
 
   if (ignoredGames > 0) {
-    console.log(`[FANDOM:GAMES] ${slug} ignored games outside scheduled matches=${ignoredGames}`);
+    console.log(`[FANDOM:GAMES] ${tournamentName} ignored games outside scheduled matches=${ignoredGames}`);
   }
 
   return matches.map(match => ({
@@ -212,11 +212,11 @@ function attachGames(matches, matchScheduleGames, slug) {
   }));
 }
 
-export async function fetchAllMatches(fandomClient, slug, sourceInput) {
-  const pages = buildOverviewPages(slug, sourceInput);
+export async function fetchAllMatches(fandomClient, tournamentName, sourceInput) {
+  const pages = buildOverviewPages(tournamentName, sourceInput);
   const [matches, matchScheduleGames] = await Promise.all([
-    fetchMatchSchedule(fandomClient, slug, pages),
-    fetchMatchScheduleGames(fandomClient, slug, pages)
+    fetchMatchSchedule(fandomClient, tournamentName, pages),
+    fetchMatchScheduleGames(fandomClient, tournamentName, pages)
   ]);
-  return attachGames(matches, matchScheduleGames, slug);
+  return attachGames(matches, matchScheduleGames, tournamentName);
 }

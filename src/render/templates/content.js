@@ -14,42 +14,42 @@ function assertTournaments(tournaments) {
   }
 }
 
-export function renderContentFragment(statisticsBySlug, timeDistributionBySlug, scheduleMap, tournaments, isArchive = false, scheduleSessionsBySlug, modalHistory) {
-  assertObject(statisticsBySlug, "statisticsBySlug");
-  assertObject(timeDistributionBySlug, "timeDistributionBySlug");
+export function renderContentFragment(statisticsByName, timeDistributionByName, scheduleMap, tournaments, isArchive = false, scheduleSessionsByName, modalHistory) {
+  assertObject(statisticsByName, "statisticsByName");
+  assertObject(timeDistributionByName, "timeDistributionByName");
   assertObject(scheduleMap, "scheduleMap");
   assertTournaments(tournaments);
   if (!Array.isArray(modalHistory)) throw new Error("modalHistory must be an array");
   if (!isArchive) {
-    assertObject(scheduleSessionsBySlug, "scheduleSessionsBySlug");
+    assertObject(scheduleSessionsByName, "scheduleSessionsByName");
   }
 
-  const combinedStatsBySlug = Object.fromEntries(tournaments.map(tournament => {
-    const statistics = statisticsBySlug[tournament.slug];
+  const combinedStatsByName = Object.fromEntries(tournaments.map(tournament => {
+    const statistics = statisticsByName[tournament.name];
     if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
-      throw new Error(`statisticsBySlug missing: ${tournament.slug}`);
+      throw new Error(`statisticsByName missing: ${tournament.name}`);
     }
     if (!statistics.combined || typeof statistics.combined !== "object" || Array.isArray(statistics.combined)) {
-      throw new Error(`statistics.combined missing: ${tournament.slug}`);
+      throw new Error(`statistics.combined missing: ${tournament.name}`);
     }
-    return [tournament.slug, statistics.combined];
+    return [tournament.name, statistics.combined];
   }));
-  const injectedData = `<script>window.tournamentStatistics = Object.assign(window.tournamentStatistics ?? {}, ${serializeForInlineScript(statisticsBySlug)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
-  const visibleTournaments = tournaments.filter(tournament => tournament?.slug);
+  const injectedData = `<script>window.tournamentStatistics = Object.assign(window.tournamentStatistics ?? {}, ${serializeForInlineScript(statisticsByName)});window.gModalHistory = ${serializeForInlineScript(modalHistory)};</script>`;
+  const visibleTournaments = tournaments.filter(tournament => tournament?.name);
   const tablesHtml = visibleTournaments
     .map(tournament => renderTournamentSection(
       tournament,
-      statisticsBySlug,
-      timeDistributionBySlug,
-      scheduleSessionsBySlug,
+      statisticsByName,
+      timeDistributionByName,
+      scheduleSessionsByName,
       isArchive
     ))
     .join("");
-  const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, combinedStatsBySlug);
+  const scheduleHtml = isArchive ? "" : renderScheduleSection(scheduleMap, combinedStatsByName);
 
   return `${tablesHtml} ${scheduleHtml} ${injectedData}`;
 }
 
-export function renderArchiveContentFragment(statisticsBySlug, timeDistributionBySlug, tournaments, modalHistory) {
-  return renderContentFragment(statisticsBySlug, timeDistributionBySlug, {}, tournaments, true, null, modalHistory);
+export function renderArchiveContentFragment(statisticsByName, timeDistributionByName, tournaments, modalHistory) {
+  return renderContentFragment(statisticsByName, timeDistributionByName, {}, tournaments, true, null, modalHistory);
 }

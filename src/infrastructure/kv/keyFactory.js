@@ -1,4 +1,4 @@
-const ActiveHomePrefix = "ActiveHome_";
+const ActiveSnapshotPrefix = "ActiveSnapshot_";
 const ActiveLogPrefix = "ActiveLog_";
 const ArchiveSnapshotPrefix = "ArchiveSnapshot_";
 const FandomRevisionPrefix = "FandomRevision_";
@@ -6,30 +6,30 @@ const RawMatchesPrefix = "RawMatches_";
 const ScheduleSessionsPrefix = "ScheduleSessions_";
 
 export const kvKeys = {
-  ActiveHomePrefix,
+  ActiveSnapshotPrefix,
   ActiveLogPrefix,
   ArchiveSnapshotPrefix,
   FandomRevisionPrefix,
   RawMatchesPrefix,
   ScheduleSessionsPrefix,
 
-  home(slug) {
-    return `${ActiveHomePrefix}${slug}`;
+  active(tournamentName) {
+    return `${ActiveSnapshotPrefix}${tournamentName}`;
   },
-  log(slug) {
-    return `${ActiveLogPrefix}${slug}`;
+  log(tournamentName) {
+    return `${ActiveLogPrefix}${tournamentName}`;
   },
-  archive(slug) {
-    return `${ArchiveSnapshotPrefix}${slug}`;
+  archive(tournamentName) {
+    return `${ArchiveSnapshotPrefix}${tournamentName}`;
   },
-  rev(slug) {
-    return `${FandomRevisionPrefix}${slug}`;
+  rev(tournamentName) {
+    return `${FandomRevisionPrefix}${tournamentName}`;
   },
-  rawMatches(slug) {
-    return `${RawMatchesPrefix}${slug}`;
+  rawMatches(tournamentName) {
+    return `${RawMatchesPrefix}${tournamentName}`;
   },
-  scheduleSessions(slug) {
-    return `${ScheduleSessionsPrefix}${slug}`;
+  scheduleSessions(tournamentName) {
+    return `${ScheduleSessionsPrefix}${tournamentName}`;
   },
   scheduleState() {
     return "ScheduleState";

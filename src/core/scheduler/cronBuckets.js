@@ -49,12 +49,12 @@ function mergeIntervals(intervals) {
 }
 
 export function buildActiveBucketCronsFromState(state) {
-  if (!state?.controlsBySlug || typeof state.controlsBySlug !== "object" || Array.isArray(state.controlsBySlug)) {
-    throw new Error("ScheduleState.controlsBySlug must be a JSON object");
+  if (!state?.controlsByName || typeof state.controlsByName !== "object" || Array.isArray(state.controlsByName)) {
+    throw new Error("ScheduleState.controlsByName must be a JSON object");
   }
   const intervals = [];
-  for (const [slug, control] of Object.entries(state.controlsBySlug)) {
-    assertScheduleControl(slug, control);
+  for (const [tournamentName, control] of Object.entries(state.controlsByName)) {
+    assertScheduleControl(tournamentName, control);
     if (control.cronWindow === null) continue;
     intervals.push(...timePolicy.appWindowToUtcCronSegments(state.date, control.cronWindow.startHour, control.cronWindow.endHour));
   }
@@ -72,6 +72,6 @@ export function buildCronsFromScheduleState(state) {
   return schedules;
 }
 
-export function shouldRunScheduledSlugAt(control, nowUtc) {
+export function shouldRunScheduledTournamentAt(control, nowUtc) {
   return isNowInCronWindow(control, nowUtc);
 }

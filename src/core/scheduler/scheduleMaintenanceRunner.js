@@ -12,7 +12,7 @@ import {
   ScheduleStateSchemaError,
   writeScheduleState
 } from "./scheduleState.js";
-import { repairActiveHomeProjections } from "../updater/activeProjectionMaintenance.js";
+import { repairActiveSnapshotProjections } from "../updater/activeProjectionMaintenance.js";
 
 function readScheduleNow(scheduledTimeMs) {
   const now = new Date(scheduledTimeMs);
@@ -26,23 +26,23 @@ function assertTournaments(tournaments) {
 
 async function ensureScheduleRuntime(env, tournaments) {
   return Promise.all(tournaments.map(async tournament => {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    return { slug, scheduleSessions: await ensureScheduleSessions(env, tournament) };
+    const tournamentName = tournament?.name;
+    if (!tournamentName) throw new Error("Tournament tournamentName missing");
+    return { tournamentName, scheduleSessions: await ensureScheduleSessions(env, tournament) };
   }));
 }
 
 async function rebuildScheduleRuntime(env, tournaments) {
   return Promise.all(tournaments.map(async tournament => {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    return { slug, scheduleSessions: await rebuildScheduleSessionsFromRawMatches(env, tournament) };
+    const tournamentName = tournament?.name;
+    if (!tournamentName) throw new Error("Tournament tournamentName missing");
+    return { tournamentName, scheduleSessions: await rebuildScheduleSessionsFromRawMatches(env, tournament) };
   }));
 }
 
 async function runScheduleStateUpdate(env, tournaments, runtime, now, previousState, applyReason, logLabel, options) {
-  const sessionsBySlug = new Map(runtime.map(({ slug, scheduleSessions }) => [slug, { sessions: scheduleSessions.sessions }]));
-  const state = buildScheduleState(tournaments, sessionsBySlug, now, previousState);
+  const sessionsByName = new Map(runtime.map(({ tournamentName, scheduleSessions }) => [tournamentName, { sessions: scheduleSessions.sessions }]));
+  const state = buildScheduleState(tournaments, sessionsByName, now, previousState);
   const desiredCrons = buildCronsFromScheduleState(state);
 
   let applyResult = "unchanged";
@@ -52,14 +52,14 @@ async function runScheduleStateUpdate(env, tournaments, runtime, now, previousSt
   }
   await writeScheduleState(env, state);
   console.log(`[SCHED:${logLabel}] date=${state.date} crons=${desiredCrons.join(",")} apply=${applyResult}`);
-  return { scheduleState: state, scheduleSessionsBySlug: sessionsBySlug };
+  return { scheduleState: state, scheduleSessionsByName: sessionsByName };
 }
 
 export async function runScheduleMaintenance(env, tournaments, scheduledTimeMs, options = {}) {
   assertTournaments(tournaments);
   const now = readScheduleNow(scheduledTimeMs);
   const runtime = await ensureScheduleRuntime(env, tournaments);
-  await repairActiveHomeProjections(env, tournaments);
+  await repairActiveSnapshotProjections(env, tournaments);
   let previousState;
   try {
     previousState = await readScheduleState(env);
@@ -84,7 +84,7 @@ export async function rebuildSchedule(env, tournaments, scheduledTimeMs = Date.n
   assertTournaments(tournaments);
   const now = readScheduleNow(scheduledTimeMs);
   const runtime = await rebuildScheduleRuntime(env, tournaments);
-  await repairActiveHomeProjections(env, tournaments);
+  await repairActiveSnapshotProjections(env, tournaments);
   let previousState;
   try {
     previousState = await readScheduleState(env);

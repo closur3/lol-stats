@@ -2,8 +2,8 @@ import { buildTeamNameResolver } from "../analysis/teamResolver.js";
 
 export function buildParticipantGroups(tournament, overviewPage, stats) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) throw new Error("tournament must be an object");
-  if (!Array.isArray(tournament.participantGroups)) throw new Error(`${tournament.slug} participantGroups must be an array`);
-  if (!stats || typeof stats !== "object" || Array.isArray(stats)) throw new Error(`${tournament.slug} page stats must be an object`);
+  if (!Array.isArray(tournament.participantGroups)) throw new Error(`${tournament.name} participantGroups must be an array`);
+  if (!stats || typeof stats !== "object" || Array.isArray(stats)) throw new Error(`${tournament.name} page stats must be an object`);
   const resolveTeamName = buildTeamNameResolver(tournament.teamMap);
   const memberships = new Set();
   const groups = tournament.participantGroups
@@ -12,7 +12,7 @@ export function buildParticipantGroups(tournament, overviewPage, stats) {
       const teams = group.teams.map(rawTeamName => {
         const teamName = resolveTeamName(rawTeamName);
         if (memberships.has(teamName)) {
-          throw new Error(`${tournament.slug} duplicate resolved group membership: ${overviewPage}:${teamName}`);
+          throw new Error(`${tournament.name} duplicate resolved group membership: ${overviewPage}:${teamName}`);
         }
         memberships.add(teamName);
         return teamName;
@@ -25,7 +25,7 @@ export function buildParticipantGroups(tournament, overviewPage, stats) {
       .filter(teamName => teamName !== "TBD" && !memberships.has(teamName))
       .sort();
     if (ungroupedTeams.length > 0) {
-      throw new Error(`${tournament.slug} stats teams missing native group: ${overviewPage}:${ungroupedTeams.join(",")}`);
+      throw new Error(`${tournament.name} stats teams missing native group: ${overviewPage}:${ungroupedTeams.join(",")}`);
     }
   }
   return groups;

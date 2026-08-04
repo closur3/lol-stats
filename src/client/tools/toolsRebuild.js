@@ -1,11 +1,11 @@
 export const toolsRebuild = `
-          function requestArchiveRebuild(slug) {
-              return sendAuthorizedPost('/rebuild-archive', { 'Content-Type': 'application/json' }, JSON.stringify({ slug: slug }));
+          function requestArchiveRebuild(name) {
+              return sendAuthorizedPost('/rebuild-archive', { 'Content-Type': 'application/json' }, JSON.stringify({ name: name }));
           }
 
-          function rebuildArchive(slug, name, button) {
+          function rebuildArchive(name, button) {
               var restore = disableButton(button);
-              requestArchiveRebuild(slug).then(function(res) {
+              requestArchiveRebuild(name).then(function(res) {
                   if (checkAuthError(res.status)) return;
                   if (res.ok) {
                       showResult(true, 'Archive rebuild completed: ' + name);
@@ -21,9 +21,9 @@ export const toolsRebuild = `
 
           function readArchiveSelections(checkboxes) {
               var selected = Array.from(checkboxes).map(function(checkboxElement) {
-                  return { slug: (checkboxElement.value || '').trim(), name: (checkboxElement.dataset.name || '').trim() };
+                  return (checkboxElement.value || '').trim();
               });
-              if (selected.some(function(item) { return !item.slug; })) {
+              if (selected.some(function(name) { return !name; })) {
                   throw new Error('Required tournament data is missing.');
               }
               return selected;
@@ -32,8 +32,8 @@ export const toolsRebuild = `
           function requestArchiveRebuildBatch(selected) {
               var success = 0;
               var fail = 0;
-              var promises = selected.map(function(selectedArchive) {
-                  return requestArchiveRebuild(selectedArchive.slug).then(function(res) {
+              var promises = selected.map(function(name) {
+                  return requestArchiveRebuild(name).then(function(res) {
                       if (checkAuthError(res.status)) return;
                       if (res.ok) {
                           success++;
@@ -41,7 +41,7 @@ export const toolsRebuild = `
                       }
                       fail++;
                       return res.text().then(function(errorMessage) {
-                          if (errorMessage) showToast('Archive rebuild failed: ' + selectedArchive.name + ' — ' + errorMessage, 'error');
+                          if (errorMessage) showToast('Archive rebuild failed: ' + name + ' — ' + errorMessage, 'error');
                       });
                   }).catch(function() { fail++; });
               });

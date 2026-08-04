@@ -1,20 +1,20 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
 
-function normalizeSlug(slug) {
-  if (typeof slug !== "string" || !slug.trim()) {
-    throw new Error("Active tournament slug required");
+function normalizeName(tournamentName) {
+  if (typeof tournamentName !== "string" || !tournamentName.trim()) {
+    throw new Error("Active tournament tournamentName required");
   }
-  return slug.trim();
+  return tournamentName.trim();
 }
 
-export async function deleteActiveRuntimeFacts(env, slug) {
-  const cleanSlug = normalizeSlug(slug);
+export async function deleteActiveRuntimeFacts(env, tournamentName) {
+  const cleanName = normalizeName(tournamentName);
   const kv = env["lol-stats-kv"];
   await Promise.all([
-    kv.delete(kvKeys.home(cleanSlug)),
-    kv.delete(kvKeys.log(cleanSlug)),
-    kv.delete(kvKeys.rev(cleanSlug)),
-    kv.delete(kvKeys.rawMatches(cleanSlug)),
-    kv.delete(kvKeys.scheduleSessions(cleanSlug))
+    kv.delete(kvKeys.active(cleanName)),
+    kv.delete(kvKeys.log(cleanName)),
+    kv.delete(kvKeys.rev(cleanName)),
+    kv.delete(kvKeys.rawMatches(cleanName)),
+    kv.delete(kvKeys.scheduleSessions(cleanName))
   ]);
 }

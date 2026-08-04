@@ -25,9 +25,9 @@ function readTournament(tournament) {
   if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) {
     throw new Error("tournament must be a JSON object");
   }
-  const slug = readText(tournament.slug, "tournament.slug");
-  const teamMap = assertTeamMap(tournament.teamMap, `tournament.${slug}.teamMap`);
-  return { slug, resolveTeamName: buildTeamNameResolver(teamMap) };
+  const tournamentName = readText(tournament.name, "tournament.name");
+  const teamMap = assertTeamMap(tournament.teamMap, `tournament.${tournamentName}.teamMap`);
+  return { tournamentName, resolveTeamName: buildTeamNameResolver(teamMap) };
 }
 
 function buildMatch(rawMatch, label, sessionKey, winner, isForfeit, resolveTeamName) {
@@ -66,7 +66,7 @@ function buildMatch(rawMatch, label, sessionKey, winner, isForfeit, resolveTeamN
 
 export function buildScheduleSessions(rawMatches, tournament) {
   if (!Array.isArray(rawMatches)) throw new Error("rawMatches must be an array");
-  const { slug, resolveTeamName } = readTournament(tournament);
+  const { tournamentName, resolveTeamName } = readTournament(tournament);
   const matchesBySessionKey = new Map();
   const matchIds = new Set();
   const matchNumbersByTab = new Map();
@@ -79,7 +79,7 @@ export function buildScheduleSessions(rawMatches, tournament) {
     if (matchIds.has(matchId)) throw new Error(`RawMatches contains duplicate MatchId: ${matchId}`);
     matchIds.add(matchId);
 
-    const label = `${slug}.${matchId}`;
+    const label = `${tournamentName}.${matchId}`;
     const { winner, isForfeit, isNullified } = parseMatchOutcome(rawMatch, label);
     if (isNullified) return;
 

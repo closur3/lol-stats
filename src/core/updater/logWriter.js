@@ -25,15 +25,15 @@ function readUpdateReason(value) {
 
 export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchErrors) {
   const loggedAt = timePolicy.getCurrentAppDateTime().fullDateTimeString;
-  const logEntriesBySlug = {};
+  const logEntriesByName = {};
 
-  const setLogEntry = (slug, logEntry) => {
-    if (!slug) throw new Error("ActiveLog slug missing");
-    logEntriesBySlug[slug] = { loggedAt, ...logEntry };
+  const setLogEntry = (tournamentName, logEntry) => {
+    if (!tournamentName) throw new Error("ActiveLog tournamentName missing");
+    logEntriesByName[tournamentName] = { loggedAt, ...logEntry };
   };
 
   syncItems.forEach(syncItem => {
-    setLogEntry(syncItem.slug, {
+    setLogEntry(syncItem.tournamentName, {
       action: "SYNC",
       added: syncItem.added,
       updated: syncItem.updated,
@@ -43,8 +43,8 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
   });
 
   skipItems.forEach(skipItem => {
-    if (logEntriesBySlug[skipItem.slug]) return;
-    setLogEntry(skipItem.slug, {
+    if (logEntriesByName[skipItem.tournamentName]) return;
+    setLogEntry(skipItem.tournamentName, {
       action: "SKIP",
       added: skipItem.added,
       updated: skipItem.updated,
@@ -55,17 +55,17 @@ export function buildActiveLogEntries(syncItems, skipItems, dropBreakers, fetchE
 
   dropBreakers.forEach(breaker => {
     if (typeof breaker !== "string" || breaker.length === 0) throw new Error("breaker log item invalid");
-    const slug = breaker.split("(")[0];
+    const tournamentName = breaker.split("(")[0];
     const dropMatch = breaker.match(/\(Drop .+\)/);
     const dropInfo = dropMatch ? dropMatch[0] : "(Drop)";
-    setLogEntry(slug, { action: "BREAKER", dropInfo });
+    setLogEntry(tournamentName, { action: "BREAKER", dropInfo });
   });
 
   fetchErrors.forEach(fetchError => {
     if (typeof fetchError !== "string" || fetchError.length === 0) throw new Error("fetch error log item invalid");
-    const slug = fetchError.split("(")[0];
-    setLogEntry(slug, { action: "API_ERROR" });
+    const tournamentName = fetchError.split("(")[0];
+    setLogEntry(tournamentName, { action: "API_ERROR" });
   });
 
-  return logEntriesBySlug;
+  return logEntriesByName;
 }

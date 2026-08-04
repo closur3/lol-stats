@@ -27,7 +27,7 @@ function applyStateMatches(left, right) {
   if (left.configDigest !== right.configDigest) return false;
   const leftEntries = Object.entries(left.activeFingerprints);
   return leftEntries.length === Object.keys(right.activeFingerprints).length
-    && leftEntries.every(([slug, fingerprint]) => right.activeFingerprints[slug] === fingerprint);
+    && leftEntries.every(([tournamentName, fingerprint]) => right.activeFingerprints[tournamentName] === fingerprint);
 }
 
 async function assertConfigUnchanged(env, expectedDigest) {
@@ -66,8 +66,8 @@ async function reconcileConfig(env, config, scheduledTimeMs, scheduleOptions) {
   logTransition(transition);
 
   const rebuildReasons = new Map([
-    ...transition.added.map(slug => [slug, "added"]),
-    ...transition.updated.map(slug => [slug, "updated"])
+    ...transition.added.map(tournamentName => [tournamentName, "added"]),
+    ...transition.updated.map(tournamentName => [tournamentName, "updated"])
   ]);
   const [archiveMigrations, activePreparation] = await Promise.all([
     prepareArchiveMigrations(env, config.archive, new Set(transition.archived)),
@@ -79,7 +79,7 @@ async function reconcileConfig(env, config, scheduledTimeMs, scheduleOptions) {
     await commitActiveUpdate(env, activePreparation.activeUpdatePlan);
   }
   await cleanupArchiveMigrations(env, archiveMigrations);
-  await Promise.all(transition.dropped.map(slug => deleteActiveRuntimeFacts(env, slug)));
+  await Promise.all(transition.dropped.map(tournamentName => deleteActiveRuntimeFacts(env, tournamentName)));
   const scheduleRuntime = await rebuildSchedule(env, config.active, scheduledTimeMs, scheduleOptions);
 
   await assertActiveRuntimeMatchesConfig(env, config.active);

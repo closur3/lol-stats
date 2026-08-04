@@ -16,7 +16,7 @@ function assignTimeGridWeekdays(timeGridMatches, sessionStarts) {
   }
 }
 
-export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSlug) {
+export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentName) {
   const sessionStarts = new Map();
   const timeGridLayoutMatches = [];
   const timeGridMatches = [];
@@ -41,13 +41,13 @@ export function parseTournamentMatches(rawMatches, resolveTeamName, tournamentSl
 
   rawMatches.forEach(match => {
     if (typeof match.MatchId !== "string" || match.MatchId.trim() === "") {
-      throw new Error(`${tournamentSlug}.MatchId must be a nonempty string`);
+      throw new Error(`${tournamentName}.MatchId must be a nonempty string`);
     }
     const matchId = match.MatchId;
-    const matchLabel = `${tournamentSlug}.${matchId}`;
-    const team1Score = parseMatchScore(match.Team1Score, `${tournamentSlug}.${match.MatchId}.Team1Score`);
-    const team2Score = parseMatchScore(match.Team2Score, `${tournamentSlug}.${match.MatchId}.Team2Score`);
-    const bestOf = parseMatchBestOf(match.BestOf, `${tournamentSlug}.${match.MatchId}.BestOf`);
+    const matchLabel = `${tournamentName}.${matchId}`;
+    const team1Score = parseMatchScore(match.Team1Score, `${tournamentName}.${match.MatchId}.Team1Score`);
+    const team2Score = parseMatchScore(match.Team2Score, `${tournamentName}.${match.MatchId}.Team2Score`);
+    const bestOf = parseMatchBestOf(match.BestOf, `${tournamentName}.${match.MatchId}.BestOf`);
     const { winner, isForfeit, isNullified } = parseMatchOutcome(match, matchLabel);
     if (isNullified) return;
 

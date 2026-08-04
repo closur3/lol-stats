@@ -15,11 +15,11 @@ function renderTournamentSummary(stats) {
   return parts.length ? `<div class="tournament-summary">${parts.join('<span class="heading-meta-divider summary-sep" aria-hidden="true"></span>')}</div>` : "";
 }
 
-function readScheduleSessions(scheduleSessionsBySlug, slug, isArchive) {
+function readScheduleSessions(scheduleSessionsByName, tournamentName, isArchive) {
   if (isArchive) return null;
-  const scheduleSessions = scheduleSessionsBySlug[slug];
+  const scheduleSessions = scheduleSessionsByName[tournamentName];
   if (!scheduleSessions || typeof scheduleSessions !== "object" || Array.isArray(scheduleSessions)) {
-    throw new Error(`scheduleSessionsBySlug missing: ${slug}`);
+    throw new Error(`scheduleSessionsByName missing: ${tournamentName}`);
   }
   return scheduleSessions;
 }
@@ -40,14 +40,14 @@ function normalizeId(value) {
 function renderStatisticsBody(tournament, section, scope, sectionIndex) {
   const sortMeta = buildSortMeta(section.stats);
   const rows = section.stats
-    .map(teamStats => renderTeamRow(teamStats, tournament.slug, scope, sortMeta, Boolean(section.groupDisplay)))
+    .map(teamStats => renderTeamRow(teamStats, tournament.name, scope, sortMeta, Boolean(section.groupDisplay)))
     .join("");
   if (!section.groupDisplay) return `<tbody>${rows}</tbody>`;
   return `<tbody class="stats-group-body stats-group-color-${sectionIndex % 4}">${rows}</tbody>`;
 }
 
 function buildTournamentTable(tournament, sections, scope, tableSuffix) {
-  const tableId = `t_${normalizeId(tournament.slug)}_${normalizeId(tableSuffix)}`;
+  const tableId = `t_${normalizeId(tournament.name)}_${normalizeId(tableSuffix)}`;
   const bodies = sections
     .map((section, sectionIndex) => renderStatisticsBody(tournament, section, scope, sectionIndex))
     .join("");
@@ -103,14 +103,14 @@ function renderExternalLinkIcon() {
 function assertStatistics(tournament, statistics) {
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (!statistics || typeof statistics !== "object" || Array.isArray(statistics)) {
-    throw new Error(`statistics missing: ${tournament.slug}`);
+    throw new Error(`statistics missing: ${tournament.name}`);
   }
   if (!statistics.combined || typeof statistics.combined !== "object" || Array.isArray(statistics.combined)) {
-    throw new Error(`statistics.combined missing: ${tournament.slug}`);
+    throw new Error(`statistics.combined missing: ${tournament.name}`);
   }
   const expectedPageCount = overviewPages.length === 1 ? 0 : overviewPages.length;
   if (!Array.isArray(statistics.pages) || statistics.pages.length !== expectedPageCount) {
-    throw new Error(`statistics.pages mismatch: ${tournament.slug}`);
+    throw new Error(`statistics.pages mismatch: ${tournament.name}`);
   }
   statistics.pages.forEach((page, index) => {
     if (
@@ -120,18 +120,19 @@ function assertStatistics(tournament, statistics) {
       || typeof page.stats !== "object"
       || Array.isArray(page.stats)
     ) {
-      throw new Error(`statistics.pages[${index}] invalid: ${tournament.slug}`);
+      throw new Error(`statistics.pages[${index}] invalid: ${tournament.name}`);
     }
   });
 }
 
 function renderTournamentInfo(tournament) {
-  const panelId = `tournament_info_${normalizeId(tournament.slug)}`;
+  const panelId = `tournament_info_${normalizeId(tournament.name)}`;
   const links = [...tournament.overviewPages].reverse().map(source => {
     const label = getOverviewPageLabel(source.overviewPage);
-    return `<a class="tournament-info-source" href="${escapeUrl(`https://lol.fandom.com/wiki/${source.overviewPage}`)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); closeTournamentInfoPanels()"><span class="tournament-info-source-main"><span class="tournament-info-source-name">${escapeHtml(label)}</span><span class="tournament-info-source-side"><span class="tournament-info-source-count" aria-label="${source.participantCount} teams">${source.participantCount}</span>${renderExternalLinkIcon()}</span></span><span class="tournament-info-source-meta">${escapeHtml(source.startDate)} → ${escapeHtml(source.endDate)}</span></a>`;
+    const sourceDates = `<span class="tournament-info-source-meta">${escapeHtml(source.startDate)} → ${escapeHtml(source.endDate)}</span>`;
+    return `<a class="tournament-info-source" href="${escapeUrl(`https://lol.fandom.com/wiki/${source.overviewPage}`)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); closeTournamentInfoPanels()"><span class="tournament-info-source-main"><span class="tournament-info-source-name">${escapeHtml(label)}</span><span class="tournament-info-source-side"><span class="tournament-info-source-count" aria-label="${source.participantCount} teams">${source.participantCount}</span>${renderExternalLinkIcon()}</span></span>${sourceDates}</a>`;
   }).join("");
-  return `<span class="tournament-info"><button type="button" class="tournament-info-trigger" aria-label="Tournament information" aria-haspopup="dialog" aria-expanded="false" aria-controls="${panelId}" onclick="event.stopPropagation(); toggleTournamentInfoPanel(this)">${renderInfoIcon()}</button><span id="${panelId}" class="tournament-info-panel" role="dialog" aria-label="${escapeHtml(tournament.name)} information" aria-hidden="true" onclick="event.stopPropagation()"><span class="tournament-info-header"><span class="tournament-info-name">${escapeHtml(tournament.name)}</span><span class="tournament-info-league">${escapeHtml(tournament.leagueShort)}</span></span><span class="tournament-info-dates"><span>${escapeHtml(tournament.startDate)}</span><span aria-hidden="true">→</span><span>${escapeHtml(tournament.endDate)}</span></span><span class="tournament-info-label">FANDOM SOURCES</span><span class="tournament-info-sources">${links}</span></span></span>`;
+  return `<span class="tournament-info"><button type="button" class="tournament-info-trigger" aria-label="Tournament information" aria-haspopup="dialog" aria-expanded="false" aria-controls="${panelId}" onclick="event.stopPropagation(); toggleTournamentInfoPanel(this)">${renderInfoIcon()}</button><span id="${panelId}" class="tournament-info-panel" role="dialog" aria-label="${escapeHtml(tournament.name)} information" aria-hidden="true" onclick="event.stopPropagation()"><span class="tournament-info-header"><span class="tournament-info-name">${escapeHtml(tournament.name)}</span><span class="tournament-title-short tournament-info-league">${escapeHtml(tournament.leagueShort)}</span></span><span class="tournament-info-dates"><time datetime="${escapeHtml(tournament.startDate)}">${escapeHtml(tournament.startDate)}</time><span aria-hidden="true">→</span><time datetime="${escapeHtml(tournament.endDate)}">${escapeHtml(tournament.endDate)}</time></span><span class="tournament-info-source-section"><span class="tournament-info-label">FANDOM SOURCES</span><span class="tournament-info-sources">${links}</span></span></span></span>`;
 }
 
 function renderScopeSummary(scope, stats, isActive) {
@@ -225,16 +226,16 @@ function renderStatistics(tournament, statistics, timeTables) {
   };
 }
 
-export function renderTournamentSection(tournament, statisticsBySlug, timeDistributionBySlug, scheduleSessionsBySlug, isArchive) {
+export function renderTournamentSection(tournament, statisticsByName, timeDistributionByName, scheduleSessionsByName, isArchive) {
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
-  const scheduleSessions = readScheduleSessions(scheduleSessionsBySlug, tournament.slug, isArchive);
-  const statistics = statisticsBySlug[tournament.slug];
+  const scheduleSessions = readScheduleSessions(scheduleSessionsByName, tournament.name, isArchive);
+  const statistics = statisticsByName[tournament.name];
   assertStatistics(tournament, statistics);
-  const timeDistribution = timeDistributionBySlug[tournament.slug];
+  const timeDistribution = timeDistributionByName[tournament.name];
   if (!Array.isArray(timeDistribution)) {
-    throw new Error(`timeDistribution missing: ${tournament.slug}`);
+    throw new Error(`timeDistribution missing: ${tournament.name}`);
   }
-  const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveHome"}_${tournament.slug}`;
+  const artifactKey = `${isArchive ? "ArchiveSnapshot" : "ActiveSnapshot"}_${tournament.name}`;
   const timeTables = {
     combined: renderTimeTable(timeDistribution, artifactKey),
     pages: new Map(overviewPages.map(overviewPage => [
@@ -249,6 +250,7 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeDistri
 
   const phaseIcon = isArchive ? "" : renderSchedulePhaseIcon(resolveSchedulePhase(scheduleSessions));
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;
+  const shortName = `<span class="tournament-title-short">${escapeHtml(tournament.leagueShort)}</span>`;
   const tournamentInfo = renderTournamentInfo(tournament);
   const hasHeadingDetails = Boolean(statisticsLayout.select || statisticsLayout.legend);
   const divider = hasHeadingDetails ? `<span class="heading-meta-divider statistics-heading-divider" aria-hidden="true"></span>` : "";
@@ -257,8 +259,8 @@ export function renderTournamentSection(tournament, statisticsBySlug, timeDistri
   const headerRight = `<div class="title-right-area">${headerStatistics}</div>`;
   const sectionBody = `<div class="wrapper">${statisticsLayout.content}</div>`;
   const statisticsRoot = statisticsLayout.hasScopes
-    ? ` id="statistics_${normalizeId(tournament.slug)}" data-statistics-scope="overall"`
+    ? ` id="statistics_${normalizeId(tournament.name)}" data-statistics-scope="overall"`
     : "";
-  const sectionClass = statisticsLayout.hasScopes ? "home-sec statistics-root" : "home-sec";
-  return `<section class="${sectionClass}"${statisticsRoot} aria-label="${escapeHtml(tournament.name)}"><div class="table-title"><div class="tournament-title-row">${phaseIcon}${titleText}${tournamentInfo}</div>${headerRight}</div>${sectionBody}</section>`;
+  const sectionClass = statisticsLayout.hasScopes ? "active-sec statistics-root" : "active-sec";
+  return `<section class="${sectionClass}"${statisticsRoot} aria-label="${escapeHtml(tournament.name)}"><div class="table-title"><div class="tournament-title-row">${phaseIcon}${shortName}${titleText}${tournamentInfo}</div>${headerRight}</div>${sectionBody}</section>`;
 }

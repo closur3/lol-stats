@@ -18,15 +18,15 @@ function requireText(value, artifactKey, path, allowEmpty = false) {
   return value;
 }
 
-function projectArtifactHistory(artifact, artifactType, tournamentsBySlug) {
-  const initialSlug = artifact?.tournamentSlug || "unknown";
-  const initialArtifactKey = `${artifactType}_${initialSlug}`;
+function projectArtifactHistory(artifact, artifactType, tournamentsByName) {
+  const initialName = artifact?.tournamentName || "unknown";
+  const initialArtifactKey = `${artifactType}_${initialName}`;
   requireObject(artifact, initialArtifactKey, "$");
-  const slug = requireText(artifact.tournamentSlug, initialArtifactKey, "tournamentSlug");
-  const artifactKey = `${artifactType}_${slug}`;
-  const tournament = tournamentsBySlug.get(slug);
+  const tournamentName = requireText(artifact.tournamentName, initialArtifactKey, "tournamentName");
+  const artifactKey = `${artifactType}_${tournamentName}`;
+  const tournament = tournamentsByName.get(tournamentName);
   if (!tournament) throw new Error(`TournamentConfig missing artifact owner: ${artifactKey}`);
-  const tournamentName = requireText(tournament.name, artifactKey, "TournamentConfig.name");
+  requireText(tournament.name, artifactKey, "TournamentConfig.name");
   requireObject(artifact.statistics, artifactKey, "statistics");
   requireObject(artifact.statistics.combined, artifactKey, "statistics.combined");
 
@@ -57,7 +57,6 @@ function projectArtifactHistory(artifact, artifactType, tournamentsBySlug) {
       if (!FinishedResultCodes.has(match.matchResultCode)) continue;
 
       historyEntries.push({
-        tournamentSlug: slug,
         tournamentName,
         tabName,
         matchId,
@@ -83,30 +82,28 @@ function projectArtifactHistory(artifact, artifactType, tournamentsBySlug) {
 function projectUpcomingHistory(activeTournaments, scheduleSessionsMap) {
   if (!Array.isArray(activeTournaments)) throw new Error("activeTournaments must be an array");
   if (!(scheduleSessionsMap instanceof Map)) throw new Error("scheduleSessionsMap must be a Map");
-  const expectedSlugs = new Set(activeTournaments.map(tournament => tournament.slug));
-  for (const slug of scheduleSessionsMap.keys()) {
-    if (!expectedSlugs.has(slug)) throw new Error(`scheduleSessionsMap contains unexpected slug: ${String(slug)}`);
+  const expectedNames = new Set(activeTournaments.map(tournament => tournament.name));
+  for (const tournamentName of scheduleSessionsMap.keys()) {
+    if (!expectedNames.has(tournamentName)) throw new Error(`scheduleSessionsMap contains unexpected tournamentName: ${String(tournamentName)}`);
   }
 
   const historyEntries = [];
   for (const tournament of activeTournaments) {
     if (!tournament || typeof tournament !== "object" || Array.isArray(tournament)) throw new Error("Active tournament must be an object");
-    const { slug, name: tournamentName } = tournament;
-    if (typeof slug !== "string" || slug === "") throw new Error("Active tournament slug missing");
-    if (typeof tournamentName !== "string" || tournamentName === "") throw new Error(`Active tournament name missing: ${slug}`);
-    if (!scheduleSessionsMap.has(slug)) throw new Error(`scheduleSessionsMap missing: ${slug}`);
-    const scheduleSessions = scheduleSessionsMap.get(slug);
-    if (!scheduleSessions || !Array.isArray(scheduleSessions.sessions)) throw new Error(`ScheduleSessions invalid: ${slug}`);
+    const tournamentName = tournament.name;
+    if (typeof tournamentName !== "string" || tournamentName === "") throw new Error("Active tournament name missing");
+    if (!scheduleSessionsMap.has(tournamentName)) throw new Error(`scheduleSessionsMap missing: ${tournamentName}`);
+    const scheduleSessions = scheduleSessionsMap.get(tournamentName);
+    if (!scheduleSessions || !Array.isArray(scheduleSessions.sessions)) throw new Error(`ScheduleSessions invalid: ${tournamentName}`);
 
     for (const session of scheduleSessions.sessions) {
-      const { tab: tabName } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${slug}.${session.sessionKey}`);
+      const { tab: tabName } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${tournamentName}.${session.sessionKey}`);
       for (const match of session.matches) {
         if (match.winner !== null) continue;
         const matchResultCode = match.isLive ? "LIVE" : "NEXT";
         const dateDisplay = timePolicy.formatMonthDayTime(match.scheduledAt);
         const fullDateDisplay = timePolicy.getCurrentAppDateTime(match.scheduledAt).dateString;
         const common = {
-          tournamentSlug: slug,
           tournamentName,
           tabName,
           matchId: match.matchId,
@@ -138,15 +135,15 @@ function projectUpcomingHistory(activeTournaments, scheduleSessionsMap) {
   return historyEntries;
 }
 
-export function buildModalHistory(activeHomes, archiveSnapshots, tournaments, activeTournaments, scheduleSessionsMap) {
-  if (!Array.isArray(activeHomes)) throw new Error("activeHomes must be an array");
+export function buildModalHistory(activeSnapshots, archiveSnapshots, tournaments, activeTournaments, scheduleSessionsMap) {
+  if (!Array.isArray(activeSnapshots)) throw new Error("activeSnapshots must be an array");
   if (!Array.isArray(archiveSnapshots)) throw new Error("archiveSnapshots must be an array");
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
 
   const history = [];
-  const tournamentsBySlug = new Map(tournaments.map(tournament => [tournament.slug, tournament]));
-  activeHomes.forEach(artifact => history.push(...projectArtifactHistory(artifact, "ActiveHome", tournamentsBySlug)));
-  archiveSnapshots.forEach(artifact => history.push(...projectArtifactHistory(artifact, "ArchiveSnapshot", tournamentsBySlug)));
+  const tournamentsByName = new Map(tournaments.map(tournament => [tournament.name, tournament]));
+  activeSnapshots.forEach(artifact => history.push(...projectArtifactHistory(artifact, "ActiveSnapshot", tournamentsByName)));
+  archiveSnapshots.forEach(artifact => history.push(...projectArtifactHistory(artifact, "ArchiveSnapshot", tournamentsByName)));
   history.push(...projectUpcomingHistory(activeTournaments, scheduleSessionsMap));
   history.sort((leftMatch, rightMatch) => (
     rightMatch.timestamp - leftMatch.timestamp

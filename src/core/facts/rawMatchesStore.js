@@ -13,13 +13,13 @@ function assertExactFields(value, expectedFields, label) {
   }
 }
 
-export function assertRawMatches(slug, rawMatches) {
+export function assertRawMatches(tournamentName, rawMatches) {
   if (!Array.isArray(rawMatches)) {
-    throw new Error(`RawMatches must be an array: ${slug}`);
+    throw new Error(`RawMatches must be an array: ${tournamentName}`);
   }
-  if (rawMatches.length === 0) throw new Error(`RawMatches must not be empty: ${slug}`);
+  if (rawMatches.length === 0) throw new Error(`RawMatches must not be empty: ${tournamentName}`);
   rawMatches.forEach((match, matchIndex) => {
-    const matchLabel = `RawMatches_${slug}[${matchIndex}]`;
+    const matchLabel = `RawMatches_${tournamentName}[${matchIndex}]`;
     if (!match || typeof match !== "object" || Array.isArray(match)) throw new Error(`${matchLabel} must be an object`);
     assertExactFields(match, MatchFields, matchLabel);
     if (!Array.isArray(match.games)) throw new Error(`${matchLabel}.games must be an array`);
@@ -31,29 +31,29 @@ export function assertRawMatches(slug, rawMatches) {
   });
 }
 
-export async function readRawMatches(env, slug) {
-  if (!slug) throw new Error("rawMatches slug missing");
-  const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(slug), { type: "json" });
-  if (rawMatches == null) throw new Error(`RawMatches missing: ${slug}`);
-  assertRawMatches(slug, rawMatches);
+export async function readRawMatches(env, tournamentName) {
+  if (!tournamentName) throw new Error("rawMatches tournamentName missing");
+  const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(tournamentName), { type: "json" });
+  if (rawMatches == null) throw new Error(`RawMatches missing: ${tournamentName}`);
+  assertRawMatches(tournamentName, rawMatches);
   return rawMatches;
 }
 
-export async function writeRawMatches(env, slug, rawMatches) {
-  if (!slug) throw new Error("rawMatches slug missing");
-  assertRawMatches(slug, rawMatches);
-  await env["lol-stats-kv"].put(kvKeys.rawMatches(slug), JSON.stringify(rawMatches));
+export async function writeRawMatches(env, tournamentName, rawMatches) {
+  if (!tournamentName) throw new Error("rawMatches tournamentName missing");
+  assertRawMatches(tournamentName, rawMatches);
+  await env["lol-stats-kv"].put(kvKeys.rawMatches(tournamentName), JSON.stringify(rawMatches));
 }
 
-export async function readExistingRawMatchesBySlug(env, tournaments) {
+export async function readExistingRawMatchesByName(env, tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   const entries = await Promise.all(tournaments.map(async (tournament) => {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(slug), { type: "json" });
-    if (rawMatches == null) return [slug, null];
-    assertRawMatches(slug, rawMatches);
-    return [slug, rawMatches];
+    const tournamentName = tournament?.name;
+    if (!tournamentName) throw new Error("Tournament tournamentName missing");
+    const rawMatches = await env["lol-stats-kv"].get(kvKeys.rawMatches(tournamentName), { type: "json" });
+    if (rawMatches == null) return [tournamentName, null];
+    assertRawMatches(tournamentName, rawMatches);
+    return [tournamentName, rawMatches];
   }));
   return Object.fromEntries(entries);
 }
@@ -61,8 +61,8 @@ export async function readExistingRawMatchesBySlug(env, tournaments) {
 export async function assertRawMatchesAvailable(env, tournaments) {
   if (!Array.isArray(tournaments)) throw new Error("tournaments must be an array");
   await Promise.all(tournaments.map(tournament => {
-    const slug = tournament?.slug;
-    if (!slug) throw new Error("Tournament slug missing");
-    return readRawMatches(env, slug);
+    const tournamentName = tournament?.name;
+    if (!tournamentName) throw new Error("Tournament tournamentName missing");
+    return readRawMatches(env, tournamentName);
   }));
 }
