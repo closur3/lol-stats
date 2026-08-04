@@ -13,6 +13,10 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
         --color-primary: #2563eb;
         --color-primary-strong: #1d4ed8;
         --color-primary-soft: #eff6ff;
+        --color-phase-play: #1d4ed8;
+        --color-phase-idle: #5b21b6;
+        --color-phase-done: #166534;
+        --color-phase-offday: #5a6d82;
         --color-danger: #dc2626;
         --gradient-header: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
         --radius-card: 10px;

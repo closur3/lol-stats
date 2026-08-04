@@ -20,10 +20,10 @@ export default `${baseCSS}
     .tournament-title-text { display: flex; align-items: center; min-width: 0; min-height: 20px; color: #0f172a; font-weight: 600; line-height: 20px; }
     .tournament-title-short { flex: 0 0 auto; padding: 2px 7px; border: 1px solid #bfdbfe; border-radius: var(--radius-badge); background: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 800; line-height: 16px; }
     .tournament-title-row .schedule-phase-icon { display: block; width: 18px; height: 18px; flex: 0 0 18px; }
-    .schedule-phase-icon-play { color: #1d4ed8; }
-    .schedule-phase-icon-idle { color: #5b21b6; }
-    .schedule-phase-icon-done { color: #166534; }
-    .schedule-phase-icon-offday { color: #475569; }
+    .schedule-phase-icon-play { color: var(--color-phase-play); }
+    .schedule-phase-icon-idle { color: var(--color-phase-idle); }
+    .schedule-phase-icon-done { color: var(--color-phase-done); }
+    .schedule-phase-icon-offday { color: var(--color-phase-offday); }
     .tournament-info { position: relative; display: inline-flex; flex: 0 0 22px; }
     .table-title .tournament-info-trigger { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-circle); background: transparent; color: #64748b; flex: 0 0 22px; cursor: pointer; transition: color 0.15s, border-color 0.15s, background-color 0.15s, box-shadow 0.15s; }
     .table-title .tournament-info-trigger svg { width: 15px; height: 15px; stroke-width: 2.2; }

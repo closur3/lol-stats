@@ -37,19 +37,19 @@ function normalizeId(value) {
   return String(value).replace(/[^A-Za-z0-9_-]/g, '_');
 }
 
-function renderStatisticsBody(tournament, section, scope, sectionIndex) {
+function renderStatisticsBody(tournament, section, scope, sectionIndex, isArchive) {
   const sortMeta = buildSortMeta(section.stats);
   const rows = section.stats
-    .map(teamStats => renderTeamRow(teamStats, tournament.name, scope, sortMeta, Boolean(section.groupDisplay)))
+    .map(teamStats => renderTeamRow(teamStats, tournament.name, scope, sortMeta, Boolean(section.groupDisplay), isArchive))
     .join("");
   if (!section.groupDisplay) return `<tbody>${rows}</tbody>`;
   return `<tbody class="stats-group-body stats-group-color-${sectionIndex % 4}">${rows}</tbody>`;
 }
 
-function buildTournamentTable(tournament, sections, scope, tableSuffix) {
+function buildTournamentTable(tournament, sections, scope, tableSuffix, isArchive) {
   const tableId = `t_${normalizeId(tournament.name)}_${normalizeId(tableSuffix)}`;
   const bodies = sections
-    .map((section, sectionIndex) => renderStatisticsBody(tournament, section, scope, sectionIndex))
+    .map((section, sectionIndex) => renderStatisticsBody(tournament, section, scope, sectionIndex, isArchive))
     .join("");
   const columnWidths = `<colgroup><col class="width-team"><col span="12" class="width-stat"><col class="width-streak"><col class="width-last"></colgroup>`;
   return `<table id="${tableId}" class="stats-table" data-sort-col="2" data-sort-dir-2="asc">${columnWidths}<thead><tr><th class="team-col" onclick="doSort(0, '${tableId}')">TEAM</th><th colspan="2" onclick="doSort(2, '${tableId}')">BO3 FULLRATE</th><th colspan="2" onclick="doSort(4, '${tableId}')">BO5 FULLRATE</th><th colspan="2" onclick="doSort(5, '${tableId}')">SERIES</th><th colspan="2" onclick="doSort(7, '${tableId}')">GAMES</th><th colspan="2" onclick="doSort(10, '${tableId}')">COME BACK</th><th colspan="2" onclick="doSort(12, '${tableId}')">LOST LEAD</th><th class="col-streak" onclick="doSort(13, '${tableId}')">STREAK</th><th class="col-last" onclick="doSort(14, '${tableId}')">LAST DATE</th></tr></thead>${bodies}</table>`;
@@ -85,10 +85,10 @@ function renderGroupLegend(tournament, page) {
   return `<div class="stats-group-legend" aria-label="Participant groups">${entries}</div>`;
 }
 
-function renderStatisticsView(tournament, page, tablePrefix, statisticsScope = page.overviewPage) {
+function renderStatisticsView(tournament, page, tablePrefix, statisticsScope = page.overviewPage, isArchive = false) {
   const sections = readStatisticsSections(tournament, page);
   return sections.length > 0
-    ? buildTournamentTable(tournament, sections, statisticsScope, tablePrefix)
+    ? buildTournamentTable(tournament, sections, statisticsScope, tablePrefix, isArchive)
     : `<div class="stats-view-empty">NO SCHEDULED TEAMS</div>`;
 }
 
@@ -155,13 +155,13 @@ function renderScopeSelect(scopes) {
   return `<div class="statistics-scope-select compact-menu" data-statistics-scope-select><button type="button" class="statistics-scope-trigger compact-menu-trigger" aria-label="Statistics scope" aria-expanded="false" onclick="event.stopPropagation(); toggleCompactMenu(this)"><span class="compact-menu-value">${escapeHtml(scopes[0].label)}</span></button><div class="statistics-scope-menu compact-menu-popup" role="listbox" aria-hidden="true">${options}</div></div>`;
 }
 
-function renderStatistics(tournament, statistics, timeTables) {
+function renderStatistics(tournament, statistics, timeTables, isArchive) {
   assertStatistics(tournament, statistics);
   const overviewPages = getOverviewPageNames(tournament.overviewPages);
   if (overviewPages.length === 1) {
     const page = { overviewPage: overviewPages[0], stats: statistics.combined };
     return {
-      content: `${renderStatisticsView(tournament, page, "single", "combined")}${timeTables.combined}`,
+      content: `${renderStatisticsView(tournament, page, "single", "combined", isArchive)}${timeTables.combined}`,
       summary: renderTournamentSummary(sortTeams(statistics.combined)),
       legend: renderGroupLegend(tournament, page),
       select: "",
@@ -172,7 +172,9 @@ function renderStatistics(tournament, statistics, timeTables) {
   const combined = renderStatisticsView(
     tournament,
     { overviewPage: "combined", stats: statistics.combined },
-    "combined"
+    "combined",
+    undefined,
+    isArchive
   );
   const visiblePages = statistics.pages
     .map((page, index) => ({ page, index }))
@@ -181,7 +183,7 @@ function renderStatistics(tournament, statistics, timeTables) {
     const visiblePage = visiblePages[0]?.page;
     return visiblePage
       ? {
-          content: `${renderStatisticsView(tournament, visiblePage, "single")}${timeTables.combined}`,
+          content: `${renderStatisticsView(tournament, visiblePage, "single", undefined, isArchive)}${timeTables.combined}`,
           summary: renderTournamentSummary(sortTeams(visiblePage.stats)),
           legend: renderGroupLegend(tournament, visiblePage),
           select: "",
@@ -211,7 +213,7 @@ function renderStatistics(tournament, statistics, timeTables) {
       overviewPage: page.overviewPage,
       stats: page.stats,
       page,
-      content: `${renderStatisticsView(tournament, page, `p${index}`)}${timeTables.pages.get(page.overviewPage)}`
+      content: `${renderStatisticsView(tournament, page, `p${index}`, undefined, isArchive)}${timeTables.pages.get(page.overviewPage)}`
     }))
   ];
   const summaries = scopes.map((scope, index) => renderScopeSummary(scope.key, scope.stats, index === 0)).join("");
@@ -246,7 +248,7 @@ export function renderTournamentSection(tournament, statisticsByName, timeDistri
       )
     ]))
   };
-  const statisticsLayout = renderStatistics(tournament, statistics, timeTables);
+  const statisticsLayout = renderStatistics(tournament, statistics, timeTables, isArchive);
 
   const phaseIcon = isArchive ? "" : renderSchedulePhaseIcon(resolveSchedulePhase(scheduleSessions));
   const titleText = `<span class="tournament-title-text">${escapeHtml(tournament.name)}</span>`;

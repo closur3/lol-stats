@@ -5,7 +5,7 @@ import { dateUtils } from '../../utils/dateUtils.js';
 import { timePolicy } from '../../utils/timePolicy.js';
 import { escapeHtml, escapeJsArg } from '../../utils/htmlEscape.js';
 
-export function renderTeamRow(teamStats, tournamentName, statisticsScope, sortMeta, showGroupMark) {
+export function renderTeamRow(teamStats, tournamentName, statisticsScope, sortMeta, showGroupMark, isArchive) {
   validateTurnaroundStats(teamStats);
   const bo3Rate = rate(teamStats.bestOf3FullMatchCount, teamStats.bestOf3TotalMatchCount);
   const bo5Rate = rate(teamStats.bestOf5FullMatchCount, teamStats.bestOf5TotalMatchCount);
@@ -21,7 +21,7 @@ export function renderTeamRow(teamStats, tournamentName, statisticsScope, sortMe
     ? `<span class="badge badge-win">${teamStats.winStreakCount}W</span>`
     : (teamStats.lossStreakCount > 0 ? `<span class="badge badge-loss">${teamStats.lossStreakCount}L</span>` : "-");
   const lastMatch = teamStats.last ? timePolicy.formatMonthDayTime(teamStats.last) : "-";
-  const lastMatchColor = dateUtils.colorDate(teamStats.last);
+  const lastMatchColor = isArchive ? "hsl(215, 85%, 38%)" : dateUtils.colorDate(teamStats.last);
 
   const tournamentArgument = escapeJsArg(tournamentName);
   const scopeArgument = escapeJsArg(statisticsScope);
