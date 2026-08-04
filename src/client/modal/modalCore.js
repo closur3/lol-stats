@@ -62,7 +62,7 @@ function renderGameResults(gameResults) {
     const resultHtml = gameResults.map(result => {
         if (result !== 'W' && result !== 'L') throw new Error('Invalid game result: ' + result);
         const resultClass = result === 'W' ? 'game-result-win' : 'game-result-loss';
-        return '<span class="game-result ' + resultClass + '">' + result + '</span>';
+        return '<span class="game-result ' + resultClass + '"><span class="game-result-label">' + result + '</span></span>';
     }).join('');
     return '<div class="game-results">' + resultHtml + '</div>';
 }

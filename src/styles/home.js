@@ -325,6 +325,7 @@ export default `${baseCSS}
     .turnaround-reverse-swept { background: #fee2e2; color: #b91c1c; box-shadow: inset 0 0 0 1px #f87171; }
     .game-results { display: flex; justify-content: flex-end; gap: 4px; min-width: 0; padding-right: 12px; }
     .game-result { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: var(--radius-circle); color: #ffffff; font-size: 10px; font-weight: 700; }
+    .game-result-loss .game-result-label { transform: translateX(0.5px); }
     .game-result-win { background: #10b981; }
     .game-result-loss { background: #f43f5e; }
     .best-of-pill { padding: 2px 6px; border-radius: var(--radius-badge); font-size: 13px; font-weight: 600; display: inline-block; line-height: normal; }
