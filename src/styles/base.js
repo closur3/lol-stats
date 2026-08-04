@@ -8,7 +8,7 @@ export default `* { box-sizing: border-box; margin: 0; padding: 0; }
         --color-border: #e2e8f0;
         --color-border-strong: #cbd5e1;
         --color-text: #0f172a;
-        --color-text-muted: #64748b;
+        --color-text-muted: #5a6d82;
         --color-text-faint: #94a3b8;
         --color-primary: #2563eb;
         --color-primary-strong: #1d4ed8;
