@@ -31,6 +31,10 @@ function isFinishedHistoryMatch(match) {
     return match.matchResultCode === 'WIN' || match.matchResultCode === 'LOSS' || match.matchResultCode === 'DRAW';
 }
 
+function isUpcomingHistoryMatch(match) {
+    return match.matchResultCode === 'NEXT';
+}
+
 function renderHistoryResultTag(match) {
     const resultLabel = resultLabelMap[match.matchResultCode];
     if (!resultLabel) throw new Error('Invalid match result code: ' + match.matchResultCode);
@@ -221,8 +225,8 @@ function attachHistoryStatusSwitch(switchHtml) {
 }
 
 function renderTeamHistoryModal(titleParts, teamName, history, grouped) {
-    const finishedMatches = sortHistoryMatches(history.filter(isFinishedHistoryMatch), true);
-    const upcomingMatches = sortHistoryMatches(history.filter(match => !isFinishedHistoryMatch(match)), false);
+    const finishedMatches = sortHistoryMatches(history.filter(match => !isUpcomingHistoryMatch(match)), true);
+    const upcomingMatches = sortHistoryMatches(history.filter(isUpcomingHistoryMatch), false);
     if (grouped) {
         const activeView = finishedMatches.length > 0 ? 'finished' : 'upcoming';
         setModalTitle('MATCH HISTORY', titleParts);
@@ -248,7 +252,7 @@ function renderTeamHistoryModal(titleParts, teamName, history, grouped) {
 
 function openTeam(teamName) {
     const history = requireModalHistory().filter(match => match.teamName === teamName);
-    const finishedCount = history.filter(isFinishedHistoryMatch).length;
+    const finishedCount = history.filter(match => !isUpcomingHistoryMatch(match)).length;
     renderTeamHistoryModal([
         { kind: 'text', text: teamName },
         { kind: 'divider', text: '·' },
@@ -315,8 +319,8 @@ function openH2H(team1Name, team2Name) {
             (match.teamName === team2Name && match.opponentName === team1Name)
         )
     );
-    const finishedHistory = sortHistoryMatches(h2hHistory.filter(isFinishedHistoryMatch), true);
-    const upcomingHistory = sortHistoryMatches(h2hHistory.filter(match => !isFinishedHistoryMatch(match)), false);
+    const finishedHistory = sortHistoryMatches(h2hHistory.filter(match => !isUpcomingHistoryMatch(match)), true);
+    const upcomingHistory = sortHistoryMatches(h2hHistory.filter(isUpcomingHistoryMatch), false);
     const record = countH2HWins(finishedHistory, team1Name, team2Name);
     const titleParts = [{ kind: 'text', text: team1Name + ' vs ' + team2Name }];
     if (finishedHistory.length > 0) {

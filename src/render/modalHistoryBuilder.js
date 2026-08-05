@@ -54,7 +54,7 @@ function projectArtifactHistory(artifact, artifactType, tournamentsByName) {
         const value = match.matchResultCode;
         throwSchemaIssue({ artifactKey, path: `${matchPath}.matchResultCode`, kind: value == null ? "missing" : "invalid", expected: "WIN, LOSS, DRAW, LIVE, or NEXT", ...(value == null ? {} : { actual: describeSchemaValue(value) }) });
       }
-      if (!FinishedResultCodes.has(match.matchResultCode)) continue;
+      if (match.matchResultCode === "NEXT") continue;
 
       historyEntries.push({
         tournamentName,
@@ -99,8 +99,8 @@ function projectUpcomingHistory(activeTournaments, scheduleSessionsMap) {
     for (const session of scheduleSessions.sessions) {
       const { tab: tabName } = parseScheduleSessionKey(session.sessionKey, `ScheduleSessions.${tournamentName}.${session.sessionKey}`);
       for (const match of session.matches) {
-        if (match.winner !== null) continue;
-        const matchResultCode = match.isLive ? "LIVE" : "NEXT";
+        if (match.winner !== null || match.isLive) continue;
+        const matchResultCode = "NEXT";
         const dateDisplay = timePolicy.formatMonthDayTime(match.scheduledAt);
         const fullDateDisplay = timePolicy.getCurrentAppDateTime(match.scheduledAt).dateString;
         const common = {
