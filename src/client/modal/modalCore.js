@@ -140,7 +140,9 @@ function renderMatchCard(match, detailsHtml = '', resultTagHtml = '') {
     }
 
     const bestOfTag = '<span class="best-of-pill bo' + match.bestOf + '">BO' + match.bestOf + '</span>';
-    const scoreBoxClass = match.isFullLength ? 'match-card-score-box is-full' : 'match-card-score-box';
+    const scoreBoxClass = match.matchResultCode === 'LIVE'
+        ? 'match-card-score-box is-live'
+        : (match.isFullLength ? 'match-card-score-box is-full' : 'match-card-score-box');
     return '<div class="match-item match-card">' +
         '<div class="match-card-meta"><span>' + escapeModalHtml(dateParts[0]) + '<b>' + escapeModalHtml(dateParts[1]) + '</b></span>' +
         '<span class="match-card-tags">' + resultTagHtml + bestOfTag + '</span></div>' +

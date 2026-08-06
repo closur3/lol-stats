@@ -259,6 +259,7 @@ export default `${baseCSS}
     .match-card-team-loser { color: #94a3b8; }
     .match-card-score-box { display: flex; align-items: center; justify-content: center; min-height: 30px; border: 1px solid #e2e8f0; border-radius: var(--radius-control); background: #ffffff; }
     .match-card-score-box.is-full { border-color: #fdba74; background: #fff7ed; box-shadow: inset 0 0 0 1px #fed7aa; }
+    .match-card-score-box.is-live { border-color: #38bdf8; background: #f0f9ff; box-shadow: inset 0 0 0 1px #7dd3fc; }
     .match-card-score { color: #1e293b; font-size: 16px; font-weight: 750; font-variant-numeric: tabular-nums; }
     .match-card-score.is-live { color: #10b981; }
     .match-card-score-box.is-full .match-card-score { color: #c2410c; }
@@ -308,7 +309,7 @@ export default `${baseCSS}
     .match-result-loss { color: #e11d48; }
     .match-result-draw { color: #d97706; }
     .match-result-next { color: #64748b; }
-    .match-result-live { color: #0284c7; }
+    .match-result-live { color: #38bdf8; }
     .turnaround-event { display: flex; justify-content: flex-start; min-width: 0; padding-left: 12px; }
     .turnaround-badge { display: inline-flex; align-items: center; min-height: 18px; padding: 2px 7px; border: 1px solid transparent; border-radius: var(--radius-badge); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; }
     .turnaround-icon { display: inline-flex; align-items: center; margin-right: 4px; font-size: 11px; line-height: 1; letter-spacing: 0; }
