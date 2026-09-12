@@ -1,27 +1,6 @@
 {
-    "configDigest": "ad8cb903cfd9127f12f1ca8c8e14c031566ec5bebb60012c0101669161532686",
+    "configDigest": "375ba71e77829d798b12da69142de83e32d5af97b8dd2090a4555277cb4e9e44",
     "active": [
-        {
-            "name": "2026 LPL Regional Finals",
-            "leagueShort": "WCS",
-            "overviewPages": [
-                {
-                    "overviewPage": "LPL/2026 Season/Regional Finals",
-                    "startDate": "2026-09-17",
-                    "endDate": "2026-09-19",
-                    "participantCount": 4
-                }
-            ],
-            "startDate": "2026-09-17",
-            "endDate": "2026-09-19",
-            "teamMap": {
-                "Invictus Gaming": "iG",
-                "JD Gaming": "JDG",
-                "Team WE": "WE",
-                "Top Esports": "TES"
-            },
-            "participantGroups": []
-        },
         {
             "name": "2026 LPL Split 3",
             "leagueShort": "LPL",
@@ -149,6 +128,27 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "2026 LPL Regional Finals",
+            "leagueShort": "WCS",
+            "overviewPages": [
+                {
+                    "overviewPage": "LPL/2026 Season/Regional Finals",
+                    "startDate": "2026-09-17",
+                    "endDate": "2026-09-19",
+                    "participantCount": 4
+                }
+            ],
+            "startDate": "2026-09-17",
+            "endDate": "2026-09-19",
+            "teamMap": {
+                "Invictus Gaming": "iG",
+                "JD Gaming": "JDG",
+                "Team WE": "WE",
+                "Top Esports": "TES"
+            },
+            "participantGroups": []
         }
     ],
     "archive": [
