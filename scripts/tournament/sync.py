@@ -1565,6 +1565,25 @@ def project_tournament_candidates(main_events: dict) -> list:
     ]
 
 
+def partition_complete_candidates(candidates: list) -> dict:
+    complete = []
+    deferred = []
+    for tournament in candidates:
+        participant_count = max(
+            source["participantCount"]
+            for source in tournament["overviewPages"]
+        )
+        team_count = len(tournament["teamMap"])
+        if team_count == participant_count:
+            complete.append(tournament)
+            continue
+        deferred.append({
+            "overviewPage": tournament["name"],
+            "missingFields": [f"teamMap {team_count}/{participant_count}"],
+        })
+    return {"complete": complete, "deferred": deferred}
+
+
 def resolve_config_transition(old_active: list, old_archive: list, candidates: list) -> dict:
     assert_candidate_names(candidates, old_active, old_archive)
     return build_membership_transition(
@@ -1627,42 +1646,6 @@ def log_active_table(active: list) -> None:
         log(f"└────┴{'─'*28}┴─────────────┴────────────┴────────────┘")
     else:
         log("  (无准入赛事)")
-
-
-def attach_transition_team_maps(
-    session,
-    url: str,
-    transition: dict,
-) -> None:
-    attach_team_maps(
-        session,
-        url,
-        transition["active"] + transition["archive"],
-    )
-
-
-def attach_transition_participant_counts(
-    session,
-    url: str,
-    transition: dict,
-) -> None:
-    attach_participant_counts(
-        session,
-        url,
-        transition["active"] + transition["archive"],
-    )
-
-
-def attach_transition_participant_groups(
-    session,
-    url: str,
-    transition: dict,
-) -> None:
-    attach_participant_groups(
-        session,
-        url,
-        transition["active"] + transition["archive"],
-    )
 
 
 def build_manifest(old_active: list, transition: dict) -> dict:
@@ -1844,6 +1827,13 @@ def run_tournament_config_sync():
         tab_memberships["scopeByPage"],
         groups["mainEvents"],
     )
+    candidates = project_tournament_candidates(groups["mainEvents"])
+    assert_candidate_names(candidates, old_active, old_archive)
+    tournament_metadata_scope = candidates + old_archive
+    attach_team_maps(session, url, tournament_metadata_scope)
+    attach_participant_counts(session, url, tournament_metadata_scope)
+    candidate_partition = partition_complete_candidates(candidates)
+    incomplete_pages.extend(candidate_partition["deferred"])
     log_group_summary(
         len(source_rows),
         classification,
@@ -1851,14 +1841,19 @@ def run_tournament_config_sync():
         incomplete_pages,
     )
 
-    candidates = project_tournament_candidates(groups["mainEvents"])
-    transition = resolve_config_transition(old_active, old_archive, candidates)
+    transition = resolve_config_transition(
+        old_active,
+        old_archive,
+        candidate_partition["complete"],
+    )
     log_lifecycle_summary(transition)
     log_active_table(transition["active"])
 
-    attach_transition_team_maps(session, url, transition)
-    attach_transition_participant_counts(session, url, transition)
-    attach_transition_participant_groups(session, url, transition)
+    attach_participant_groups(
+        session,
+        url,
+        transition["active"] + transition["archive"],
+    )
     assert_configs_disjoint(transition["active"], transition["archive"])
     manifest = build_manifest(old_active, transition)
     write_config(transition["active"], transition["archive"])
