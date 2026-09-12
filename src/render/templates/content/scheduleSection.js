@@ -10,12 +10,12 @@ function isFinishedTab(sessions) {
   return sessions.every(session => session.matches.every(match => match.isFinished));
 }
 
-function hasReachedTabStartDate(sessions, today) {
-  const startDate = sessions
+function readTabEndDate(sessions) {
+  return sessions
     .flatMap(session => session.matches)
     .map(match => match.date)
-    .sort()[0];
-  return startDate <= today;
+    .sort()
+    .at(-1);
 }
 
 function renderScheduleSessions(sessions, status, combinedStatsByName) {
@@ -42,14 +42,11 @@ function renderScheduleSessions(sessions, status, combinedStatsByName) {
     const heading = `<div class="sch-tab-heading">${escapeHtml(tabName || "Schedule")}</div>`;
     return { tabSessions, heading, sessionHtml };
   });
-  const tabStates = tabs.map((tab, index) => {
-    const nextTab = tabs[index + 1];
-    return {
-      ...tab,
-      isPast: status === "past"
-        || Boolean(nextTab) && isFinishedTab(tab.tabSessions) && hasReachedTabStartDate(nextTab.tabSessions, today)
-    };
-  });
+  const tabStates = tabs.map(tab => ({
+    ...tab,
+    isPast: status === "past"
+      || isFinishedTab(tab.tabSessions) && readTabEndDate(tab.tabSessions) < today
+  }));
   const openTabs = tabStates
     .filter(tab => !tab.isPast)
     .map(tab => `<section class="sch-tab">${tab.heading}${tab.sessionHtml}</section>`)
