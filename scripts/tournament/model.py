@@ -240,6 +240,17 @@ def sort_tournaments(tournaments: list) -> list:
     )
 
 
+def sort_active_tournaments(tournaments: list, current_date) -> list:
+    started = []
+    preheating = []
+    for tournament in tournaments:
+        if parse_date(tournament["startDate"]) > current_date:
+            preheating.append(tournament)
+        else:
+            started.append(tournament)
+    return sort_tournaments(started) + sort_tournaments(preheating)
+
+
 def build_membership_transition(
     old_active: list,
     old_archive: list,
@@ -253,7 +264,7 @@ def build_membership_transition(
         lifecycle = classify_lifecycle(candidate, current_date, preheat_days, expire_days)
         classified[lifecycle].append(candidate)
 
-    active = sort_tournaments(classified["active"])
+    active = sort_active_tournaments(classified["active"], current_date)
     old_active_by_name = {tournament["name"]: tournament for tournament in old_active}
     active_names = {tournament["name"] for tournament in active}
     expired_by_name = {tournament["name"]: tournament for tournament in classified["expired"]}
