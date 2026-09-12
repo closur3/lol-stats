@@ -1,5 +1,5 @@
 {
-    "configDigest": "1f1905e8b1d33a6794a4b0ae305c25a95513cf677dac036dde5fb0a6cc3f8708",
+    "configDigest": "ad8cb903cfd9127f12f1ca8c8e14c031566ec5bebb60012c0101669161532686",
     "active": [
         {
             "name": "2026 LPL Regional Finals",
@@ -15,6 +15,7 @@
             "startDate": "2026-09-17",
             "endDate": "2026-09-19",
             "teamMap": {
+                "Invictus Gaming": "iG",
                 "JD Gaming": "JDG",
                 "Team WE": "WE",
                 "Top Esports": "TES"
