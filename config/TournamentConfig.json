@@ -1,6 +1,29 @@
 {
-    "configDigest": "375ba71e77829d798b12da69142de83e32d5af97b8dd2090a4555277cb4e9e44",
+    "configDigest": "33e9a7a49448f1da5a3f0ee5dc16996a2ca2ac19abde602f9a6bd38dac365322",
     "active": [
+        {
+            "name": "2026 LPL Regional Finals",
+            "leagueShort": "WCS",
+            "overviewPages": [
+                {
+                    "overviewPage": "LPL/2026 Season/Regional Finals",
+                    "startDate": "2026-09-17",
+                    "endDate": "2026-09-19",
+                    "participantCount": 4
+                }
+            ],
+            "startDate": "2026-09-17",
+            "endDate": "2026-09-19",
+            "teamMap": {
+                "Invictus Gaming": "iG",
+                "JD Gaming": "JDG",
+                "Team WE": "WE",
+                "Top Esports": "TES"
+            },
+            "participantGroups": []
+        }
+    ],
+    "archive": [
         {
             "name": "2026 LPL Split 3",
             "leagueShort": "LPL",
@@ -61,97 +84,6 @@
                 }
             ]
         },
-        {
-            "name": "2026 LCK Rounds 1-2 + 3-4",
-            "leagueShort": "LCK",
-            "overviewPages": [
-                {
-                    "overviewPage": "LCK/2026 Season/Rounds 1-2",
-                    "startDate": "2026-04-01",
-                    "endDate": "2026-05-31",
-                    "participantCount": 10
-                },
-                {
-                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
-                    "startDate": "2026-07-29",
-                    "endDate": "2026-08-23",
-                    "participantCount": 10
-                },
-                {
-                    "overviewPage": "LCK/2026 Season/Season Play-In",
-                    "startDate": "2026-08-26",
-                    "endDate": "2026-08-28",
-                    "participantCount": 4
-                },
-                {
-                    "overviewPage": "LCK/2026 Season/Season Playoffs",
-                    "startDate": "2026-08-29",
-                    "endDate": "2026-09-13",
-                    "participantCount": 6
-                }
-            ],
-            "startDate": "2026-04-01",
-            "endDate": "2026-09-13",
-            "teamMap": {
-                "BNK FEARX": "BFX",
-                "DN SOOPers": "DNS",
-                "Dplus Kia": "DK",
-                "Gen.G": "GEN",
-                "HANJIN BRION": "BRO",
-                "Hanwha Life Esports": "HLE",
-                "KT Rolster": "KT",
-                "Kiwoom DRX": "KRX",
-                "Nongshim RedForce": "NS",
-                "T1": "T1"
-            },
-            "participantGroups": [
-                {
-                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
-                    "groupDisplay": "Legend",
-                    "teams": [
-                        "Dplus Kia",
-                        "Gen.G",
-                        "Hanwha Life Esports",
-                        "KT Rolster",
-                        "T1"
-                    ]
-                },
-                {
-                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
-                    "groupDisplay": "Rise",
-                    "teams": [
-                        "BNK FEARX",
-                        "DN SOOPers",
-                        "HANJIN BRION",
-                        "Kiwoom DRX",
-                        "Nongshim RedForce"
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "2026 LPL Regional Finals",
-            "leagueShort": "WCS",
-            "overviewPages": [
-                {
-                    "overviewPage": "LPL/2026 Season/Regional Finals",
-                    "startDate": "2026-09-17",
-                    "endDate": "2026-09-19",
-                    "participantCount": 4
-                }
-            ],
-            "startDate": "2026-09-17",
-            "endDate": "2026-09-19",
-            "teamMap": {
-                "Invictus Gaming": "iG",
-                "JD Gaming": "JDG",
-                "Team WE": "WE",
-                "Top Esports": "TES"
-            },
-            "participantGroups": []
-        }
-    ],
-    "archive": [
         {
             "name": "2026 Esports World Cup",
             "leagueShort": "EWC",
@@ -296,6 +228,74 @@
                         "Oh My God",
                         "ThunderTalk Gaming",
                         "Ultra Prime"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "2026 LCK Rounds 1-2 + 3-4",
+            "leagueShort": "LCK",
+            "overviewPages": [
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 1-2",
+                    "startDate": "2026-04-01",
+                    "endDate": "2026-05-31",
+                    "participantCount": 10
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
+                    "startDate": "2026-07-29",
+                    "endDate": "2026-08-23",
+                    "participantCount": 10
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Season Play-In",
+                    "startDate": "2026-08-26",
+                    "endDate": "2026-08-28",
+                    "participantCount": 4
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Season Playoffs",
+                    "startDate": "2026-08-29",
+                    "endDate": "2026-09-13",
+                    "participantCount": 6
+                }
+            ],
+            "startDate": "2026-04-01",
+            "endDate": "2026-09-13",
+            "teamMap": {
+                "BNK FEARX": "BFX",
+                "DN SOOPers": "DNS",
+                "Dplus Kia": "DK",
+                "Gen.G": "GEN",
+                "HANJIN BRION": "BRO",
+                "Hanwha Life Esports": "HLE",
+                "KT Rolster": "KT",
+                "Kiwoom DRX": "KRX",
+                "Nongshim RedForce": "NS",
+                "T1": "T1"
+            },
+            "participantGroups": [
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
+                    "groupDisplay": "Legend",
+                    "teams": [
+                        "Dplus Kia",
+                        "Gen.G",
+                        "Hanwha Life Esports",
+                        "KT Rolster",
+                        "T1"
+                    ]
+                },
+                {
+                    "overviewPage": "LCK/2026 Season/Rounds 3-4",
+                    "groupDisplay": "Rise",
+                    "teams": [
+                        "BNK FEARX",
+                        "DN SOOPers",
+                        "HANJIN BRION",
+                        "Kiwoom DRX",
+                        "Nongshim RedForce"
                     ]
                 }
             ]
