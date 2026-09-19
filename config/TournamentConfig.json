@@ -1,6 +1,7 @@
 {
-    "configDigest": "33e9a7a49448f1da5a3f0ee5dc16996a2ca2ac19abde602f9a6bd38dac365322",
-    "active": [
+    "configDigest": "f7e8aa217f71e534df671c2ebb7a2a698dd575d5b239fdea41679d3e53b9bd7d",
+    "active": [],
+    "archive": [
         {
             "name": "2026 LPL Regional Finals",
             "leagueShort": "WCS",
@@ -21,9 +22,7 @@
                 "Top Esports": "TES"
             },
             "participantGroups": []
-        }
-    ],
-    "archive": [
+        },
         {
             "name": "2026 LPL Split 3",
             "leagueShort": "LPL",
