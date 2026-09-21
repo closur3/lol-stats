@@ -11,6 +11,12 @@ import { selectActiveSchedulesByTournament } from '../core/projection/activeSche
 
 export async function renderActiveFromFacts(env) {
   const { active: tournaments, archive: archiveTournaments } = await readTournamentConfig(env);
+
+  if (!tournaments.length) {
+    const cronInfo = await readCronInfo(env);
+    return renderPageShell("LoL Stats", `<div class="arch-content arch-empty-msg">No tournaments configured</div>`, "active", env.GITHUB_TIME, env.GITHUB_SHA, cronInfo, { showTournamentSelector: false });
+  }
+
   const [activeSnapshots, archiveResult] = await Promise.all([
     readActiveSnapshots(env, tournaments),
     readAvailableArchiveSnapshots(env, archiveTournaments)
@@ -50,7 +56,7 @@ export async function renderArchiveFromFacts(env) {
 
   if (!tournaments.length) {
     const cronInfo = await readCronInfo(env);
-    return renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No archive data available</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, cronInfo);
+    return renderPageShell("Archive", `<div class="arch-content arch-empty-msg">No tournaments configured</div>`, "archive", env.GITHUB_TIME, env.GITHUB_SHA, cronInfo, { showTournamentSelector: false });
   }
 
   const [archiveResult, activeResult] = await Promise.all([

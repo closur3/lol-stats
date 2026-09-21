@@ -171,7 +171,8 @@ export default `${baseCSS}
     .badge-win { border-color: #6ee7b7; background: #10b981; }
     .badge-loss { border-color: #fda4af; background: #f43f5e; }
     .schedule-root { margin: 28px 0; }
-    .schedule-root:not(:has(> .schedule-section)):not(:has(.statistics-scope-schedule:not(.is-hidden) .schedule-section)) { display: none; }
+    .schedule-root:not(:has(> .schedule-section)):not(:has(> .schedule-empty)):not(:has(.statistics-scope-schedule:not(.is-hidden) .schedule-section)) { display: none; }
+    .schedule-empty { text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; }
     .schedule-section { margin-top: 0; }
     .sch-fandom-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
     .sch-tab { display: flex; flex-direction: column; min-width: 0; border: 1px solid #e2e8f0; border-radius: var(--radius-card); background: #ffffff; overflow: hidden; }

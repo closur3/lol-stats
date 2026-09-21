@@ -331,7 +331,9 @@ export function renderTournamentSection(tournament, statisticsByName, timeDistri
   const scopeClass = statisticsLayout.select ? " has-scope-select" : "";
   const headerStatistics = `<div class="statistics-heading-meta${scopeClass}">${statisticsLayout.summary}${divider}${statisticsLayout.select}${statisticsLayout.legend}</div>`;
   const headerRight = `<div class="title-right-area">${headerStatistics}</div>`;
-  const scheduleBody = statisticsLayout.schedule ? `<div class="schedule-root">${statisticsLayout.schedule}</div>` : "";
+  const scheduleBody = statisticsLayout.schedule
+    ? `<div class="schedule-root">${statisticsLayout.schedule}</div>`
+    : `<div class="schedule-root"><div class="schedule-empty">No matches scheduled</div></div>`;
   const sectionBody = `<div class="wrapper">${statisticsLayout.content}</div>`;
   const statisticsRoot = statisticsLayout.hasScopes
     ? ` id="statistics_${normalizeId(tournament.name)}" data-statistics-scope="${escapeHtml(statisticsLayout.defaultScope)}"`
