@@ -1,6 +1,28 @@
 {
-    "configDigest": "f7e8aa217f71e534df671c2ebb7a2a698dd575d5b239fdea41679d3e53b9bd7d",
-    "active": [],
+    "configDigest": "582f384dac6570550481857ac1f5e8d5da66ad632c85828bd1cd2326f813144d",
+    "active": [
+        {
+            "name": "2026 Worlds Play-In",
+            "leagueShort": "WCS",
+            "overviewPages": [
+                {
+                    "overviewPage": "2026 Season World Championship/Play-In",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-10-18",
+                    "participantCount": 4
+                }
+            ],
+            "startDate": "2026-10-15",
+            "endDate": "2026-10-18",
+            "teamMap": {
+                "Cloud9": "C9",
+                "FURIA": "FUR",
+                "Karmine Corp": "KC",
+                "MVK Esports": "MVK"
+            },
+            "participantGroups": []
+        }
+    ],
     "archive": [
         {
             "name": "2026 LPL Regional Finals",
