@@ -1,6 +1,7 @@
 {
-    "configDigest": "582f384dac6570550481857ac1f5e8d5da66ad632c85828bd1cd2326f813144d",
-    "active": [
+    "configDigest": "a75448ce421be18f7f0af734aaac06bd584db5853177d843f5e3280a11578d9c",
+    "active": [],
+    "archive": [
         {
             "name": "2026 Worlds Play-In",
             "leagueShort": "WCS",
@@ -21,9 +22,7 @@
                 "MVK Esports": "MVK"
             },
             "participantGroups": []
-        }
-    ],
-    "archive": [
+        },
         {
             "name": "2026 LPL Regional Finals",
             "leagueShort": "WCS",
