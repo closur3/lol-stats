@@ -1,6 +1,40 @@
 {
-    "configDigest": "a75448ce421be18f7f0af734aaac06bd584db5853177d843f5e3280a11578d9c",
-    "active": [],
+    "configDigest": "eb6d82878a5211995d04d91ba4ca263de03f4e5fbaf2f7e2ca701f21191e78c7",
+    "active": [
+        {
+            "name": "2026 Worlds Main Event",
+            "leagueShort": "WCS",
+            "overviewPages": [
+                {
+                    "overviewPage": "2026 Season World Championship/Main Event",
+                    "startDate": "2026-10-23",
+                    "endDate": "2026-11-14",
+                    "participantCount": 16
+                }
+            ],
+            "startDate": "2026-10-23",
+            "endDate": "2026-11-14",
+            "teamMap": {
+                "Anyone's Legend": "AL",
+                "Bilibili Gaming": "BLG",
+                "CTBC Flying Oyster": "CFO",
+                "Dplus Kia": "DK",
+                "G2 Esports": "G2",
+                "Gen.G": "GEN",
+                "Hanwha Life Esports": "HLE",
+                "Invictus Gaming": "iG",
+                "Karmine Corp": "KC",
+                "LYON (2024 American Team)": "LYON",
+                "LØS": "LOS",
+                "Movistar KOI": "MKOI",
+                "T1": "T1",
+                "Team Liquid": "TL",
+                "Team Secret Whales": "TSW",
+                "Top Esports": "TES"
+            },
+            "participantGroups": []
+        }
+    ],
     "archive": [
         {
             "name": "2026 Worlds Play-In",
