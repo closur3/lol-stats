@@ -5,7 +5,7 @@ import re
 import sys
 import time
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -26,8 +26,6 @@ from model import (
     parse_date,
 )
 
-now = datetime.now()
-today_dt = now.date()
 TOURNAMENT_CONFIG_FILE = "config/TournamentConfig.json"
 SYNC_CONFIG_FILE = "config/TournamentSync.json"
 MEDIAWIKI_TITLE_BATCH_SIZE = 50
@@ -444,10 +442,10 @@ def tournament_query(where: str) -> dict:
         "order_by": "DateStart ASC, OverviewPage ASC",
     }
 
-def build_discovery_window_where() -> str:
-    latest_start = today_dt + timedelta(days=SYNC_CONFIG["discoveryDays"])
+def build_discovery_window_where(today_utc) -> str:
+    latest_start = today_utc + timedelta(days=SYNC_CONFIG["discoveryDays"])
     return " AND ".join([
-        f"Date >= {cargo_string_literal(today_dt, 'Date')}",
+        f"Date >= {cargo_string_literal(today_utc, 'Date')}",
         f"DateStart <= {cargo_string_literal(latest_start, 'DateStart')}",
     ])
 
@@ -455,9 +453,9 @@ def chunked(values: list, size: int):
     for index in range(0, len(values), size):
         yield values[index:index + size]
 
-def fetch_tournament_source_rows(session, url: str, old_active: list) -> list:
+def fetch_tournament_source_rows(session, url: str, old_active: list, today_utc) -> list:
     discovery_rows = deduplicate_source_rows(
-        fetch_cargo(session, url, tournament_query(build_discovery_window_where()))
+        fetch_cargo(session, url, tournament_query(build_discovery_window_where(today_utc)))
     )
     discovery_pages = {item["title"]["OverviewPage"] for item in discovery_rows}
     active_pages = {
@@ -1584,25 +1582,25 @@ def partition_complete_candidates(candidates: list) -> dict:
     return {"complete": complete, "deferred": deferred}
 
 
-def resolve_config_transition(old_active: list, old_archive: list, candidates: list) -> dict:
+def resolve_config_transition(old_active: list, old_archive: list, candidates: list, today_utc) -> dict:
     assert_candidate_names(candidates, old_active, old_archive)
     return build_membership_transition(
         old_active,
         old_archive,
         candidates,
-        today_dt,
+        today_utc,
         SYNC_CONFIG["preheatDays"],
         SYNC_CONFIG["expireDays"],
     )
 
 
-def log_lifecycle_summary(transition: dict) -> None:
+def log_lifecycle_summary(transition: dict, today_utc) -> None:
     expired_events = [
-        (tournament["name"], (today_dt - parse_date(tournament["endDate"])).days)
+        (tournament["name"], (today_utc - parse_date(tournament["endDate"])).days)
         for tournament in transition["expired"]
     ]
     upcoming_events = [
-        (tournament["name"], (parse_date(tournament["startDate"]) - today_dt).days)
+        (tournament["name"], (parse_date(tournament["startDate"]) - today_utc).days)
         for tournament in transition["tooEarly"]
     ]
     active = transition["active"]
@@ -1615,7 +1613,7 @@ def log_lifecycle_summary(transition: dict) -> None:
         lines.append(f"├─ ⏰ 已过期 ({len(expired_events)} 条):")
         for i, (name, days) in enumerate(expired_events):
             prefix = "│  ├─" if i < len(expired_events) - 1 else "│  └─"
-            lines.append(f"{prefix} {name:<26} │ 已结束 {days:>3} 天")
+            lines.append(f"{prefix} {name:<26} │ 已过期 {days:>3} 天")
 
     if upcoming_events:
         prefix = "├─" if active else "└─"
@@ -1762,12 +1760,15 @@ def write_github_outputs(commit_message: str) -> None:
 
 def run_tournament_config_sync():
     start_time = time.time()
+    # Fandom tournament dates are date-only facts aligned with MatchSchedule.DateTimeUTC.
+    # Membership decisions therefore use the UTC calendar, never the runner/local timezone.
+    today_utc = datetime.now(timezone.utc).date()
     old_config = load_tournament_config(TOURNAMENT_CONFIG_FILE)
     old_active = old_config["active"]
     old_archive = old_config["archive"]
     url = "https://lol.fandom.com/api.php"
     session = make_session(url, os.environ.get("FANDOM_BOT_USERNAME"), os.environ.get("FANDOM_BOT_PASSWORD"))
-    discovery_rows = fetch_tournament_source_rows(session, url, old_active)
+    discovery_rows = fetch_tournament_source_rows(session, url, old_active, today_utc)
     active_overview_pages = {
         page
         for tournament in old_active
@@ -1845,8 +1846,9 @@ def run_tournament_config_sync():
         old_active,
         old_archive,
         candidate_partition["complete"],
+        today_utc,
     )
-    log_lifecycle_summary(transition)
+    log_lifecycle_summary(transition, today_utc)
     log_active_table(transition["active"])
 
     attach_participant_groups(

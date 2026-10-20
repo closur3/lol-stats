@@ -25,13 +25,6 @@ function readNowTimestamp(now) {
   return timestamp;
 }
 
-function readDate(value, label) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error(`${label} must be an ISO date`);
-  }
-  return value;
-}
-
 function readOverviewPages(tournament, label) {
   if (!Array.isArray(tournament.overviewPages) || tournament.overviewPages.length === 0) {
     throw new Error(`${label}.overviewPages must be a nonempty array`);
@@ -42,10 +35,7 @@ function readOverviewPages(tournament, label) {
     if (typeof entry.overviewPage !== "string" || entry.overviewPage.trim() === "") {
       throw new Error(`${overviewLabel}.overviewPage must be a string`);
     }
-    const startDate = readDate(entry.startDate, `${overviewLabel}.startDate`);
-    const endDate = readDate(entry.endDate, `${overviewLabel}.endDate`);
-    if (startDate > endDate) throw new Error(`${overviewLabel} date range is invalid`);
-    return { overviewPage: entry.overviewPage, startDate, endDate };
+    return { overviewPage: entry.overviewPage };
   });
   if (new Set(overviewPages.map(entry => entry.overviewPage)).size !== overviewPages.length) {
     throw new Error(`${label}.overviewPages contains duplicate overviewPage`);
@@ -93,9 +83,15 @@ function readScheduleSessions(scheduleSessionsMap, tournamentName) {
   return assertScheduleSessionsFields(label, { sessions: stored.sessions });
 }
 
-function getOverviewStatus(overview, today) {
-  if (overview.endDate < today) return "past";
-  if (overview.startDate > today) return "future";
+// Overview status follows runtime match facts. TournamentConfig dates are UTC date-only
+// and cannot decide whether a cross-midnight match is still live in the app timezone.
+function getOverviewStatus(sessions, today, label) {
+  const matches = sessions.flatMap(session => session.matches);
+  if (matches.length === 0) throw new Error(`${label} schedule sessions must not be empty`);
+  const firstDate = matches.reduce((first, match) => match.date < first ? match.date : first, matches[0].date);
+  const lastDate = matches.reduce((last, match) => match.date > last ? match.date : last, matches[0].date);
+  if (matches.every(match => match.isFinished) && lastDate < today) return "past";
+  if (firstDate > today) return "future";
   return "current";
 }
 
@@ -132,14 +128,15 @@ function appendScheduleSessions(sessionsByOverviewPage, sessions, tournament, ov
 function buildTournamentSchedules(tournament, sessions, today) {
   const sessionsByOverviewPage = new Map(tournament.overviewPages.map(overview => [
     overview.overviewPage,
-    { status: getOverviewStatus(overview, today), sessions: [] }
+    { sessions: [] }
   ]));
   appendScheduleSessions(sessionsByOverviewPage, sessions, tournament, tournament.overviewPages);
   return tournament.overviewPages.map(overview => {
     const schedule = sessionsByOverviewPage.get(overview.overviewPage);
+    const label = `ScheduleSessions.${tournament.name}.${overview.overviewPage}`;
     return {
       overviewPage: overview.overviewPage,
-      status: schedule.status,
+      status: getOverviewStatus(schedule.sessions, today, label),
       sessions: schedule.sessions
     };
   });
