@@ -1,5 +1,5 @@
 {
-    "configDigest": "eb6d82878a5211995d04d91ba4ca263de03f4e5fbaf2f7e2ca701f21191e78c7",
+    "configDigest": "65be747ab0af0d472c5074bc5d13935057d0ff4f00896d94c6e5c13982b3ca7e",
     "active": [
         {
             "name": "2026 Worlds Main Event",
@@ -22,7 +22,7 @@
                 "G2 Esports": "G2",
                 "Gen.G": "GEN",
                 "Hanwha Life Esports": "HLE",
-                "Invictus Gaming": "iG",
+                "Invictus Gaming": "IG",
                 "Karmine Corp": "KC",
                 "LYON (2024 American Team)": "LYON",
                 "LØS": "LOS",
@@ -71,7 +71,7 @@
             "startDate": "2026-09-17",
             "endDate": "2026-09-19",
             "teamMap": {
-                "Invictus Gaming": "iG",
+                "Invictus Gaming": "IG",
                 "JD Gaming": "JDG",
                 "Team WE": "WE",
                 "Top Esports": "TES"
@@ -101,7 +101,7 @@
                 "Anyone's Legend": "AL",
                 "Bilibili Gaming": "BLG",
                 "EDward Gaming": "EDG",
-                "Invictus Gaming": "iG",
+                "Invictus Gaming": "IG",
                 "JD Gaming": "JDG",
                 "LGD Gaming": "LGD",
                 "LNG Esports": "LNG",
@@ -245,7 +245,7 @@
                 "Anyone's Legend": "AL",
                 "Bilibili Gaming": "BLG",
                 "EDward Gaming": "EDG",
-                "Invictus Gaming": "iG",
+                "Invictus Gaming": "IG",
                 "JD Gaming": "JDG",
                 "LGD Gaming": "LGD",
                 "LNG Esports": "LNG",
@@ -402,7 +402,7 @@
                 "Anyone's Legend": "AL",
                 "Bilibili Gaming": "BLG",
                 "EDward Gaming": "EDG",
-                "Invictus Gaming": "iG",
+                "Invictus Gaming": "IG",
                 "JD Gaming": "JDG",
                 "LGD Gaming": "LGD",
                 "LNG Esports": "LNG",
