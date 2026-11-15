@@ -1,6 +1,7 @@
 {
-    "configDigest": "65be747ab0af0d472c5074bc5d13935057d0ff4f00896d94c6e5c13982b3ca7e",
-    "active": [
+    "configDigest": "842b561ab6a530f9ce0baf59ba71895328d6cd917622410b0ad8dca26b6e2b91",
+    "active": [],
+    "archive": [
         {
             "name": "2026 Worlds Main Event",
             "leagueShort": "WCS",
@@ -33,9 +34,7 @@
                 "Top Esports": "TES"
             },
             "participantGroups": []
-        }
-    ],
-    "archive": [
+        },
         {
             "name": "2026 Worlds Play-In",
             "leagueShort": "WCS",
