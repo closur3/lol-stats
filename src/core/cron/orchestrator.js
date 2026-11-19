@@ -17,7 +17,7 @@ import { assertRawMatchesAvailable } from "../facts/rawMatchesStore.js";
 import { commitActiveLogWrites } from "../updater/logPersistence.js";
 import { commitActiveUpdate } from "../updater/activeUpdateCommitter.js";
 import { rejectActiveUpdate } from "../updater/activeUpdateRejection.js";
-import { baselineCron } from "../scheduler/cronBuckets.js";
+import { isBaselineCron } from "../scheduler/cronBuckets.js";
 import { readScheduleState, ScheduleStateSchemaError } from "../scheduler/scheduleState.js";
 
 function filterTournaments(tournaments, names) {
@@ -80,31 +80,29 @@ async function ensureScheduledExecutionState(env, tournaments, scheduledTime, sc
   }
 }
 
-async function runBaselineCron(env, event, scheduleOptions) {
-  const reconcileResult = await auditTournamentRuntime(env, event.scheduledTime, scheduleOptions);
+export async function runBaselineTick(env, scheduledTime) {
+  const scheduleOptions = resolveScheduleOptions(env);
+  const reconcileResult = await auditTournamentRuntime(env, scheduledTime, scheduleOptions);
   const tournaments = reconcileResult.config.active;
   await assertRawMatchesAvailable(env, tournaments);
   if (reconcileResult.scheduleRuntime === null) {
-    await runScheduleMaintenance(env, tournaments, event.scheduledTime, scheduleOptions);
+    await runScheduleMaintenance(env, tournaments, scheduledTime, scheduleOptions);
   }
-  await runRevisionPath(env, tournaments, { type: "all" }, event.scheduledTime, scheduleOptions);
+  await runRevisionPath(env, tournaments, { type: "all" }, scheduledTime, scheduleOptions);
 }
 
-async function runBucketCron(env, event, scheduleOptions) {
-  const reconcileResult = await reconcileTournamentRuntime(env, event.scheduledTime, scheduleOptions);
+export async function runBucketTick(env, scheduledTime, cron) {
+  const scheduleOptions = resolveScheduleOptions(env);
+  const reconcileResult = await reconcileTournamentRuntime(env, scheduledTime, scheduleOptions);
   const tournaments = reconcileResult.config.active;
   const scheduleState = reconcileResult.scheduleRuntime?.scheduleState
-    ?? await ensureScheduledExecutionState(env, tournaments, event.scheduledTime, scheduleOptions);
-  const target = resolveScheduledExecutionTarget(scheduleState, tournaments, event.scheduledTime, event.cron);
+    ?? await ensureScheduledExecutionState(env, tournaments, scheduledTime, scheduleOptions);
+  const target = resolveScheduledExecutionTarget(scheduleState, tournaments, scheduledTime, cron);
   if (target.type === "none") return;
-  await runRevisionPath(env, tournaments, target, event.scheduledTime, scheduleOptions);
+  await runRevisionPath(env, tournaments, target, scheduledTime, scheduleOptions);
 }
 
 export async function runCron(env, event) {
-  const scheduleOptions = resolveScheduleOptions(env);
-  if (event.cron === baselineCron) {
-    await runBaselineCron(env, event, scheduleOptions);
-    return;
-  }
-  await runBucketCron(env, event, scheduleOptions);
+  if (isBaselineCron(event.cron)) return runBaselineTick(env, event.scheduledTime);
+  return runBucketTick(env, event.scheduledTime, event.cron);
 }
