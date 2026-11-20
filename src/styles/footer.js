@@ -26,6 +26,7 @@ export default `.build-footer { margin-top: auto; text-align: center; padding: 1
     .footer-cron-schedules { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-muted); }
     .footer-cron-schedule { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; }
     .footer-cron-schedule + .footer-cron-schedule { border-top: 1px solid var(--color-border); }
+    .footer-cron-empty { padding: 8px 10px; color: var(--color-text-faint); font-size: 10px; font-weight: 500; }
     .footer-cron-schedule code { color: var(--color-text); font-size: 11px; font-weight: 600; line-height: 1.35; white-space: nowrap; }
     .footer-cron-cst { display: grid; grid-template-columns: 5ch max-content max-content; column-gap: 1ch; color: var(--color-text-muted); font-size: 10px; font-weight: 500; line-height: 1.35; white-space: nowrap; }
 `;

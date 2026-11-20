@@ -39,6 +39,13 @@ function assertFooterCronInfo(cronInfo) {
 
 function renderFooterCronSchedules(container, schedules) {
   container.replaceChildren();
+  if (schedules.length === 0) {
+    var empty = document.createElement('span');
+    empty.className = 'footer-cron-empty';
+    empty.textContent = 'No cron schedules';
+    container.appendChild(empty);
+    return;
+  }
   schedules.forEach(function(schedule) {
     var item = document.createElement('span');
     var expression = document.createElement('code');

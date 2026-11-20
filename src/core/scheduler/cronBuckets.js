@@ -1,12 +1,10 @@
 import { assertScheduleControl, isNowInCronWindow } from "./scheduleState.js";
 import { timePolicy } from "../../utils/timePolicy.js";
 
-export const everyTwoHoursBaselineCron = "0 */2 * * *";
-// 00:00 CST: the app day boundary and the same minute as the daily Config sync.
-// Overlapping runs are safe: a stale schedule write aborts in assertCurrentActiveScope.
-export const dailyBaselineCron = "0 16 * * *";
+// The heartbeat that exists while at least one tournament is active. With no active tournament
+// the Worker applies no Cron at all: the Config writer wakes it through /reconcile-tournaments.
+export const baselineCron = "0 */2 * * *";
 
-const baselineCrons = [everyTwoHoursBaselineCron, dailyBaselineCron];
 const maxActiveCrons = 4;
 const maxTotalCrons = 5;
 const cronDayOrder = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
@@ -16,7 +14,7 @@ function toActiveCron(startHour, endHour, day) {
 }
 
 export function isBaselineCron(expression) {
-  return baselineCrons.includes(expression);
+  return expression === baselineCron;
 }
 
 function mergeIntervals(intervals) {
@@ -78,11 +76,8 @@ export function buildCronsFromScheduleState(state, tournaments) {
   if (controlCount !== tournaments.length) {
     throw new Error(`ScheduleState scope does not match tournaments: ${controlCount}/${tournaments.length}`);
   }
-  if (activeCrons.some(isBaselineCron)) {
-    throw new Error("Active cron must not collide with a baseline cron");
-  }
-  const baseline = tournaments.length === 0 ? dailyBaselineCron : everyTwoHoursBaselineCron;
-  const schedules = Array.from(new Set([baseline, ...activeCrons]));
+  if (tournaments.length === 0) return [];
+  const schedules = Array.from(new Set([baselineCron, ...activeCrons]));
   if (schedules.length > maxTotalCrons) {
     throw new Error(`Cloudflare cron limit exceeded: ${schedules.length}/${maxTotalCrons}`);
   }

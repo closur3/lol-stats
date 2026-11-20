@@ -23,6 +23,7 @@ function renderNavBar(activeMode = "active") {
 }
 
 function renderCronSchedules(cronInfo) {
+  if (cronInfo.schedules.length === 0) return '<span class="footer-cron-empty">No cron schedules</span>';
   return cronInfo.schedules.map(schedule => `<span class="footer-cron-schedule"><code>${escapeHtml(schedule.expression)}</code><span class="footer-cron-cst"><span class="footer-cron-period">${escapeHtml(schedule.cst.period)}</span><span>${escapeHtml(schedule.cst.timeRange)}</span><span>(${escapeHtml(schedule.cst.frequency)}, CST)</span></span></span>`).join("");
 }
 

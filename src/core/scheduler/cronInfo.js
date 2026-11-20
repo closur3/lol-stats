@@ -1,5 +1,5 @@
 import { kvKeys } from "../../infrastructure/kv/keyFactory.js";
-import { dailyBaselineCron, everyTwoHoursBaselineCron, isBaselineCron } from "./cronBuckets.js";
+import { baselineCron, isBaselineCron } from "./cronBuckets.js";
 import { readScheduleState, ScheduleStateSchemaError } from "./scheduleState.js";
 
 const weekdayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -10,11 +10,8 @@ function padHour(hour) {
 }
 
 function formatCstSchedule(expression) {
-  if (expression === everyTwoHoursBaselineCron) {
+  if (expression === baselineCron) {
     return { period: "Daily", timeRange: "00:00–22:00", frequency: "every 2 hours" };
-  }
-  if (expression === dailyBaselineCron) {
-    return { period: "Daily", timeRange: "00:00", frequency: "once a day" };
   }
   const match = expression.match(/^2-58\/2 (\d{1,2})-(\d{1,2}) \* \* (sun|mon|tue|wed|thu|fri|sat)$/);
   if (!match) throw new Error(`Unsupported applied Cron expression: ${expression}`);
