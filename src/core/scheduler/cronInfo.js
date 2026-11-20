@@ -14,16 +14,14 @@ function formatCstSchedule(expression) {
     return { period: "Daily", timeRange: "00:00–22:00", frequency: "every 2 hours" };
   }
   const match = expression.match(/^2-58\/2 (\d{1,2})-(\d{1,2}) \* \* (sun|mon|tue|wed|thu|fri|sat)$/);
-  if (!match) throw new Error(`Unsupported applied Cron expression: ${expression}`);
+  if (!match) return null;
   const startUtcHour = Number(match[1]);
   const endUtcHour = Number(match[2]);
   const utcWeekday = weekdayNames.indexOf(match[3]);
-  if (startUtcHour > endUtcHour || endUtcHour > 23 || utcWeekday < 0) {
-    throw new Error(`Invalid applied Cron expression: ${expression}`);
-  }
+  if (startUtcHour > endUtcHour || endUtcHour > 23 || utcWeekday < 0) return null;
   const startDayOffset = Math.floor((startUtcHour + 8) / 24);
   const endDayOffset = Math.floor((endUtcHour + 8) / 24);
-  if (startDayOffset !== endDayOffset) throw new Error(`Applied Cron crosses a CST day boundary: ${expression}`);
+  if (startDayOffset !== endDayOffset) return null;
   const cstWeekday = weekdayLabels[(utcWeekday + startDayOffset) % weekdayLabels.length];
   const startCstHour = (startUtcHour + 8) % 24;
   const endCstHour = (endUtcHour + 8) % 24;
@@ -32,6 +30,10 @@ function formatCstSchedule(expression) {
     timeRange: `${padHour(startCstHour)}:02–${padHour(endCstHour)}:58`,
     frequency: "every 2 minutes"
   };
+}
+
+function unknownCstSchedule() {
+  return { period: "Unknown", timeRange: "—", frequency: "unrecognized" };
 }
 
 export function assertCronInfo(value) {
@@ -76,7 +78,12 @@ export function buildCronInfo(appliedCrons) {
   }
   return assertCronInfo({
     status: appliedCrons.some(expression => !isBaselineCron(expression)) ? "active" : "idle",
-    schedules: appliedCrons.map(expression => ({ expression, cst: formatCstSchedule(expression) }))
+    schedules: appliedCrons.map(expression => {
+      const cst = formatCstSchedule(expression);
+      if (cst !== null) return { expression, cst };
+      console.warn(`[CRON:INFO] unrecognized applied Cron expression: ${expression}`);
+      return { expression, cst: unknownCstSchedule() };
+    })
   });
 }
 
@@ -93,8 +100,8 @@ export async function readCronInfo(env) {
     }
     return buildCronInfo(state.appliedCrons);
   } catch (error) {
-    if (!(error instanceof ScheduleStateSchemaError)) throw error;
-    console.error(`[CRON:INFO] unavailable: ${error.message}`);
+    const reason = error instanceof ScheduleStateSchemaError ? "invalid state" : "read failed";
+    console.error(`[CRON:INFO] unavailable: ${reason}: ${error.message}`);
     return unavailableCronInfo();
   }
 }
